@@ -327,7 +327,7 @@
     <input id="gsearch" type="search" placeholder="Search or answer a call — name, street, phone…" autocomplete="off" aria-label="Search customers">
     <div class="gresults" id="gresults"></div>
   </div>
-  <span class="demo-flag">PROTOTYPE</span>
+  <span class="demo-flag" id="verflag">PROTOTYPE</span>
   <button class="whobtn" onclick="openWhoModal()" title="Who's using this">
     <span id="wholabel">Kim</span> <span style="opacity:.7;font-size:.7rem">▾</span>
   </button>
@@ -436,6 +436,8 @@ const DEFAULT_SETTINGS={
   lockMinutes:15,
 };
 const ROLES={office:"Office", owner:"Owner", field:"Field"};
+/* shown in the corner so it's never a mystery which version is in front of you */
+const APP_VERSION="1.9";
 let SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let TAX_RATE=SETTINGS.taxRate/100;
 let RATES=SETTINGS.rates;
@@ -622,7 +624,7 @@ let SCHED = {
 
 /* ---- Leads / quotes pipeline ----
    Estimates: package mailed → customer calls back if yes (no contract, no deposit).
-   Treatments: the office calls with the price → yes, or "I will get back to you".
+   Treatments: the office calls with the price → yes, or "I'll get back to you".
    The "get back to you" ones are the money that disappears today. */
 let LEADS=[
   {id:101, cid:10, type:"Estimate",  desc:"Crawlspace vapor barrier + insulation",   amount:2400, status:"Thinking", sentISO:iso(addDays(TODAY,-23)), note:"Sent photo package. Liked it — checking with her son."},
@@ -781,7 +783,8 @@ function openWhoModal(){
       <span style="flex:1"></span><button class="btn ghost mini" onclick="closeModal();location.hash='settings';router()">Manage people</button></div>
   </div>`);
 }
-function updateWhoLabel(){ const el=document.getElementById('wholabel'); if(el) el.textContent=CURRENT_USER; }
+function updateWhoLabel(){ const el=document.getElementById('wholabel'); if(el) el.textContent=CURRENT_USER;
+  const v=document.getElementById('verflag'); if(v) v.textContent='TRIAL v'+APP_VERSION; }
 /* Durable-data policy: this key is STABLE from here on. App updates change code,
    never data. Sample data seeds only when no saved data exists; "Reset sample data"
    on the Data screen is the only thing that discards state. */
@@ -4176,7 +4179,8 @@ function viewData(){
   main.innerHTML="";
   main.appendChild(el(`<div>
     <h2 class="screen-title">Data</h2>
-    <p class="sub">What lives on this device, how to bring the real customer list in, and how to keep it safe.</p>
+    <p class="sub">What lives on this device, how to bring the real customer list in, and how to keep it safe.
+      <span class="muted">You're on <b>version ${APP_VERSION}</b>. If you were told there's a newer one and this still says ${APP_VERSION}, hold Shift and press the refresh button.</span></p>
     <div class="clist" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr));margin-bottom:1rem">
       <div class="card pad"><div style="font-size:1.55rem;font-weight:800">${CUST.length}</div><div style="font-weight:600;font-size:.9rem">Customers</div></div>
       <div class="card pad"><div style="font-size:1.55rem;font-weight:800">${jobs}</div><div style="font-weight:600;font-size:.9rem">Booked jobs</div></div>
