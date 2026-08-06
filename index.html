@@ -422,8 +422,26 @@ const DEFAULT_SETTINGS={
     depApplicator:"21653B", contractor:"13VH08162800", business:"97253A" },
   taxRate:6.625,                       // percent, as she'd type it
   techs:[{name:"Bryan", lic:"4842"},{name:"Michael", lic:""}],
-  rates:{ "Yard spray":75,"Dryer vent cleaning":75,"Gutter cleaning":75,
-    "General pest service":75,"Termite inspection":85,"Gutter brackets":75 },
+  /* Every service on the render sheet lives here, so ticking any box on the
+     sheet pulls a price. 0 means "priced on the job" — the crawl-space and
+     building-envelope work is quoted on site, so the system must not invent a
+     number. The five documented flat rates are the only ones filled in. */
+  rates:{
+    // termite
+    "Annual Termite Inspection":85, "Termite Treatment":0, "Termite Bait Stations":0,
+    "WDI Report":0, "Prior Termite Damage":0, "Inspection Only - No Warranty":0,
+    // crawl space & building envelope (quoted on site)
+    "Vapor Barrier":0, "Foundation Vents":0, "Pipe Insulation":0, "Floor Insulation":0,
+    "Mold/Fungus":0, "Waterproofing":0,
+    // pest & general
+    "Pest Control Service General":75, "Monthly/Quarterly Service":0, "Chimney Cap":0,
+    "Hidden Gutter Brackets":0, "Roof Tar":0, "Gutter Cleaning":75,
+    // home services
+    "Dryer Vent Cleaning":75, "Dryer Vent Conversion":0, "Dryer Vent Hood":0,
+    "Crawl Space Cleaning":0, "Exclusion Services":0, "Inaccessible Areas":0,
+    // her own shorthand that isn't a box on the sheet
+    "Yard spray":75,
+  },
   silvertonTermiteInspection:75,       // the one documented pricing exception
   preschedBase:65,                     // the program rate per spray
   extraPrice:75,                       // bundled extras on a pre-schedule letter
@@ -437,14 +455,21 @@ const DEFAULT_SETTINGS={
 };
 const ROLES={office:"Office", owner:"Owner", field:"Field"};
 /* shown in the corner so it's never a mystery which version is in front of you */
-const APP_VERSION="1.10";
+const APP_VERSION="1.11";
 let SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let TAX_RATE=SETTINGS.taxRate/100;
 let RATES=SETTINGS.rates;
 let TECHS=SETTINGS.techs.map(t=>t.name);
 function applySettings(){
   TAX_RATE=(parseFloat(SETTINGS.taxRate)||0)/100;
-  RATES=SETTINGS.rates||{};
+  /* an update must never leave her price book missing services that are on the
+     sheet — add any that aren't there, without touching prices she has set */
+  SETTINGS.rates=SETTINGS.rates||{};
+  const gone=SETTINGS.ratesRemoved||[];        // don't resurrect ones she deleted
+  Object.keys(DEFAULT_SETTINGS.rates).forEach(k=>{
+    if(SETTINGS.rates[k]==null && gone.indexOf(k)<0) SETTINGS.rates[k]=DEFAULT_SETTINGS.rates[k];
+  });
+  RATES=SETTINGS.rates;
   TECHS=(SETTINGS.techs||[]).map(t=>t.name).filter(Boolean);
   if(!TECHS.length) TECHS=["Bryan"];
 }
@@ -452,8 +477,17 @@ const techLic=name=>{const t=(SETTINGS.techs||[]).find(x=>x.name===name); return
 const techLabel=name=>{const l=techLic(name); return l?`${name} #${l}`:name;};
 const CO=()=>SETTINGS.company;
 function priceFor(service,area){
-  if(service==="Termite inspection" && area==="Sil") return SETTINGS.silvertonTermiteInspection;
-  return RATES[service] ?? 0;
+  /* the documented Silverton exception, under either naming */
+  const n=normSvc(service);
+  if((n===normSvc("Termite inspection")||n===normSvc("Annual Termite Inspection")) && area==="Sil")
+    return SETTINGS.silvertonTermiteInspection;
+  if(RATES[service]!=null) return RATES[service];
+  /* tolerate the sheet's wording vs the price book's wording */
+  const alias=FORM_SERVICE_ALIAS[service];
+  if(alias && RATES[alias]!=null) return RATES[alias];
+  const back=Object.keys(FORM_SERVICE_ALIAS).find(k=>FORM_SERVICE_ALIAS[k]===service);
+  if(back && RATES[back]!=null) return RATES[back];
+  return 0;
 }
 const money=n=>"$"+(+n||0).toFixed(2);
 
@@ -4134,7 +4168,23 @@ function addRate(){
   if(!name||isNaN(price)){ toast('Give it a name and a price'); return; }
   SETTINGS.rates[name]=price; applySettings(); persist(); toast(`${name} added at ${money(price)}`); viewSettings();
 }
-function removeRate(service){ delete SETTINGS.rates[service]; applySettings(); persist(); viewSettings(); }
+function removeRate(service){
+  delete SETTINGS.rates[service];
+  SETTINGS.ratesRemoved=SETTINGS.ratesRemoved||[];
+  if(FORM_SERVICES.flat().indexOf(service)>=0 && SETTINGS.ratesRemoved.indexOf(service)<0)
+    SETTINGS.ratesRemoved.push(service);      // remember, so applySettings doesn't put it back
+  persist(); RATES=SETTINGS.rates; viewSettings();
+}
+function addMissingRates(){
+  const added=[];
+  FORM_SERVICES.flat().forEach(s=>{
+    if(SETTINGS.rates[s]==null){ SETTINGS.rates[s]=DEFAULT_SETTINGS.rates[s]??0; added.push(s); }
+  });
+  SETTINGS.ratesRemoved=(SETTINGS.ratesRemoved||[]).filter(s=>added.indexOf(s)<0);
+  applySettings(); persist();
+  toast(added.length?`${added.length} service${added.length>1?'s':''} added to the price book`:'Nothing was missing');
+  viewSettings();
+}
 function setTech(i,field,val){
   if(!SETTINGS.techs[i])return;
   val=sanitizeField(val);
@@ -4259,18 +4309,37 @@ function viewSettings(){
     </div>
 
     <div class="card pad" style="margin-bottom:1rem">
-      <div style="font-weight:700;margin-bottom:.5rem">The price book</div>
-      <div class="muted" style="font-size:.82rem;margin-bottom:.5rem">What each service costs by default. You can still change any price on the job itself.</div>
-      ${Object.keys(SETTINGS.rates).map(s=>`<div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-bottom:.35rem">
-        <div style="flex:1">${escapeHtml(s)}</div>
-        <input class="search" style="margin:0;width:7rem" inputmode="decimal" value="${v(SETTINGS.rates[s])}" onchange="setRate('${s.replace(/'/g,"\\'")}',this.value)">
-        <button class="btn ghost mini" onclick="removeRate('${s.replace(/'/g,"\\'")}')">✕</button>
-      </div>`).join("")}
-      <div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-top:.5rem">
-        <input id="newrate_name" class="search" style="margin:0;flex:1" placeholder="new service">
-        <input id="newrate_price" class="search" style="margin:0;width:7rem" inputmode="decimal" placeholder="price">
+      <div style="font-weight:700;margin-bottom:.3rem">The price book</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.6rem">Every service on the render sheet is here, so ticking a box on a sheet always pulls a price. Leave one at <b>0</b> and the sheet shows it blank for you to write in — that's right for the work Bryan prices on site.</div>
+      ${(()=>{
+        const rate=s=>`<div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-bottom:.3rem">
+          <div style="flex:1;font-size:.88rem">${escapeHtml(s)}${(+SETTINGS.rates[s])?'':' <span class="pill" style="font-size:.6rem">priced on the job</span>'}</div>
+          <input class="search" style="margin:0;width:6.5rem" inputmode="decimal" value="${v(SETTINGS.rates[s])}" onchange="setRate('${s.replace(/'/g,"\\'")}',this.value)">
+          <button class="btn ghost mini" onclick="removeRate('${s.replace(/'/g,"\\'")}')" title="Remove">✕</button>
+        </div>`;
+        const groups=[["Termite work",FORM_SERVICES[0]],["Crawl space &amp; the building",FORM_SERVICES[1]],
+          ["Pest &amp; general",FORM_SERVICES[2]],["Dryer vents &amp; the rest",FORM_SERVICES[3]]];
+        const onForm=FORM_SERVICES.flat();
+        const extras=Object.keys(SETTINGS.rates).filter(s=>onForm.indexOf(s)<0);
+        const missing=onForm.filter(s=>SETTINGS.rates[s]==null);
+        return `
+        ${missing.length?`<div class="banner" style="margin:0 0 .6rem;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">
+          ${missing.length} service${missing.length>1?'s are':' is'} on the sheet with no price at all: ${missing.map(escapeHtml).join(', ')}.
+          <button class="btn mini" style="margin-left:.4rem" onclick="addMissingRates()">Add them</button></div>`:''}
+        ${groups.map(([title,list])=>`
+          <div style="font-weight:700;font-size:.72rem;letter-spacing:.5px;color:var(--ink-soft);margin:.7rem 0 .3rem">${title.toUpperCase()}</div>
+          ${list.filter(s=>SETTINGS.rates[s]!=null).map(rate).join("")}`).join("")}
+        ${extras.length?`<div style="font-weight:700;font-size:.72rem;letter-spacing:.5px;color:var(--ink-soft);margin:.7rem 0 .3rem">YOUR OWN NAMES <span class="muted" style="font-weight:400;text-transform:none">— not boxes on the sheet</span></div>
+          ${extras.map(rate).join("")}`:''}`;})()}
+      <div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-top:.7rem">
+        <input id="newrate_name" class="search" style="margin:0;flex:1" placeholder="another service">
+        <input id="newrate_price" class="search" style="margin:0;width:6.5rem" inputmode="decimal" placeholder="price">
         <button class="btn mini" onclick="addRate()">Add</button>
       </div>
+      <div class="muted" style="font-size:.76rem;margin-top:.5rem">${(()=>{
+        const onForm=FORM_SERVICES.flat();
+        const priced=onForm.filter(s=>+SETTINGS.rates[s]>0).length;
+        return `${priced} of ${onForm.length} sheet services have a set price. The rest get written in on the job.`;})()}</div>
     </div>
 
     <div class="card pad">
