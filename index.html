@@ -437,7 +437,7 @@ const DEFAULT_SETTINGS={
 };
 const ROLES={office:"Office", owner:"Owner", field:"Field"};
 /* shown in the corner so it's never a mystery which version is in front of you */
-const APP_VERSION="1.9";
+const APP_VERSION="1.10";
 let SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let TAX_RATE=SETTINGS.taxRate/100;
 let RATES=SETTINGS.rates;
@@ -1968,6 +1968,110 @@ const FORM_MATERIALS=[
   ["Spectre PS","1021-2567"],["Termidor Foam","499-563"],["Premise Foam","432-1391"],
   ["Tengard SFR","70506-6"],["Bora Care","64405-1"],["Advion Ant Bait","100-1485"],["Advion Ant Gel","100-1498"],
 ];
+/* On the paper form, ticking a service and writing its price in the margin are
+   the SAME act — so a tick here is a priced line item, not a separate list. */
+const FORM_SERVICE_ALIAS={
+  "Pest Control Service General":"General pest service",
+  "Annual Termite Inspection":"Termite inspection",
+  "Dryer Vent Cleaning":"Dryer vent cleaning",
+  "Gutter Cleaning":"Gutter cleaning",
+  "Hidden Gutter Brackets":"Gutter brackets",
+};
+const normSvc=s=>String(s||"").toLowerCase().replace(/[^a-z]/g,"");
+function formServicePrice(formName,area){
+  const alias=FORM_SERVICE_ALIAS[formName];
+  if(alias){ const p=priceFor(alias,area); if(p) return p; }
+  const direct=priceFor(formName,area); if(direct) return direct;
+  return 0;                     // the big work gets priced by hand, as it does now
+}
+function lineMatchesForm(lineService,formName){
+  const a=normSvc(lineService), b=normSvc(formName), al=normSvc(FORM_SERVICE_ALIAS[formName]||"");
+  if(a===b || (al&&a===al)) return true;
+  if(a==="yardspray" && formName==="Pest Control Service General") return true;  // legacy naming
+  return false;
+}
+const serviceTicked=(slot,area,formName)=>slotLines(slot,area).some(l=>lineMatchesForm(l.service,formName));
+/* one place that writes the line items, so the money, the header and the
+   compliance list can never drift apart */
+function writeSlotLines(s,lines){
+  if(!lines.length) return;
+  s.service=lines[0].service; s.price=lines[0].price;
+  if(lines.length>1) s.lines=lines; else delete s.lines;
+  s.big=lines.some(l=>/treatment|crawlspace|vapor|insulation|waterproof/i.test(l.service));
+  const st=sheetState(s);
+  st.services=FORM_SERVICES.flat().filter(f=>lines.some(l=>lineMatchesForm(l.service,f)));
+}
+function toggleServiceLine(date,tech,tm,formName){
+  const s=slotAt(date,tech,tm);
+  if(!s){ toast("That appointment has moved — reopen the sheet"); return; }
+  const c=byIdSafe(s.cid), area=propAt(c,s.pid).area;
+  const lines=slotLines(s,area).slice();
+  const i=lines.findIndex(l=>lineMatchesForm(l.service,formName));
+  if(i>=0){
+    if(lines.length===1){ toast("A sheet needs at least one service on it"); return; }
+    lines.splice(i,1);
+  } else {
+    lines.push({service:formName, price:formServicePrice(formName,area)});
+  }
+  writeSlotLines(s,lines); persist(); router();
+}
+function setLinePrice(date,tech,tm,idx,val){
+  const s=slotAt(date,tech,tm); if(!s)return;
+  const c=byIdSafe(s.cid), area=propAt(c,s.pid).area;
+  const lines=slotLines(s,area).slice();
+  if(!lines[idx])return;
+  lines[idx].price=Math.max(0,parseFloat(val)||0);
+  writeSlotLines(s,lines); persist(); router();
+}
+
+/* ---- the tech and the time live on the BOOKING, so changing them moves the
+   job in the book — with the same no-double-booking guard as rescheduling ---- */
+function sheetSetTech(date,tech,tm,newTech){
+  if(newTech===tech) return;
+  const day=SCHED[date]||{};
+  if((day[newTech]||{})[tm] && day[newTech][tm].cid){
+    toast(`${newTech} already has ${tm}:00 — use “Change or cancel” to move it`); return;
+  }
+  const s=day[tech][tm];
+  (SCHED[date][newTech]=SCHED[date][newTech]||{})[tm]=s;
+  delete SCHED[date][tech][tm];
+  const c=byIdSafe(s.cid);
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Given to ${newTech} — ${fmtDayShort(date)} ${tm}:00`});
+  persist(); toast(`${newTech}'s job now`);
+  location.hash=`render/${s.cid}/${encodeURIComponent(newTech)}/${date}/${tm}`;
+}
+function openSheetTimeModal(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s)return;
+  const day=(SCHED[date]||{})[tech]||{};
+  const am=["7","8","9","10","11"], pm=["1","2","3","4"];
+  const btn=t=>{
+    const taken=day[t]&&day[t].cid&&t!==tm;
+    return `<button class="btn ${t===tm?'':'ghost'} mini" ${taken?'disabled':''}
+      onclick="sheetSetTime('${date}','${encodeURIComponent(tech)}','${tm}','${t}')">${t}:00${taken?' — taken':''}</button>`;
+  };
+  showModal(`<div class="pad">
+    <div style="font-weight:800;font-size:1.05rem">What time?</div>
+    <div class="muted" style="margin:.15rem 0 .7rem;font-size:.85rem">${escapeHtml(tech)} · ${fmtDayShort(date)}. Moving it also moves it in the book.</div>
+    <div style="font-weight:700;font-size:.72rem;letter-spacing:.5px;color:var(--ink-soft)">MORNING</div>
+    <div class="row" style="margin:.3rem 0 .7rem">${am.map(btn).join("")}</div>
+    <div style="font-weight:700;font-size:.72rem;letter-spacing:.5px;color:var(--ink-soft)">AFTERNOON <span class="muted" style="font-weight:400;text-transform:none">— noon is blocked</span></div>
+    <div class="row" style="margin:.3rem 0 .2rem">${pm.map(btn).join("")}</div>
+    <div class="row" style="margin-top:.8rem"><button class="btn ghost mini" onclick="closeModal()">Cancel</button></div>
+  </div>`);
+}
+function sheetSetTime(date,techEnc,tm,newTm){
+  const tech=decodeURIComponent(techEnc);
+  if(newTm===tm){ closeModal(); return; }
+  const day=(SCHED[date]||{})[tech]||{};
+  if(day[newTm]&&day[newTm].cid){ toast('That time is taken'); return; }
+  const s=day[tm];
+  day[newTm]=s; delete day[tm];
+  const c=byIdSafe(s.cid);
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Time changed — ${fmtDayShort(date)} ${tm}:00 → ${newTm}:00`});
+  persist(); closeModal(); toast(`Moved to ${newTm}:00`);
+  location.hash=`render/${s.cid}/${encodeURIComponent(tech)}/${date}/${newTm}`;
+}
+
 /* per-visit compliance state lives on the booking, so a filed sheet keeps what
    was actually done rather than being re-derived later */
 const EMPTY_SHEET=()=>({services:[],pests:[],warranty:"",warrantyNote:"",areas:[],method:"",
@@ -2054,24 +2158,28 @@ function viewRender(id,ctx){
   const st=booking?sheetState(booking.slot):{services:[],pests:[],warranty:"",warrantyNote:"",areas:[],method:"",materials:{},propDate:"",notes:""};
   const live=!!booking;
   const B=booking||{};
-  /* first time on a booking, seed the service boxes from what was booked */
-  if(live&&!st._seeded){
-    lines.forEach(l=>{
-      const hit=FORM_SERVICES.flat().find(s=>s.toLowerCase()===l.service.toLowerCase())
-        || (/general pest/i.test(l.service)?"Pest Control Service General":null)
-        || (/yard spray/i.test(l.service)?"Pest Control Service General":null)
-        || (/termite inspection/i.test(l.service)?"Annual Termite Inspection":null)
-        || (/termite treatment/i.test(l.service)?"Termite Treatment":null);
-      if(hit&&st.services.indexOf(hit)<0) st.services.push(hit);
-    });
-    st._seeded=true; persist();
-  }
+  /* keep the compliance list in step with the line items on every render */
+  if(live) writeSlotLines(booking.slot, lines);
   const box=(field,value,label)=>{
+    /* a TYPE OF SERVICE tick is a priced line — ticking it bills it */
+    if(field==='services'){
+      const on=live?serviceTicked(booking.slot,P.area,value):false;
+      return live
+        ? `<div class="fbox ${on?'on':''}" onclick="toggleServiceLine('${B.date}','${B.tech}','${B.tm}','${value.replace(/'/g,"\\'")}')">${chk(on)}${label||value}</div>`
+        : `<div class="fbox">${chk(on)}${label||value}</div>`;
+    }
     const on = field==='warranty'||field==='method' ? st[field]===value : st[field].indexOf(value)>=0;
     return live
       ? `<div class="fbox ${on?'on':''}" onclick="toggleSheet('${B.date}','${B.tech}','${B.tm}','${field}','${value.replace(/'/g,"\\'")}')">${chk(on)}${label||value}</div>`
       : `<div class="fbox">${chk(on)}${label||value}</div>`;
   };
+  /* the header's tech and AM/PM belong to the booking — clicking them moves the job */
+  const techBox=t=>live
+    ? `<span class="fbox" style="display:inline-flex" onclick="sheetSetTech('${B.date}','${B.tech}','${B.tm}','${t.replace(/'/g,"\\'")}')">${chk(tech===t)}${escapeHtml(t)}</span>`
+    : `<span>${chk(tech===t)}${escapeHtml(t)}</span>`;
+  const halfBox=(label,isOn)=>live
+    ? `<span class="fbox" style="display:inline-flex" onclick="openSheetTimeModal('${B.date}','${B.tech}','${B.tm}')">${chk(isOn)}${label}</span>`
+    : `<span>${chk(isOn)}${label}</span>`;
   main.innerHTML="";
   main.appendChild(el(`<div>
     <div class="row noprint" style="justify-content:space-between;margin-bottom:.7rem">
@@ -2124,8 +2232,8 @@ function viewRender(id,ctx){
           </div>
           <div style="border:1px solid #999;border-radius:4px;padding:.4rem .55rem;font-size:.76rem;min-width:11rem">
             <div>${chk(!!c.isNew)}New Customer</div>
-            <div>${chk(isAM)}AM &nbsp; ${chk(!isAM)}PM</div>
-            <div>${TECHS.map(t=>`${chk(tech===t)}${escapeHtml(t)}`).join(" &nbsp; ")}</div>
+            <div>${halfBox('AM',isAM)} &nbsp; ${halfBox('PM',!isAM)}${live?` <span class="muted" style="font-size:.62rem">${B.tm}:00</span>`:''}</div>
+            <div>${TECHS.map(techBox).join(" &nbsp; ")}</div>
             <div style="margin-top:.15rem">FT <b>${P.ft?escapeHtml(P.ft.replace('FT"','').trim()):'________'}</b></div>
             <div class="muted" style="font-size:.62rem;margin-top:.2rem">filing <span class="filecode">${P.area||'?'}-${P.month||'?'}</span></div>
           </div>
@@ -2136,7 +2244,16 @@ function viewRender(id,ctx){
         <div class="rs-band">TYPE OF SERVICE</div>
         <div class="fcols">${FORM_SERVICES.map(col=>`<div>${col.map(s=>box('services',s)).join("")}</div>`).join("")}</div>
         ${lines.length?`<div style="margin-top:.3rem;border-top:1px dotted #ccc;padding-top:.25rem">
-          ${lines.map(l=>`<div class="rs-line"><span>${escapeHtml(l.service)}</span><span style="font-family:ui-monospace,Consolas,monospace">${money(l.price)}</span></div>`).join("")}</div>`:''}
+          ${live?`<div class="muted noprint" style="font-size:.66rem;margin-bottom:.15rem">Tick a service above and it lands here with its price — change any price by typing over it.</div>`:''}
+          ${lines.map((l,i)=>`<div class="rs-line"><span>${escapeHtml(l.service)}</span>
+            ${live
+              ? `<input class="fcell" style="width:5.5rem;text-align:right;font-family:ui-monospace,Consolas,monospace"
+                   inputmode="decimal" value="${l.price}" onchange="setLinePrice('${B.date}','${B.tech}','${B.tm}',${i},this.value)">`
+              : `<span style="font-family:ui-monospace,Consolas,monospace">${money(l.price)}</span>`}
+          </div>`).join("")}
+          <div class="rs-line" style="border-bottom:none;font-weight:800"><span>Service Fee</span>
+            <span style="font-family:ui-monospace,Consolas,monospace">${money(price)}</span></div>
+        </div>`:''}
       </div>
 
       <div class="rs-sec">
