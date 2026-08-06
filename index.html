@@ -237,18 +237,34 @@
   .fcols.five{grid-template-columns:repeat(5,1fr)}
   @media(max-width:700px){.fcols,.fcols.five{grid-template-columns:1fr 1fr}}
   .fbox{padding:.06rem 0;border-radius:3px;line-height:1.3}
+  /* ON SCREEN these are fingers on a tablet, and a mis-tap on TYPE OF SERVICE
+     changes the money. On PAPER they stay the tight boxes of the real form. */
+  @media screen{
+    .rs-sec .fbox[onclick]{min-height:2.75rem;display:flex;align-items:center;padding:.15rem .35rem;
+      margin:.1rem 0;border:1px solid transparent}
+    .rs-sec .fbox[onclick]:active{background:#dfeae5}
+    .rs-sec .fbox[onclick].on{border-color:#cfe0d8;background:#f2f8f5}
+    .fcols{gap:.35rem .5rem}
+    .evalcell{height:2.75rem}
+    .rs-sec .fbox[onclick] .chk{width:1.15rem;height:1.15rem;line-height:1.05rem;font-size:.85rem;flex:0 0 auto}
+    .mattable td.matname{min-height:2.1rem}
+    .mattable .fcell{min-height:1.9rem}
+  }
   .rs .fbox{cursor:default}
   .fbox.on{font-weight:650}
   .rs-sec .fbox[onclick]{cursor:pointer}
   .rs-sec .fbox[onclick]:hover{background:#eef4f2}
   .fline{width:100%;border:none;border-bottom:1px solid #999;font-size:.7rem;padding:.1rem 0;background:none;font-family:inherit}
   .fnotes{width:100%;min-height:4.2rem;border:1px solid #ccc;border-radius:3px;font-size:.72rem;padding:.25rem;
-       font-family:inherit;resize:vertical;background:none}
+       font-family:inherit;resize:vertical;background:none;overflow:hidden}
   .mattable{width:100%;border-collapse:collapse;font-size:.62rem}
   .mattable th{background:#f0f0f0;border:1px solid #bbb;padding:.1rem .2rem;font-size:.58rem}
   .mattable td{border:1px solid #ccc;padding:.05rem .15rem;vertical-align:middle}
   .mattable td:nth-child(1),.mattable td:nth-child(3),.mattable td:nth-child(4),.mattable td:nth-child(6){width:2.6rem}
   .matname{line-height:1.15}
+  .matused{display:none}
+  .matused th{background:#f0f0f0;border:1px solid #bbb;padding:.1rem .25rem;font-size:.58rem;text-align:left}
+  .matused td{border:1px solid #ccc;padding:.08rem .25rem;font-size:.62rem}
   .matname.on{background:#eef4f2;font-weight:650}
   .rs-sec .matname[onclick]{cursor:pointer}
   .rs-sec .matname[onclick]:hover{background:#eef4f2}
@@ -271,6 +287,12 @@
   .assist .big{font-weight:700;color:var(--brand)}
 
   .toast{position:fixed;bottom:1rem;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.7rem 1.1rem;border-radius:10px;font-size:.88rem;opacity:0;transition:opacity .2s;z-index:50;pointer-events:none}
+  /* A save that fails must stay on screen until it is dealt with — a toast can be
+     replaced by the very next "saved!" message and then nobody knows. */
+  .savefail{background:#8c1d18;color:#fff;padding:.6rem .9rem;font-size:.9rem;font-weight:600;
+    display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:45}
+  .savefail button{background:#fff;color:#8c1d18;border:none;border-radius:7px;padding:.28rem .6rem;font:inherit;font-size:.8rem;font-weight:700;cursor:pointer}
+  .savefail[hidden]{display:none}
   .toast.show{opacity:1}
 
   .banner{background:var(--brand-soft);border:1px solid #cfe2dc;color:#28453e;border-radius:10px;padding:.7rem .9rem;font-size:.84rem;margin-bottom:1rem}
@@ -284,11 +306,14 @@
   .label{border:1px dashed #d8d8d8;border-radius:4px;padding:.5rem .6rem;font-size:.8rem;line-height:1.3;min-height:2.6rem}
   .postcard{border:1px solid var(--ink);border-radius:8px;padding:1rem 1.2rem;max-width:540px;margin:.6rem auto;background:#fff;page-break-after:always}
   /* Avery 5160 registration: 3 across, 10 down, 2.625in x 1in, .1875in side margin */
-  .label-sheet.avery{grid-template-columns:repeat(3,2.625in);gap:0;padding:0;border:none;justify-content:center}
+  .label-sheet.avery{grid-template-columns:repeat(3,2.625in);gap:0;padding:0;border:none;justify-content:start}
   .label-sheet.avery .label{width:2.625in;height:1in;border:1px dotted #e2e2e2;border-radius:0;
        padding:.12in .18in;font-size:9.5pt;line-height:1.22;overflow:hidden;display:flex;flex-direction:column;justify-content:center}
   @media print{
-    .label-sheet.avery{margin:0}
+    /* Three 2.625in labels need 7.875in of paper, and Avery 5160's own side margin
+       is .1875in — which is why @page below uses that horizontally. Vertically the
+       first row starts .5in down, so the sheet is nudged to match. */
+    .label-sheet.avery{margin:.1in 0 0}
     .label-sheet.avery .label{border-color:transparent}
   }
   .postcard .stamp{float:right;border:1px dashed #bbb;width:3rem;height:3.4rem;font-size:.52rem;color:#aaa;text-align:center;padding-top:.55rem;border-radius:3px}
@@ -312,10 +337,19 @@
     .chk.x{background:#fff !important;color:#111 !important;border:2px solid #111;font-weight:800}
     .modal-bg,.toast{display:none !important}
     .rs{page-break-inside:avoid}
+    /* A form control only prints the part you can see. A long note typed in the
+       truck was being cut in half on the paper record — including on the WDI
+       report, where the comments are part of the report. */
+    .fnotes{height:auto !important;min-height:0;overflow:visible !important;border-color:#999;resize:none}
+    .fline{overflow:visible}
+    /* only the chemicals actually used belong on the printed record — the full
+       28-product grid is a picker, and it is what pushed the sheet onto page two */
+    .matpick{display:none !important}
+    .matused{display:table !important}
     .wdi-page2{page-break-before:always}
     .daysheet{page-break-after:always}
     .daysheet:last-child{page-break-after:auto}
-    @page{margin:.4in}
+    @page{margin:.4in .1875in}   /* .1875in matches the Avery 5160 side margin */
     .job .colname{display:block}
     .wkjob .colname{display:inline;margin-left:.2rem}
     .label{border-color:transparent}
@@ -360,6 +394,8 @@
   </nav>
   <div class="morepanel" id="morepanel"></div>
 </div>
+
+<div class="savefail" id="savefail" hidden></div>
 
 <main id="main"></main>
 
@@ -472,11 +508,11 @@ const CAL_LABELS={ inArea:"Right in area", silverton:"Silverton", outOfArea:"Out
 const NO_COLOUR="#d4dbd8";   // what "no dot" looks like (out-of-area folders)
 const ROLES={office:"Office", owner:"Owner", field:"Field"};
 /* shown in the corner so it's never a mystery which version is in front of you */
-const APP_VERSION="1.13";
+const APP_VERSION="1.14";
 let SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let TAX_RATE=SETTINGS.taxRate/100;
 let RATES=SETTINGS.rates;
-let TECHS=SETTINGS.techs.map(t=>t.name);
+let TECHS=SETTINGS.techs.filter(t=>!t.inactive).map(t=>t.name);
 function applySettings(){
   TAX_RATE=(parseFloat(SETTINGS.taxRate)||0)/100;
   /* an update must never leave her price book missing services that are on the
@@ -487,8 +523,8 @@ function applySettings(){
     if(SETTINGS.rates[k]==null && gone.indexOf(k)<0) SETTINGS.rates[k]=DEFAULT_SETTINGS.rates[k];
   });
   RATES=SETTINGS.rates;
-  TECHS=(SETTINGS.techs||[]).map(t=>t.name).filter(Boolean);
-  if(!TECHS.length) TECHS=["Bryan"];
+  TECHS=(SETTINGS.techs||[]).filter(t=>!t.inactive).map(t=>t.name).filter(Boolean);
+  if(!TECHS.length) TECHS=((SETTINGS.techs||[]).map(t=>t.name).filter(Boolean))[0]?[(SETTINGS.techs||[]).map(t=>t.name).filter(Boolean)[0]]:["Bryan"];
   /* push her calendar colours into the stylesheet so legends, jobs, the week
      and the month all follow from one place */
   const cc=SETTINGS.calColors||{};
@@ -517,6 +553,14 @@ function priceFor(service,area){
   return 0;
 }
 const money=n=>"$"+(+n||0).toFixed(2);
+/* She writes prices the way anyone does — 1,850 or $1850. parseFloat("1,850")
+   is 1, which would put a dollar on a render sheet. Nothing takes a price
+   without coming through here; null means "that isn't a number, say so". */
+function readMoney(v){
+  const s=String(v==null?"":v).replace(/[$,\s]/g,"");
+  if(s==="") return null;
+  return /^\d*\.?\d+$/.test(s)?parseFloat(s):null;
+}
 
 /* ---- sample customers (the folders) ---- */
 let CUST=[
@@ -594,6 +638,20 @@ const byId=id=>CUST.find(c=>c.id===id);
 const MISSING_CUST={id:null,name:"(customer not in the list)",first:"",addr:"—",area:"",
   phone:"",star:false,ft:"",month:0,log:[],missing:true};
 const byIdSafe=id=>byId(id)||Object.assign({},MISSING_CUST,{id,log:[]});  // own log — never share the placeholder's
+/* A folder number is never handed out twice — not even after a folder is deleted.
+   Anything the book still points at counts, so a new customer can't inherit an old
+   one's jobs, sheets or debts. */
+function nextCustId(){
+  let m=0;
+  CUST.forEach(c=>{ m=Math.max(m,+c.id||0); });
+  for(const d in SCHED) for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
+    const s=SCHED[d][t][tm]; if(s&&s.cid) m=Math.max(m,+s.cid);
+  }
+  LEADS.forEach(l=>{ if(l&&l.cid) m=Math.max(m,+l.cid); });
+  for(const mk in CALLED) (CALLED[mk]||[]).forEach(k=>{ m=Math.max(m,parseInt(String(k),10)||0); });
+  Object.keys(PRESCHED_SENT||{}).forEach(k=>{ m=Math.max(m,parseInt(String(k).split('-').pop(),10)||0); });
+  return m+1;
+}
 
 /* ---------------- PROPERTIES ----------------
    Brief §26: "One customer can have many properties" — one customer had three
@@ -602,7 +660,8 @@ const byIdSafe=id=>byId(id)||Object.assign({},MISSING_CUST,{id,log:[]});  // own
    (pid 0); anything extra lives in c.props. */
 function propList(c){
   const primary={pid:0, addr:c.addr, area:c.area, month:c.month, city:c.city, zip:c.zip,
-    star:!!c.star, ft:c.ft||"", warrantyExp:c.warrantyExp, label:c.propLabel||"", primary:true};
+    star:!!c.star, ft:c.ft||"", warrantyExp:c.warrantyExp, warrantyFrom:c.warrantyFrom,
+    label:c.propLabel||"", primary:true};
   return [primary].concat((c.props||[]).map(p=>Object.assign({primary:false},p)));
 }
 function propAt(c,pid){
@@ -617,6 +676,9 @@ function propWrite(c,pid,patch){
     if('zip' in patch)c.zip=patch.zip; if('label' in patch)c.propLabel=patch.label;
     if('star' in patch)c.star=patch.star; if('ft' in patch)c.ft=patch.ft;
     if('warrantyExp' in patch){ if(patch.warrantyExp) c.warrantyExp=patch.warrantyExp; else delete c.warrantyExp; }
+    /* which visit created the warranty — so a term can always be traced back to
+       the treatment that earned it, and back to that visit's sheet */
+    if('warrantyFrom' in patch && patch.warrantyFrom) c.warrantyFrom=patch.warrantyFrom;
     return;
   }
   const p=(c.props||[]).find(x=>String(x.pid)===String(pid)); if(!p)return;
@@ -632,11 +694,37 @@ function addProperty(c,patch){
 /* every property in the book that's due this month, as {c,prop} pairs */
 function propsDue(month){
   const out=[];
-  CUST.forEach(c=>{ if(c.inactive||c.preSched)return;
-    propList(c).forEach(p=>{ if(p.month===month) out.push({c,p}); }); });
+  CUST.forEach(c=>{ if(c.inactive)return;
+    propList(c).forEach(p=>{
+      /* the program covers the house it is written for — a second house on the
+         same folder is still an ordinary call */
+      if(c.preSched && p.primary) return;
+      if(p.month===month) out.push({c,p}); }); });
   return out;
 }
 const callKey=(id,pid)=>(pid&&String(pid)!=="0")?`${id}:${pid}`:String(id);
+/* Folders whose month came and went without a call. Nothing carried over before —
+   on the 1st the list simply emptied and last month's misses were gone. */
+function missedEarlier(){
+  const out=[];
+  for(let m=1;m<THIS_MONTH;m++){
+    const key=monthKey(THIS_YEAR,m);
+    const ticked=CALLED[key]||[];
+    propsDue(m).forEach(({c,p})=>{
+      if(c.recall||c.inactive) return;
+      const k=callKey(c.id,p.pid);
+      if(ticked.indexOf(String(k))>=0||ticked.indexOf(+k)>=0) return;
+      /* if they ended up in the book this year anyway, that call happened */
+      let booked=false;
+      for(const d in SCHED){ if(d.slice(0,4)!==String(THIS_YEAR)) continue;
+        for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
+          const sl=SCHED[d][t][tm];
+          if(sl&&sl.cid===c.id&&String(sl.pid||0)===String(p.pid||0)&&!sl.cancelled) booked=true; } }
+      if(!booked) out.push({c,p,month:m});
+    });
+  }
+  return out;
+}
 function propAddr(c,pid){ const p=propAt(c,pid); return p.addr||c.addr; }
 function orphanCount(){
   let n=0;
@@ -716,7 +804,7 @@ function revenueByMonth(year){
     const dt=parseISO(d); if(dt.getFullYear()!==year) continue;
     for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
       const s=SCHED[d][t][tm];
-      if(s.cid && s.done && !s.cancelled && s.pay && s.pay.run) out[dt.getMonth()]+=slotTotal(s);
+      if(s.cid && s.done && !s.cancelled) out[dt.getMonth()]+=slotCollected(s);
     }
   }
   return out;
@@ -735,23 +823,19 @@ function jobsByMonth(year){
 function serviceMix(year){
   const buckets={"Pest & termite":0,"Crawlspace & building envelope":0,"Home services":0};
   const which=svc=>/termite|pest|spray|ant|bee|rodent|mice|cricket|roach|spider|tick|bait/i.test(svc)?"Pest & termite"
-    :/vapor|insulation|waterproof|crawl|mold|fungus|vent(?!.*dryer)|foundation vent|exclusion/i.test(svc)?"Crawlspace & building envelope"
+    :/dryer/i.test(svc)?"Home services"
+    :/vapor|insulation|waterproof|crawl|mold|fungus|foundation vent|exclusion/i.test(svc)?"Crawlspace & building envelope"
     :"Home services";
   let total=0;
   for(const d in SCHED){
     const dt=parseISO(d); if(dt.getFullYear()!==year) continue;
     for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
-      const s=SCHED[d][t][tm]; if(!s.cid||!s.done||s.cancelled||!(s.pay&&s.pay.run)) continue;
+      const s=SCHED[d][t][tm]; if(!s.cid||!s.done||s.cancelled||slotCollected(s)<=0) continue;
       slotLines(s,"").forEach(l=>{ buckets[which(l.service)]+=l.price; total+=l.price; });
     }
   }
   return {buckets, total};
 }
-const _UNUSED_SERVICE_MIX=[
-  {name:"Pest & termite (recurring)",          pct:60, color:"var(--cal-salmon)", note:"high volume · low dollar — the routed base"},
-  {name:"Crawlspace & building envelope (HIC)", pct:30, color:"var(--cal-blue)",   note:"low volume · high dollar — the biggest tickets"},
-  {name:"Home services (vents · gutters · caps)",pct:10, color:"#46a758",           note:"recurring-friendly add-ons"},
-];
 
 /* ============================================================
    persistence — local-first. Data sticks between opens.
@@ -800,6 +884,16 @@ const MERGE_FIELDS={
 /* quotes are escaped too — her data is full of them (FT" 21, 24" clearance),
    and unescaped quotes truncate any value="..." attribute they land in */
 function escapeHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+/* For a value that ends up inside a single-quoted JS string inside an HTML
+   attribute — onclick="doThing('HERE')". Her data has apostrophes (O'Brien) and
+   double quotes (24"), and either one silently breaks the button it sits in.
+   The order matters: backslash first, then the quote, then the HTML. */
+function jsAttr(s){
+  return String(s==null?"":s)
+    .replace(/\\/g,'\\\\').replace(/'/g,"\\'")
+    .replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\r?\n/g,' ');
+}
 function fillTemplate(body,ctx){ return body.replace(/\{(\w+)\}/g,(m,k)=> (k in ctx)?ctx[k]:m); }
 function effectiveBody(key,c){ if(c&&c.tmpl&&c.tmpl[key])return c.tmpl[key]; return TEMPLATES[key].body; }
 function renderLetterBody(txt){
@@ -815,6 +909,18 @@ const calledThisMonth=()=>CALLED[monthKey()]||(CALLED[monthKey()]=[]);
 /* keys may be "12" (the folder) or "12:2" (that folder's second property) */
 const isCalled=k=>calledThisMonth().indexOf(String(k))>=0 || calledThisMonth().indexOf(+k)>=0;
 function markCalled(k){ const a=calledThisMonth(); if(!isCalled(k)) a.push(String(k)); }
+/* ticking off a call that belonged to an earlier month, without pretending it
+   happened back then — it goes in that month's list and on the folder today */
+function catchUpCall(id,pid,month){
+  const key=monthKey(THIS_YEAR,month);
+  const a=(CALLED[key]=CALLED[key]||[]);
+  const k=String(callKey(id,pid));
+  if(a.indexOf(k)<0) a.push(k);
+  const c=byId(id);
+  if(c) c.log.push({who:auditWho(),d:fmtToday(),t:'call',
+    txt:`Caught up on the ${MONTHS[month-1]} call — no work booked`});
+  persist(); toast('Caught up'); router();
+}
 function unmarkCalled(k){ const a=calledThisMonth();
   [String(k),+k].forEach(v=>{const i=a.indexOf(v); if(i>=0)a.splice(i,1);}); }
 let PRESCHED_SENT={};         // customerId -> true once their letter is generated
@@ -837,7 +943,7 @@ function openWhoModal(){
     <div style="font-weight:800;font-size:1.05rem">Who's using this?</div>
     <div class="muted" style="margin:.15rem 0 .7rem;font-size:.85rem">Everything you change is noted under this name. When the system moves onto its own hosting this becomes a real sign-in.</div>
     <div style="display:grid;gap:.4rem">
-      ${(SETTINGS.users||[]).map(u=>`<button class="btn ${u.name===CURRENT_USER?'':'ghost'}" style="text-align:left" onclick="setCurrentUser('${u.name.replace(/'/g,"\\'")}')">
+      ${(SETTINGS.users||[]).map(u=>`<button class="btn ${u.name===CURRENT_USER?'':'ghost'}" style="text-align:left" onclick="setCurrentUser('${jsAttr(u.name)}')">
         <b>${escapeHtml(u.name)}</b> <span class="muted" style="font-weight:400">— ${ROLES[u.role]||u.role}</span></button>`).join("")}
     </div>
     <div class="row" style="margin-top:.8rem"><button class="btn ghost mini" onclick="closeModal()">Cancel</button>
@@ -850,35 +956,103 @@ function updateWhoLabel(){ const el=document.getElementById('wholabel'); if(el) 
    never data. Sample data seeds only when no saved data exists; "Reset sample data"
    on the Data screen is the only thing that discards state. */
 const LS_KEY="united_termite_data_v1";
+const PREV_KEY=LS_KEY+"_prev";
+let REV=0;                    // bumped on every write — how a second window gets noticed
+let SAVE_FAILED=null;         // sticky; a failed save stays on screen until one works
+const stateBlob=()=>({CUST,SCHED,LEADS,templates:TEMPLATES,settings:SETTINGS,user:CURRENT_USER,
+  called:CALLED,presched:PRESCHED_SENT,plog:PAYMENT_LOG,rev:REV});
+function clockNow(){const d=new Date();let h=d.getHours();const ap=h<12?'am':'pm';h=h%12||12;
+  return h+":"+String(d.getMinutes()).padStart(2,"0")+ap;}
 function persist(){
-  try{ localStorage.setItem(LS_KEY, JSON.stringify(
-    {CUST,SCHED,LEADS,templates:TEMPLATES,settings:SETTINGS,user:CURRENT_USER,called:CALLED,presched:PRESCHED_SENT,plog:PAYMENT_LOG})); }
-  catch(e){ // NEVER fail silently — the user must know if their work isn't saving
-    if(!window._pwarn || Date.now()-window._pwarn>60000){ window._pwarn=Date.now();
-      try{ toast("⚠ Couldn't save — storage may be full. Export a backup from the Data screen."); }catch(_){} }
-  }
+  /* If the same book is open in another window and that one has written since we
+     loaded, writing here would flatten their afternoon. Refuse, loudly. */
+  try{ const raw=localStorage.getItem(LS_KEY);
+    if(raw){ const other=JSON.parse(raw);
+      if(other && (other.rev||0)>REV){ saveFailed("another window"); return false; } }
+  }catch(e){}
+  const next=REV+1;
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(Object.assign(stateBlob(),{rev:next})));
+    REV=next;
+    if(SAVE_FAILED){ SAVE_FAILED=null; showSaveBanner(); }
+    return true;
+  }catch(e){ saveFailed("storage"); return false; }
+}
+/* NEVER fail silently — and never let a "saved!" toast paint over the warning. */
+function saveFailed(why){ SAVE_FAILED={why,when:clockNow()}; showSaveBanner(); }
+function showSaveBanner(){
+  const b=document.getElementById("savefail"); if(!b) return;
+  if(!SAVE_FAILED){ b.hidden=true; b.innerHTML=""; return; }
+  b.hidden=false;
+  b.innerHTML = SAVE_FAILED.why==="another window"
+    ? `<span>⚠ Nothing has saved since ${SAVE_FAILED.when} — this book is open in another window and that one is newer. Work in that window, or reload here to catch up first.</span>
+       <button onclick="location.reload()">Reload this window</button>`
+    : `<span>⚠ Nothing has saved since ${SAVE_FAILED.when} — this device's storage is full. Export a backup now; anything you type until this is fixed is not being kept.</span>
+       <button onclick="location.hash='data';router()">Export a backup</button>`;
+}
+/* A copy of the book from just before something drastic (an import, a restore, a
+   reset), so it can be walked back. One deep — a safety net, not a history. */
+function checkpoint(label){
+  try{ const cur=localStorage.getItem(LS_KEY);
+    if(cur) localStorage.setItem(PREV_KEY, JSON.stringify({label,when:fmtToday(),at:clockNow(),blob:cur}));
+  }catch(e){}
+}
+function readCheckpoint(){ try{ return JSON.parse(localStorage.getItem(PREV_KEY)||"null"); }catch(e){ return null; } }
+function confirmUndoCheckpoint(){
+  const cp=readCheckpoint(); if(!cp){ toast("There's nothing to put back."); return; }
+  showModal(`<div class="pad">
+    <div style="font-weight:800">Put the book back?</div>
+    <div class="muted" style="margin:.4rem 0 .7rem">This returns everything to how it was just before <b>${escapeHtml(cp.label||'the last big change')}</b> (${escapeHtml(cp.when||'')}${cp.at?` at ${escapeHtml(cp.at)}`:''}). Anything typed since then is dropped.</div>
+    <div class="row"><button class="btn" onclick="undoCheckpoint()">Put it back</button>
+      <button class="btn ghost" onclick="closeModal()">Leave it as it is</button></div></div>`);
+}
+function undoCheckpoint(){
+  const cp=readCheckpoint(); if(!cp){ toast("There's nothing to put back."); return; }
+  try{ localStorage.setItem(LS_KEY, cp.blob); localStorage.removeItem(PREV_KEY);
+    toast("Put back — reopening the book…"); setTimeout(()=>location.reload(),400);
+  }catch(e){ toast("Couldn't put it back — storage may be full."); }
 }
 (function loadState(){
   try{ const s=JSON.parse(localStorage.getItem(LS_KEY)||"null");
-    if(s){ if(s.CUST)CUST=s.CUST; if(s.SCHED)SCHED=s.SCHED; if(s.LEADS)LEADS=s.LEADS;
+    if(s){ REV=s.rev||0;
+      if(s.CUST)CUST=s.CUST; if(s.SCHED)SCHED=s.SCHED; if(s.LEADS)LEADS=s.LEADS;
       if(s.called&&!Array.isArray(s.called))CALLED=s.called; else if(Array.isArray(s.called))CALLED={[monthKey()]:s.called}; if(s.presched)PRESCHED_SENT=s.presched;
       if(s.plog)PAYMENT_LOG=s.plog; if(s.templates)TEMPLATES=s.templates;
       if(s.settings)SETTINGS=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),s.settings);
       if(s.user)CURRENT_USER=s.user; }
   }catch(e){}
   applySettings();
-  /* Any visit already done or paid that never recorded its tax rate gets today's
-     stamped on it now. A rate that was never written down can't be recovered —
-     but from here it can't drift either, so an old sheet reprints the same. */
+  /* the catch-up migrations run at startup, at the bottom of this file — they need
+     the money helpers, which are declared further down */
+})();
+/* Any visit already done or paid that never recorded its tax rate gets today's
+   stamped on it now. A rate that was never written down can't be recovered — but
+   from here it can't drift either, so an old sheet reprints the same. Runs on a
+   normal load AND on a restore, so restored history doesn't get re-taxed. */
+function stampMissingTaxRates(){
+  let n=0;
   try{
-    let stamped=0;
     for(const d in SCHED) for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
       const s=SCHED[d][t][tm];
-      if(s.cid && s.taxRate==null && (s.done||s.pay)){ s.taxRate=TAX_RATE; stamped++; }
+      if(s.cid && s.taxRate==null && (s.done||s.pay)){ s.taxRate=TAX_RATE; n++; }
     }
-    if(stamped) persist();
   }catch(e){}
-})();
+  return n;
+}
+/* Payments recorded before 1.14 stored only the pre-tax figure. What was actually
+   handed over was that plus tax at the visit's own rate — so that is what gets
+   stamped, once, rather than being re-derived from a sheet that may have changed. */
+function stampMissingCollected(){
+  let n=0;
+  try{
+    for(const d in SCHED) for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
+      const s=SCHED[d][t][tm];
+      if(s.cid && s.pay && s.pay.run && s.pay.collected==null){
+        s.pay.collected=slotWithTax(s); n++;
+      }
+    }
+  }catch(e){}
+  return n;
+}
 
 /* ============================================================
    render helpers
@@ -911,7 +1085,7 @@ function viewToday(dateArg){
       const col=calColor({area:jp.area,big:slot.big,cancelled:slot.cancelled});
       const tbm = slot.pay&&slot.pay.method==="To Be Mailed";
       const stMark = slot.st.ret ? "✓" : tbm ? "TBM" : slot.st.w ? "W" : slot.st.x ? "X" : "";
-      cells+=`<div class="tcell"><div class="job${slot.cancelled?' struck':''}" style="background:${col.v}" onclick="openJob('${date}','${tech}','${tm}')">
+      cells+=`<div class="tcell"><div class="job${slot.cancelled?' struck':''}" style="background:${col.v}" onclick="openJob('${date}','${jsAttr(tech)}','${tm}')">
           <span class="st">${stMark}</span>
           <div class="cust">${slot.rained?'🌧 ':''}${escapeHtml(c.name)}</div>
           <div class="meta">${slotDesc(slot)} · ${areaShort(jp.area)}</div>
@@ -1012,7 +1186,7 @@ function viewWeek(dateArg){
           const tbm=s.pay&&s.pay.method==="To Be Mailed";
           const mark=s.st.ret?"✓":tbm?"TBM":s.st.w?"W":s.st.x?"X":"";
           return `<div class="wkjob${s.cancelled?' struck':''}" style="background:${cc.v}"
-              onclick="openJob('${dISO}','${tech}','${tm}')" title="${escapeHtml(c.name)} — ${escapeHtml(slotDesc(s))}">
+              onclick="openJob('${dISO}','${jsAttr(tech)}','${tm}')" title="${escapeHtml(c.name)} — ${escapeHtml(slotDesc(s))}">
             <span class="wktime">${tm}</span>
             <span class="wkname">${s.rained?'🌧':''}${escapeHtml(c.name)}</span>
             <span class="wkarea">${jp.area||''}</span>
@@ -1122,7 +1296,7 @@ function openJob(date,tech,tm){
   /* X and W are HER marks — tappable. ✓ comes from recording the payment. */
   const step=(k,label)=> k==='ret'
     ? `<div class="stchip ${st[k]?'on':''}">${label}</div>`
-    : `<button class="stchip ${st[k]?'on':''}" onclick="toggleState('${date}','${tech}','${tm}','${k}')" title="Tap to mark">${label}</button>`;
+    : `<button class="stchip ${st[k]?'on':''}" onclick="toggleState('${date}','${jsAttr(tech)}','${tm}','${k}')" title="Tap to mark">${label}</button>`;
   showModal(`
     <div class="pad">
       <div class="row" style="justify-content:space-between">
@@ -1147,13 +1321,13 @@ function openJob(date,tech,tm){
         ${step('ret','✓')}<span class="muted" style="font-size:.8rem">Filed</span>
       </div>
       ${slot.cancelled?`<div class="banner" style="margin:.7rem 0 0">${slot.notHome?'Nobody was home':'Cancelled'} — crossed out on this date.
-        <button class="btn mini" style="margin-left:.4rem" onclick="uncancelJob('${date}','${tech}','${tm}')">Put it back on</button></div>`:''}
+        <button class="btn mini" style="margin-left:.4rem" onclick="uncancelJob('${date}','${jsAttr(tech)}','${tm}')">Put it back on</button></div>`:''}
       ${slot.rained?`<div class="banner" style="margin:.7rem 0 0;background:#fbf1dd;border-color:#e8d9ae;color:#7a5c15">🌧 Rained out ${fmtDayShort(slot.rained)} — ${tech} has the sheet in the truck and will fit them in. ${daysSince(slot.rained)>=4?`<b>It's been ${daysSince(slot.rained)} days — worth a nudge.</b>`:''}</div>`:''}
       ${slot.needsRewrite?`<div class="banner" style="margin:.7rem 0 0">The time of day changed after the sheet was written — rewrite it.</div>`:''}
       <div class="row" style="margin-top:1rem">
-        <button class="btn" onclick="markWritten('${date}','${tech}','${tm}');location.hash='render/${c.id}/${tech}/${date}/${tm}';closeModal()">Write the render sheet</button>
-        ${(!slot.pay||!slot.pay.run)?`<button class="btn ghost" onclick="openPaymentModal('${date}','${tech}','${tm}')">Record payment</button>`:''}
-        <button class="btn ghost" onclick="openJobActions('${date}','${tech}','${tm}')">Change or cancel…</button>
+        <button class="btn" onclick="markWritten('${date}','${jsAttr(tech)}','${tm}');location.hash='render/${c.id}/${tech}/${date}/${tm}';closeModal()">Write the render sheet</button>
+        ${(!slot.pay||!slot.pay.run)?`<button class="btn ghost" onclick="openPaymentModal('${date}','${jsAttr(tech)}','${tm}')">Record payment</button>`:''}
+        <button class="btn ghost" onclick="openJobActions('${date}','${jsAttr(tech)}','${tm}')">Change or cancel…</button>
         <button class="btn ghost" onclick="location.hash='cust/${c.id}';closeModal()">Open folder</button>
       </div>
     </div>`);
@@ -1170,6 +1344,7 @@ function viewCalls(){
   const rank=a=>{const i=order.indexOf(a); return i<0?999:i;};
   box.sort((x,y)=> rank(x.p.area)-rank(y.p.area) || x.c.name.localeCompare(y.c.name));
   const recall=CUST.filter(c=>c.recall && !c.inactive);
+  const missed=missedEarlier();
   let items=box.map(({c,p})=>{const k=callKey(c.id,p.pid);return `
     <div class="queue-item ${isCalled(k)?'done':''}" onclick="pickCall(${c.id},'${p.pid}')">
       <span class="dot" style="background:${areaOf(p.area).dot}"></span>
@@ -1208,6 +1383,22 @@ function viewCalls(){
           <div style="padding:.4rem .8rem;font-size:.72rem;letter-spacing:.5px;color:var(--ink-soft)">THE RECALL BOX (${recall.length})</div>
           ${recallItems||'<div class="muted" style="padding:.6rem .8rem">Empty — nobody waiting on a callback.</div>'}
         </div></div>
+        ${missed.length?`<div class="card" style="margin-top:.9rem;border-left:4px solid var(--warn)"><div class="pad" style="padding:.3rem 0">
+          <div style="padding:.4rem .8rem;font-size:.72rem;letter-spacing:.5px;color:var(--warn)">MISSED IN AN EARLIER MONTH (${missed.length})</div>
+          <div class="muted" style="padding:0 .8rem .4rem;font-size:.8rem">Their month came and went without a call and they never ended up in the book. They used to just disappear on the 1st.</div>
+          ${missed.slice(0,25).map(({c,p,month})=>{const k=callKey(c.id,p.pid);return `
+            <div class="queue-item" onclick="pickCall(${c.id},'${p.pid}')">
+              <span class="dot" style="background:${areaOf(p.area).dot}"></span>
+              <div style="flex:1;min-width:8rem">
+                <div style="font-weight:700">${escapeHtml(c.name)} ${p.star?'<span class="star">★</span>':''}
+                  ${!p.primary?`<span class="pill" style="font-size:.62rem">${escapeHtml(p.label||'2nd address')}</span>`:''}</div>
+                <div class="muted" style="font-size:.78rem">${escapeHtml(p.addr)} · ${MONTHS[month-1]} box · ${THIS_MONTH-month} month${THIS_MONTH-month===1?'':'s'} ago</div>
+              </div>
+              <button class="btn mini" onclick="event.stopPropagation();openBookModal(${c.id},{pid:'${p.pid}'})">Book</button>
+              <button class="btn ghost mini" onclick="event.stopPropagation();catchUpCall(${c.id},'${p.pid}',${month})">Called — no</button>
+            </div>`;}).join("")}
+          ${missed.length>25?`<div class="muted" style="padding:.3rem .8rem;font-size:.78rem">…and ${missed.length-25} more.</div>`:''}
+        </div></div>`:''}
       </div>
       <div class="assist" id="assist">
         <div class="card"><div class="pad">
@@ -1273,26 +1464,58 @@ function openJobActions(date,tech,tm){
     <div style="font-weight:800;font-size:1.05rem">${escapeHtml(c.name)} — ${fmtDayShort(date)} at ${tm}:00</div>
     <div class="muted" style="margin:.15rem 0 .8rem;font-size:.85rem">${escapeHtml(slotDesc(s))} · ${tech}</div>
     <div style="display:grid;gap:.5rem">
-      <button class="btn ghost" style="text-align:left" onclick="openRescheduleModal('${date}','${tech}','${tm}')">
+      <button class="btn ghost" style="text-align:left" onclick="openRescheduleModal('${date}','${jsAttr(tech)}','${tm}')">
         <b>Move it</b><div class="muted" style="font-size:.78rem;font-weight:400">New day, time or tech — the old line gets crossed out</div></button>
-      <button class="btn ghost" style="text-align:left" onclick="markRainedOut('${date}','${tech}','${tm}')">
+      <button class="btn ghost" style="text-align:left" onclick="markRainedOut('${date}','${jsAttr(tech)}','${tm}')">
         <b>${s.rained?'Still with '+tech+' (rained out)':'Rained out'}</b><div class="muted" style="font-size:.78rem;font-weight:400">${tech} keeps the sheet and fits them in over the next few days</div></button>
-      <button class="btn ghost" style="text-align:left" onclick="markNotHome('${date}','${tech}','${tm}')">
+      <button class="btn ghost" style="text-align:left" onclick="markNotHome('${date}','${jsAttr(tech)}','${tm}')">
         <b>Nobody home</b><div class="muted" style="font-size:.78rem;font-weight:400">Notes it on the folder and puts them back in the calling list</div></button>
-      <button class="btn ghost" style="text-align:left;color:var(--warn);border-color:var(--warn)" onclick="cancelJob('${date}','${tech}','${tm}')">
+      <button class="btn ghost" style="text-align:left;color:var(--warn);border-color:var(--warn)" onclick="confirmCancelJob('${date}','${jsAttr(tech)}','${tm}')">
         <b>Cancelled</b><div class="muted" style="font-size:.78rem;font-weight:400">Line through it on this date — stays visible, greyed out</div></button>
     </div>
-    <div class="row" style="margin-top:.8rem"><button class="btn ghost mini" onclick="openJob('${date}','${tech}','${tm}')">‹ Back to the job</button></div>
+    <div class="row" style="margin-top:.8rem"><button class="btn ghost mini" onclick="openJob('${date}','${jsAttr(tech)}','${tm}')">‹ Back to the job</button></div>
+  </div>`);
+}
+/* Cancelling a job that is DONE, or that has money on it, is not the same act as
+   cancelling a booking nobody has been to yet. It has to say so out loud. */
+function confirmCancelJob(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s)return; const c=byIdSafe(s.cid);
+  const got=slotCollected(s), owed=slotShortfall(s);
+  let warn="";
+  if(got>0) warn=`<div class="banner" style="margin:0 0 .7rem;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">They already paid <b>${money(got)}</b> on this job. Cancelling takes the charge off — if the money is staying with you, don't cancel; if it's going back, use <b>Payment issue → We gave money back</b> instead.</div>`;
+  else if(s.done && owed>0) warn=`<div class="banner" style="margin:0 0 .7rem;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">This job is done and <b>${money(owed)}</b> is still owed. Cancelling takes it off the cork board — nobody will chase it again.</div>`;
+  else if(s.st&&(s.st.w||s.st.ret)) warn=`<div class="muted" style="font-size:.82rem;margin-bottom:.6rem">The sheet is already written up. The pen marks are kept, so putting it back on restores them.</div>`;
+  showModal(`<div class="pad">
+    <div style="font-weight:800;font-size:1.05rem">Cancel ${escapeHtml(c.name)} — ${fmtDayShort(date)} at ${tm}:00?</div>
+    <div class="muted" style="margin:.15rem 0 .7rem;font-size:.85rem">${escapeHtml(slotDesc(s))} · ${escapeHtml(tech)}</div>
+    ${warn}
+    <div class="row"><button class="btn" style="background:var(--warn)" onclick="cancelJob('${date}','${jsAttr(tech)}','${tm}')">Cross it out</button>
+      <button class="btn ghost" onclick="openJobActions('${date}','${jsAttr(tech)}','${tm}')">Leave it on</button></div>
   </div>`);
 }
 function cancelJob(date,tech,tm){
   const s=SCHED[date][tech][tm], c=byIdSafe(s.cid);
-  s.cancelled=true; s.st={x:s.st.x,w:false,ret:false};
-  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Cancelled — ${fmtDayShort(date)} ${tm}:00 (${slotDesc(s)})`});
-  persist(); closeModal(); toast(`${c.name} cancelled — crossed out on ${fmtDayShort(date)}`); router();
+  s.cancelled=true;
+  s.stBefore=s.st;                                   // the pen marks come back if she puts it back on
+  s.st={x:s.st.x,w:false,ret:false};
+  const got=slotCollected(s);
+  if(got>0){
+    /* money that was collected does not just vanish from the day's totals —
+       cancelling a paid job is a reversal and gets logged as one */
+    PAYMENT_LOG.unshift({who:auditWho(),when:fmtToday(),cid:c.id,name:c.name,amount:got,
+      service:slotDesc(s),reason:'Job cancelled after it was paid — decide whether to refund'});
+  }
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'call',
+    txt:`Cancelled — ${fmtDayShort(date)} ${tm}:00 (${slotDesc(s)})${got>0?` — ${money(got)} had been collected`:''}`});
+  persist(); closeModal();
+  toast(got>0?`${c.name} cancelled — ${money(got)} was collected, check the reversals list`
+             :`${c.name} cancelled — crossed out on ${fmtDayShort(date)}`);
+  router();
 }
 function uncancelJob(date,tech,tm){
-  const s=SCHED[date][tech][tm]; delete s.cancelled; persist();
+  const s=SCHED[date][tech][tm]; delete s.cancelled;
+  if(s.stBefore){ s.st=s.stBefore; delete s.stBefore; }   // the W and ✓ come back
+  persist();
   toast('Back on'); openJob(date,tech,tm);
 }
 function markRainedOut(date,tech,tm){
@@ -1349,7 +1572,10 @@ function doReschedule(){
   if(techDay[tm]&&techDay[tm].cid&&!(R.date===from.date&&R.tech===from.tech&&tm===from.tm)){
     toast('That slot is taken — pick another'); renderRescheduleModal(); return; }
   const wasAM=(+from.tm>=7&&+from.tm<12), nowAM=(+tm>=7&&+tm<12);
-  const moved=Object.assign({},s,{st:{x:false,w:false,ret:false}});
+  /* moving a job does not un-write the sheet — she rewrites it only if AM/PM or
+     the services changed, so the marks travel with it */
+  const moved=Object.assign({},s);
+  moved.st=Object.assign({x:false,w:false,ret:false},s.st||{});
   delete moved.rained; delete moved.notHome;
   /* AM↔PM flip means the written sheet is wrong — force a rewrite */
   if(wasAM!==nowAM && moved.sheet) moved.needsRewrite=true;
@@ -1388,8 +1614,10 @@ function openBookModal(cid,opts){
 /* keep typed prices + picked time when the modal re-renders */
 function captureBookInputs(){
   if(!BOOK_CTX)return;
+  BOOK_CTX.badPrice=null;
   BOOK_CTX.lines.forEach((l,i)=>{ const el=document.getElementById('bk_price_'+i);
-    if(el&&el.value!=="") l.price=parseFloat(el.value)||0; });
+    if(el&&el.value!==""){ const v=readMoney(el.value);
+      if(v==null){ BOOK_CTX.badPrice=el.value; } else l.price=v; } });
   const t=document.getElementById('bk_tm'); if(t) BOOK_CTX.tm=t.value;
 }
 function bookSet(k,v){ captureBookInputs(); BOOK_CTX[k]=v; renderBookModal(); }
@@ -1400,7 +1628,10 @@ function renderBookModal(){
   const b=BOOK_CTX; const c=byId(b.cid); if(!c){closeModal();return;}
   const techDay=(SCHED[b.date]||{})[b.tech]||{};
   const slots=TIMES.filter(t=>t!=="12");
-  const lineTotal=l=> l.price!=null?l.price:priceFor(l.service,c.area);
+  const plist=propList(c); const bprop=propAt(c,b.pid);
+  /* price off the address being SERVICED, not the folder's own — the Silverton
+     exception has to follow the house the truck goes to */
+  const lineTotal=l=> l.price!=null?l.price:priceFor(l.service,bprop.area);
   const total=b.lines.reduce((s,l)=>s+lineTotal(l),0);
   const lineRow=(l,i)=>{
     const services=[...new Set([l.service,...Object.keys(RATES),"Termite treatment"])];
@@ -1412,7 +1643,6 @@ function renderBookModal(){
       ${b.lines.length>1?`<button class="btn ghost mini" onclick="bookRemoveLine(${i})" title="Remove">✕</button>`:''}
     </div>`;
   };
-  const plist=propList(c); const bprop=propAt(c,b.pid);
   showModal(`<div class="pad">
     <div style="font-weight:800;font-size:1.1rem">Book ${escapeHtml(c.name)}</div>
     <div class="muted" style="margin:.15rem 0 .7rem">${escapeHtml(bprop.addr)} · ${areaOf(bprop.area).name}</div>
@@ -1436,9 +1666,10 @@ function renderBookModal(){
     <label class="muted" style="font-size:.78rem">What's being done — this visit's line items (one render sheet)</label>
     <div style="margin:.3rem 0 .2rem">${b.lines.map(lineRow).join("")}</div>
     <button class="btn ghost mini" onclick="bookAddLine()">＋ Add another service — same trip</button>
-    ${c.area==='Sil'&&b.lines.some(l=>l.service==='Termite inspection')?`<div class="muted" style="font-size:.76rem;margin-top:.4rem">Silverton price applied — termite inspection $75.</div>`:''}
+    ${bprop.area==='Sil'&&b.lines.some(l=>normSvc(l.service)===normSvc('Termite inspection')||normSvc(l.service)===normSvc('Annual Termite Inspection'))?`<div class="muted" style="font-size:.76rem;margin-top:.4rem">Silverton price applied — termite inspection ${money(SETTINGS.silvertonTermiteInspection)}${bprop.primary?'':' (this address is in Silverton)'}.</div>`:''}
+    ${b.badPrice?`<div class="banner" style="margin:.5rem 0 0;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">“${escapeHtml(String(b.badPrice))}” didn't read as a price. Type it like <b>1850</b> or <b>1850.00</b> — the last good price is still in the box.</div>`:''}
     <div class="row" style="justify-content:space-between;margin-top:.7rem">
-      <div class="muted">Visit total: <b style="color:var(--ink)">${money(total)}</b> + tax ${money(total*TAX_RATE)}</div>
+      <div class="muted">Visit total: <b style="color:var(--ink)">${money(total)}</b> + tax ${money(total*TAX_RATE)} = <b style="color:var(--ink)">${money(total*(1+TAX_RATE))}</b></div>
     </div>
     <div class="row" style="margin-top:.6rem">
       <button class="btn" onclick="saveBooking()">Write it in the book</button>
@@ -1452,7 +1683,9 @@ function saveBooking(){
   const tm=b.tm||(document.getElementById('bk_tm')||{}).value;
   if(!tm){ toast('Pick a time'); return; }
   if(!b.lines.length){ toast('Add at least one service'); return; }
-  const lines=b.lines.map(l=>({service:l.service, price:(l.price!=null?l.price:priceFor(l.service,c.area))}));
+  if(b.badPrice){ toast(`"${b.badPrice}" isn't a price — fix it first`); renderBookModal(); return; }
+  const bpArea=propAt(c,b.pid).area;
+  const lines=b.lines.map(l=>({service:l.service, price:(l.price!=null?l.price:priceFor(l.service,bpArea))}));
   const day=(SCHED[b.date]=SCHED[b.date]||{}); const techDay=(day[b.tech]=day[b.tech]||{});
   if(techDay[tm]&&techDay[tm].cid){ toast('That slot just filled — pick another'); renderBookModal(); return; }
   const bigTest=s=>/treatment|crawlspace|vapor|insulation/i.test(s);
@@ -1589,7 +1822,7 @@ function saveNewCustomer(thenBook,force){
     }
   }
   const c={
-    id: CUST.length?Math.max(...CUST.map(x=>x.id))+1:1,
+    id: nextCustId(),
     name, first:g('nc_first'), addr:g('nc_addr')||"(no street address yet)",
     phone:g('nc_phone'), area:g('nc_area'),
     month:parseInt(g('nc_month'),10)||THIS_MONTH,
@@ -1782,6 +2015,12 @@ function openEditCustomerModal(id){
         <input id="ec_addr" class="search" style="margin:.2rem 0 0" value="${v(c.addr)}"></div>
       <div><label class="muted" style="font-size:.78rem">Phone</label>
         <input id="ec_phone" class="search" style="margin:.2rem 0 0" inputmode="tel" value="${v(c.phone)}"></div>
+      <div><label class="muted" style="font-size:.78rem">Town <span class="muted" style="font-size:.7rem">— prints on the sheet</span></label>
+        <input id="ec_city" class="search" style="margin:.2rem 0 0" placeholder="${escapeHtml(sheetCity(c))}" value="${v(c.city)}"></div>
+      <div><label class="muted" style="font-size:.78rem">Zip</label>
+        <input id="ec_zip" class="search" style="margin:.2rem 0 0" inputmode="numeric" value="${v(c.zip)}"></div>
+      <div style="grid-column:1/-1"><label class="muted" style="font-size:.78rem">Email</label>
+        <input id="ec_email" class="search" style="margin:.2rem 0 0" inputmode="email" value="${v(c.email)}"></div>
       <div><label class="muted" style="font-size:.78rem">Area${areaKnown?'':' <span style="color:var(--warn)">— needs a code</span>'}</label>
         <select id="ec_area" class="search" style="margin:.2rem 0 0">
           <option value="">Not sure yet</option>
@@ -1829,8 +2068,17 @@ function saveCustomerEdits(id){
   if(g('ec_phone')!==c.phone) changes.push('phone');
   if(newArea!==(c.area||"")) changes.push(`area → ${newArea||'unset'}`);
   if(newMonth!==(c.month||0)) changes.push(`month box ${c.month?MONTHS[c.month-1]:'unset'} → ${newMonth?MONTHS[newMonth-1]:'unset'}`);
+  if(g('ec_city')!==(c.city||"")) changes.push('town');
+  if(g('ec_zip')!==(c.zip||"")) changes.push('zip');
+  if(g('ec_email')!==(c.email||"")) changes.push('email');
   c.name=name; c.first=g('ec_first'); c.addr=g('ec_addr')||"(no street address yet)";
   c.phone=g('ec_phone'); c.area=newArea; c.month=newMonth;
+  /* the town and zip print on every sheet, label and postcard — after an import
+     there was no way to correct what the old list said */
+  const city=g('ec_city'), zip=g('ec_zip'), email=g('ec_email');
+  if(city) c.city=city; else delete c.city;
+  if(zip) c.zip=zip; else delete c.zip;
+  if(email) c.email=email; else delete c.email;
   const star=!!(document.getElementById('ec_star')||{}).checked;
   const ft=g('ec_ft'); const warr=parseInt(g('ec_warr'),10);
   if(star!==!!c.star||ft!==(c.ft||"")||(warr||0)!==(c.warrantyExp||0)) changes.push('termite history');
@@ -1858,7 +2106,7 @@ function confirmDeleteCustomer(id){
     ${hasHistory
       ? `<div class="banner" style="margin:.6rem 0;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">
           This folder has history — ${h.jobs} job${h.jobs===1?'':'s'}${h.paid?`, ${h.paid} paid`:''}${h.quotes?`, ${h.quotes} quote${h.quotes===1?'':'s'}`:''}.
-          Deleting would leave that work with no customer attached. <b>Set it aside instead</b> — it disappears from the calling list but the record survives.</div>
+          Deleting takes ${h.quotes?`those ${h.quotes} quote${h.quotes===1?'':'s'} with it and `:''}leaves that work with no customer attached. <b>Set it aside instead</b> — it disappears from the calling list but the record survives.</div>
         <div class="row">
           <button class="btn" onclick="openInactiveModal(${id})">Set it aside instead</button>
           <button class="btn ghost" onclick="openEditCustomerModal(${id})">Cancel</button>
@@ -1874,11 +2122,13 @@ function confirmDeleteCustomer(id){
 }
 function deleteCustomer(id){
   const c=byId(id); if(!c)return; const nm=c.name;
+  const q=LEADS.filter(l=>l.cid===id).length;
+  checkpoint(`deleting ${nm}'s folder`);        // "put the book back" undoes it
   CUST=CUST.filter(x=>x.id!==id);
   LEADS=LEADS.filter(l=>l.cid!==id);
   unmarkCalled(id);
   persist(); closeModal(); updateBadges();
-  toast(`${nm}'s folder deleted`);
+  toast(`${nm}'s folder deleted${q?` — and ${q} quote${q===1?'':'s'} with it`:''}. Data → Put the book back undoes this.`);
   location.hash='customers'; router();
 }
 function reactivateCustomer(id){
@@ -1955,15 +2205,17 @@ function viewCustomer(id){
   const paysHtml = pays.length ? `<div class="card pad" style="margin-top:.9rem">
       <div style="font-weight:700;margin-bottom:.3rem">Payments on file</div>
       <div class="muted" style="font-size:.8rem;margin-bottom:.5rem">If a check bounces or a card is charged back, reverse it here — even weeks after the day was closed. It flows back into what they owe and is logged.</div>
-      ${(()=>{const owed=pays.filter(p=>!(p.s.pay&&p.s.pay.run)&&!p.s.refunded&&!p.s.cancelled).reduce((n,p)=>n+slotWithTax(p.s),0);
+      ${(()=>{const owed=pays.filter(p=>slotOwes(p.s)).reduce((n,p)=>n+slotShortfall(p.s),0);
         return owed>0?`<div class="banner" style="margin:0 0 .6rem;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)"><b>Owes ${money(owed)}</b> right now.</div>`:'';})()}
       ${pays.slice().sort((a,b)=>b.date.localeCompare(a.date)).map(p=>`<div class="queue-item" style="cursor:default;flex-wrap:wrap">
         <div style="flex:1;min-width:8rem"><b>${slotDesc(p.s)}</b> — ${money(slotTotal(p.s))} <span class="muted" style="font-size:.8rem">· ${fmtDayShort(p.date)}</span></div>
         ${p.s.refunded
-          ? `<span class="pill">refunded</span>`
+          ? `<span class="pill">refunded ${money((p.s.refund&&p.s.refund.amount)||0)}</span><button class="btn ghost mini" onclick="openReverseModal('${p.date}','${jsAttr(p.tech)}','${p.tm}')">Payment issue…</button>`
+          : slotOwes(p.s)
+          ? `<span class="pill" style="background:#fbe9e3;color:var(--warn)">${slotCollected(p.s)>0?'part paid — '+money(slotShortfall(p.s))+' still owed':(p.s.pay?escapeHtml(p.s.pay.method)+' — not collected':'unpaid')}</span><button class="btn mini" onclick="openPaymentModal('${p.date}','${jsAttr(p.tech)}','${p.tm}')">Record payment</button>${p.s.pay&&p.s.pay.run?`<button class="btn ghost mini" onclick="openReverseModal('${p.date}','${jsAttr(p.tech)}','${p.tm}')">Payment issue…</button>`:''}`
           : p.s.pay&&p.s.pay.run
-          ? `<span class="pill" style="background:#eaf4ee;color:var(--brand)">paid · ${escapeHtml(p.s.pay.method)}</span>${p.s.pay.checkNo?`<button class="btn ghost mini" onclick="openFixCheckModal('${p.date}','${p.tech}','${p.tm}')">Fix check #</button>`:''}<button class="btn ghost mini" onclick="openReverseModal('${p.date}','${p.tech}','${p.tm}')">Payment issue…</button>`
-          : `<span class="pill" style="background:#fbe9e3;color:var(--warn)">${p.s.pay?escapeHtml(p.s.pay.method)+' — not collected':'unpaid'}</span><button class="btn mini" onclick="openPaymentModal('${p.date}','${p.tech}','${p.tm}')">Record payment</button>`}
+          ? `<span class="pill" style="background:#eaf4ee;color:var(--brand)">paid · ${escapeHtml(p.s.pay.method)}</span>${p.s.pay.checkNo?`<button class="btn ghost mini" onclick="openFixCheckModal('${p.date}','${jsAttr(p.tech)}','${p.tm}')">Fix check #</button>`:''}<button class="btn ghost mini" onclick="openReverseModal('${p.date}','${jsAttr(p.tech)}','${p.tm}')">Payment issue…</button>`
+          : `<span class="pill">no charge</span>`}
       </div>`).join("")}
     </div>` : '';
   const warr = c.warrantyExp ? (c.warrantyExp<=THIS_YEAR
@@ -2090,6 +2342,26 @@ function lineMatchesForm(lineService,formName){
 const serviceTicked=(slot,area,formName)=>slotLines(slot,area).some(l=>lineMatchesForm(l.service,formName));
 /* one place that writes the line items, so the money, the header and the
    compliance list can never drift apart */
+/* A termite warranty ticked on the sheet IS the warranty — so it writes itself onto
+   the property, with the visit that created it recorded alongside. Before this, the
+   Warranties screen kept showing whatever the old mailing list said. */
+function syncWarrantyFromSheet(s,at){
+  if(!s||!s.sheet) return;
+  const st=s.sheet;
+  if(st.warranty!=='Termite Warranty') return;
+  const term=parseInt(String(st.warrantyNote||'').replace(/[^0-9]/g,''),10);
+  if(!term||term>25) return;
+  const c=byId(s.cid); if(!c) return;
+  const year=at&&at.date?parseInt(at.date.slice(0,4),10):THIS_YEAR;
+  const p=propAt(c,s.pid);
+  const exp=year+term;
+  if(p.warrantyExp===exp && p.star) return;                 // nothing new to say
+  const ft=`FT" ${String(year).slice(2)} ${term} yr${term>1?'s':''}`;
+  propWrite(c,s.pid,{star:true, ft:ft, warrantyExp:exp,
+    warrantyFrom:at?{date:at.date,tech:at.tech,tm:at.tm}:undefined});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'job',
+    txt:`${term}-year termite warranty from this treatment — runs through ${exp}${p.primary?'':` (${p.addr})`}`});
+}
 function writeSlotLines(s,lines){
   if(!lines.length) return;
   s.service=lines[0].service; s.price=lines[0].price;
@@ -2101,6 +2373,7 @@ function writeSlotLines(s,lines){
 function toggleServiceLine(date,tech,tm,formName){
   const s=slotAt(date,tech,tm);
   if(!s){ toast("That appointment has moved — reopen the sheet"); return; }
+  if(sheetLockBlocked(date,tech,tm,'what was done and what it costs')) return;
   const c=byIdSafe(s.cid), area=propAt(c,s.pid).area;
   const lines=slotLines(s,area).slice();
   const i=lines.findIndex(l=>lineMatchesForm(l.service,formName));
@@ -2110,7 +2383,7 @@ function toggleServiceLine(date,tech,tm,formName){
   } else {
     lines.push({service:formName, price:formServicePrice(formName,area)});
   }
-  writeSlotLines(s,lines); persist(); router();
+  writeSlotLines(s,lines); persist(); rerender();
 }
 /* ---- adjustments: a discount, a goodwill credit, a correction ----
    Money-affecting, so it's reasoned and logged. A discount comes off before
@@ -2118,6 +2391,8 @@ function toggleServiceLine(date,tech,tm,formName){
 function openAdjustModal(date,tech,tm){
   const s=slotAt(date,tech,tm); if(!s)return;
   const c=byIdSafe(s.cid);
+  /* a discount AFTER payment is normal (that is why this exists) — so the lock
+     does not block it; it is already logged and it surfaces the refund owed */
   const cur=s.adjust||{amount:0,reason:""};
   const v=x=>escapeHtml(x==null?"":String(x));
   showModal(`<div class="pad">
@@ -2130,17 +2405,19 @@ function openAdjustModal(date,tech,tm){
         <input id="adj_why" class="search" style="margin:.2rem 0 0" value="${v(cur.reason)}" placeholder="e.g. came back for ants"></div>
     </div>
     <div class="row" style="margin-top:.8rem">
-      <button class="btn" onclick="saveAdjust('${date}','${tech}','${tm}')">Take it off</button>
+      <button class="btn" onclick="saveAdjust('${date}','${jsAttr(tech)}','${tm}')">Take it off</button>
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
-      ${cur.amount?`<span style="flex:1"></span><button class="btn ghost mini" onclick="clearAdjust('${date}','${tech}','${tm}')">Remove the discount</button>`:''}
+      ${cur.amount?`<span style="flex:1"></span><button class="btn ghost mini" onclick="clearAdjust('${date}','${jsAttr(tech)}','${tm}')">Remove the discount</button>`:''}
     </div>
   </div>`);
 }
 function saveAdjust(date,tech,tm){
   const s=slotAt(date,tech,tm); if(!s)return;
   const c=byIdSafe(s.cid);
-  const amt=Math.abs(parseFloat((document.getElementById('adj_amt')||{}).value)||0);
+  const raw=readMoney((document.getElementById('adj_amt')||{}).value);
+  const amt=raw==null?null:Math.abs(raw);
   const why=sanitizeField((document.getElementById('adj_why')||{}).value);
+  if(amt==null){ toast("That didn't read as an amount — type it like 25 or 25.00"); return; }
   if(!amt){ toast('How much should come off?'); return; }
   if(!why){ toast('Say why — it goes on the folder'); return; }
   const lines=slotLines(s,propAt(c,s.pid).area);
@@ -2161,11 +2438,14 @@ function clearAdjust(date,tech,tm){
 const slotAdjust=s=>(s&&s.adjust&&s.adjust.amount)||0;
 function setLinePrice(date,tech,tm,idx,val){
   const s=slotAt(date,tech,tm); if(!s)return;
+  if(sheetLockBlocked(date,tech,tm,'the price')) return;
   const c=byIdSafe(s.cid), area=propAt(c,s.pid).area;
   const lines=slotLines(s,area).slice();
   if(!lines[idx])return;
-  lines[idx].price=Math.max(0,parseFloat(val)||0);
-  writeSlotLines(s,lines); persist(); router();
+  const p=readMoney(val);
+  if(p==null){ toast(`"${val}" isn't a price — type it like 1850`); router(); return; }
+  lines[idx].price=Math.max(0,p);
+  writeSlotLines(s,lines); persist(); rerender();
 }
 
 /* ---- the tech and the time live on the BOOKING, so changing them moves the
@@ -2227,21 +2507,50 @@ function sheetState(s){
 }
 /* the job may have been moved or cancelled since this sheet was opened */
 function slotAt(date,tech,tm){ return (((SCHED[date]||{})[tech])||{})[tm]||null; }
+/* Once a customer has signed the sheet or paid against it, it is a record of what
+   happened — not a form. It can still be corrected, but only deliberately, and the
+   change is written on the folder so the correction itself is on the record. */
+const sheetLocked=s=>!!(s&&(s.signed||slotCollected(s)>0)&&!s.unlocked);
+function sheetLockBlocked(date,tech,tm,what){
+  const s=slotAt(date,tech,tm);
+  if(!sheetLocked(s)) return false;
+  const c=byIdSafe(s.cid);
+  showModal(`<div class="pad">
+    <div style="font-weight:800">This sheet is already ${s.signed?'signed':'paid'}</div>
+    <div class="muted" style="margin:.4rem 0 .7rem;font-size:.87rem">
+      ${escapeHtml(c.name)} ${s.signed?'signed this sheet':'paid against this sheet'}${s.signedOn?` on ${escapeHtml(s.signedOn)}`:''}.
+      Changing ${escapeHtml(what||'it')} now changes a record of work that was done — the pesticide record, the price they agreed to, or both.
+      You can still do it; it gets written on the folder with your name on it.</div>
+    <div class="row"><button class="btn" onclick="unlockSheet('${date}','${jsAttr(tech)}','${tm}')">Let me correct it</button>
+      <button class="btn ghost" onclick="closeModal()">Leave it alone</button></div></div>`);
+  return true;
+}
+function unlockSheet(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s){ closeModal(); return; }
+  s.unlocked=true;
+  const c=byIdSafe(s.cid);
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'money',
+    txt:`Opened a ${s.signed?'signed':'paid'} sheet to correct it — ${slotDesc(s)}`});
+  persist(); closeModal(); toast('Open for corrections — every change is logged'); router();
+}
 function toggleSheet(date,tech,tm,field,value){
   const s=slotAt(date,tech,tm);
   if(!s){ toast("That appointment has moved — reopen the sheet"); return; }
+  if(sheetLockBlocked(date,tech,tm,'the record of what was applied')) return;
   const st=sheetState(s);
   if(field==='warranty'){ st.warranty = (st.warranty===value)?"":value; }
   else if(field==='method'){ st.method = (st.method===value)?"":value; }
   else { const arr=st[field]; const i=arr.indexOf(value); if(i>=0)arr.splice(i,1); else arr.push(value); }
-  persist(); router();
+  if(field==='warranty') syncWarrantyFromSheet(s,{date,tech,tm});
+  persist(); rerender();
 }
 function toggleMaterial(date,tech,tm,name){
   const s=slotAt(date,tech,tm);
   if(!s){ toast("That appointment has moved — reopen the sheet"); return; }
+  if(sheetLockBlocked(date,tech,tm,'the chemicals on the pesticide record')) return;
   const st=sheetState(s);
   if(st.materials[name]) delete st.materials[name]; else st.materials[name]={pct:"",amt:""};
-  persist(); router();
+  persist(); rerender();
 }
 function setMaterialField(date,tech,tm,name,key,val){
   const s=slotAt(date,tech,tm); if(!s)return;
@@ -2252,6 +2561,9 @@ function setSheetField(date,tech,tm,field,val){
   const s=slotAt(date,tech,tm); if(!s)return;
   const st=sheetState(s);
   st[field]=sanitizeField(val); persist();
+  /* typing "3 years" next to Termite Warranty is what creates the warranty —
+     so the Warranties screen and the renewal letters follow from the sheet */
+  if(field==='warrantyNote'){ syncWarrantyFromSheet(s,{date,tech,tm}); rerender(); }
 }
 /* every visit this customer has ever had in the system, newest first — so any
    old render sheet can be pulled back up and reprinted */
@@ -2289,16 +2601,25 @@ const slotGross=s=>(s.lines&&s.lines.length)?s.lines.reduce((a,l)=>a+l.price,0):
 /* the total is what they actually owe — gross less any discount, so the cork
    board, the daily close and the folder all agree with the sheet */
 function slotTotal(s){ return Math.max(0, slotGross(s)+slotAdjust(s)); }
-/* what was collected vs what's owed now — a discount after payment means a refund */
-function slotOverpaid(s){
-  if(!(s.pay&&s.pay.run)) return 0;
-  const paid=(s.pay.amount!=null?s.pay.amount:slotGross(s));
-  return Math.max(0, paid-slotTotal(s));
-}
+const r2=n=>Math.round((+n||0)*100)/100;
 /* the tax rate is SNAPSHOTTED on the visit when it's booked — changing the
    rate in Settings must never rewrite what an old job owed or was billed */
 function slotTaxRate(s){ return (s&&s.taxRate!=null)?s.taxRate:TAX_RATE; }
-function slotWithTax(s){ return slotTotal(s)*(1+slotTaxRate(s)); }
+function slotWithTax(s){ return r2(slotTotal(s)*(1+slotTaxRate(s))); }
+/* ---- what actually came in ----
+   COLLECTED is stamped on the visit the moment money is taken and is never
+   re-derived: change the sheet afterwards and the amount she banked stays put.
+   Everything else is arithmetic on top of it, so no two screens can disagree. */
+function slotCollected(s){
+  if(!(s&&s.pay&&s.pay.run)) return 0;
+  const took=(s.pay.collected!=null)?s.pay.collected:slotWithTax(s);   // pre-1.14 data: best effort
+  return Math.max(0, r2(took-((s.refund&&s.refund.amount)||0)));
+}
+const slotShortfall=s=>Math.max(0, r2(slotWithTax(s)-slotCollected(s)));   // still owed
+const slotOverpaid =s=>Math.max(0, r2(slotCollected(s)-slotWithTax(s)));   // owed back
+/* On the cork board / in the folder's "owes": anything completed with money still
+   short, whether that's nothing paid, a card never run, or a part payment. */
+const slotOwes=s=>!!(s.cid && s.done && !s.cancelled && !s.refunded && slotShortfall(s)>0.004);
 function slotDesc(s){ return (s.lines&&s.lines.length>1)?`${s.lines[0].service} +${s.lines.length-1} more`:s.service; }
 /* the AREA is where they actually live, so the city follows the area code;
    the paper form pre-prints "Toms River" and crosses it out when different */
@@ -2341,20 +2662,20 @@ function viewRender(id,ctx){
     if(field==='services'){
       const on=live?serviceTicked(booking.slot,P.area,value):false;
       return live
-        ? `<div class="fbox ${on?'on':''}" onclick="toggleServiceLine('${B.date}','${B.tech}','${B.tm}','${value.replace(/'/g,"\\'")}')">${chk(on)}${label||value}</div>`
+        ? `<div class="fbox ${on?'on':''}" onclick="toggleServiceLine('${B.date}','${jsAttr(B.tech)}','${B.tm}','${jsAttr(value)}')">${chk(on)}${label||value}</div>`
         : `<div class="fbox">${chk(on)}${label||value}</div>`;
     }
     const on = field==='warranty'||field==='method' ? st[field]===value : st[field].indexOf(value)>=0;
     return live
-      ? `<div class="fbox ${on?'on':''}" onclick="toggleSheet('${B.date}','${B.tech}','${B.tm}','${field}','${value.replace(/'/g,"\\'")}')">${chk(on)}${label||value}</div>`
+      ? `<div class="fbox ${on?'on':''}" onclick="toggleSheet('${B.date}','${jsAttr(B.tech)}','${B.tm}','${field}','${jsAttr(value)}')">${chk(on)}${label||value}</div>`
       : `<div class="fbox">${chk(on)}${label||value}</div>`;
   };
   /* the header's tech and AM/PM belong to the booking — clicking them moves the job */
   const techBox=t=>live
-    ? `<span class="fbox" style="display:inline-flex" onclick="sheetSetTech('${B.date}','${B.tech}','${B.tm}','${t.replace(/'/g,"\\'")}')">${chk(tech===t)}${escapeHtml(t)}</span>`
+    ? `<span class="fbox" style="display:inline-flex" onclick="sheetSetTech('${B.date}','${jsAttr(B.tech)}','${B.tm}','${jsAttr(t)}')">${chk(tech===t)}${escapeHtml(t)}</span>`
     : `<span>${chk(tech===t)}${escapeHtml(t)}</span>`;
   const halfBox=(label,isOn)=>live
-    ? `<span class="fbox" style="display:inline-flex" onclick="openSheetTimeModal('${B.date}','${B.tech}','${B.tm}')">${chk(isOn)}${label}</span>`
+    ? `<span class="fbox" style="display:inline-flex" onclick="openSheetTimeModal('${B.date}','${jsAttr(B.tech)}','${B.tm}')">${chk(isOn)}${label}</span>`
     : `<span>${chk(isOn)}${label}</span>`;
   main.innerHTML="";
   main.appendChild(el(`<div>
@@ -2431,12 +2752,12 @@ function viewRender(id,ctx){
               : `<span style="font-family:ui-monospace,Consolas,monospace">${money(l.price)}</span>`}
           </div>`).join("")}
           ${adj?`<div class="rs-line"><span>${escapeHtml(booking.slot.adjust.reason||'Discount')}
-              ${live?`<button class="btn ghost mini noprint" style="min-height:20px;padding:0 .3rem" onclick="clearAdjust('${B.date}','${B.tech}','${B.tm}')">✕</button>`:''}</span>
+              ${live?`<button class="btn ghost mini noprint" style="min-height:20px;padding:0 .3rem" onclick="clearAdjust('${B.date}','${jsAttr(B.tech)}','${B.tm}')">✕</button>`:''}</span>
             <span style="font-family:ui-monospace,Consolas,monospace">−${money(Math.abs(adj))}</span></div>`:''}
           <div class="rs-line" style="border-bottom:none;font-weight:800"><span>Service Fee</span>
             <span style="font-family:ui-monospace,Consolas,monospace">${money(price)}</span></div>
           ${live?`<div class="row noprint" style="margin-top:.3rem">
-            <button class="btn ghost mini" onclick="openAdjustModal('${B.date}','${B.tech}','${B.tm}')">${adj?'Change the discount':'Take something off…'}</button>
+            <button class="btn ghost mini" onclick="openAdjustModal('${B.date}','${jsAttr(B.tech)}','${B.tm}')">${adj?'Change the discount':'Take something off…'}</button>
           </div>`:''}
         </div>`:''}
       </div>
@@ -2466,14 +2787,14 @@ function viewRender(id,ctx){
             <input class="fline" value="${escapeHtml(st.propDate||'')}" placeholder="mm/dd/yyyy"
               ${live?`onchange="setSheetField('${B.date}','${B.tech}','${B.tm}','propDate',this.value)"`:'readonly'}></div>
           <div><div class="rs-band" style="margin-bottom:.2rem">NOTES <span class="muted" style="font-weight:400;text-transform:none">— ${tech}'s box</span></div>
-            <textarea class="fnotes" placeholder="what you saw, what you did"
+            <textarea class="fnotes" placeholder="what you saw, what you did" oninput="growNote(this)"
               ${live?`onchange="setSheetField('${B.date}','${B.tech}','${B.tm}','notes',this.value)"`:'readonly'}>${escapeHtml(st.notes||'')}</textarea></div>
         </div>
       </div>
 
       <div class="rs-sec">
         <div class="rs-band">MATERIALS USED <span class="muted" style="font-weight:400;text-transform:none">— NJ DEP application record (Reg 7:30-9.10)</span></div>
-        <table class="mattable">
+        <table class="mattable matpick">
           <tr><th>%</th><th>Name / EPA #</th><th>Amount</th><th>%</th><th>Name / EPA #</th><th>Amount</th></tr>
           ${(()=>{const half=Math.ceil(FORM_MATERIALS.length/2); let rows="";
             for(let i=0;i<half;i++){
@@ -2481,15 +2802,29 @@ function viewRender(id,ctx){
                 if(!m) return "<td></td><td></td><td></td>";
                 const on=!!st.materials[m[0]], v=st.materials[m[0]]||{};
                 const inp=(k,ph)=>on&&live
-                  ? `<input class="fcell" value="${escapeHtml(v[k]||'')}" placeholder="${ph}" onchange="setMaterialField('${B.date}','${B.tech}','${B.tm}','${m[0].replace(/'/g,"\\'")}','${k}',this.value)">`
+                  ? `<input class="fcell" value="${escapeHtml(v[k]||'')}" placeholder="${ph}" onchange="setMaterialField('${B.date}','${B.tech}','${B.tm}','${jsAttr(m[0])}','${k}',this.value)">`
                   : `<span class="fcellv">${escapeHtml(v[k]||'')}</span>`;
                 return `<td>${inp('pct','%')}</td>
-                  <td class="matname ${on?'on':''}" ${live?`onclick="toggleMaterial('${B.date}','${B.tech}','${B.tm}','${m[0].replace(/'/g,"\\'")}')"`:''}>
+                  <td class="matname ${on?'on':''}" ${live?`onclick="toggleMaterial('${B.date}','${jsAttr(B.tech)}','${B.tm}','${jsAttr(m[0])}')"`:''}>
                     ${chk(on)}${m[0]}${m[1]?`<span class="epa">${m[1]}</span>`:''}</td>
                   <td>${inp('amt','')}</td>`;
               }).join("")+"</tr>";
             } return rows;})()}
         </table>
+        ${(()=>{
+          /* What PRINTS is the applicator's record: the products actually used,
+             with the rate and the amount. The 28-product grid above is the picker
+             — printing all of it is what pushed the sheet onto a second page. */
+          const used=Object.keys(st.materials||{});
+          if(!used.length) return `<div class="matused" style="font-size:.66rem;padding:.3rem 0">No pesticide applied on this visit.</div>`;
+          return `<table class="matused" style="width:100%;border-collapse:collapse">
+            <tr><th style="width:3rem">%</th><th>Product / EPA registration #</th><th style="width:5rem">Amount used</th></tr>
+            ${used.map(k=>{const v=st.materials[k]||{};
+              const m=FORM_MATERIALS.find(x=>x&&x[0]===k);
+              return `<tr><td>${escapeHtml(v.pct||'')}</td>
+                <td>${escapeHtml(k)}${m&&m[1]?` — EPA #${escapeHtml(m[1])}`:''}</td>
+                <td>${escapeHtml(v.amt||'')}</td></tr>`;}).join("")}
+          </table>`;})()}
       </div>
 
       <div class="rs-sec">
@@ -2523,8 +2858,8 @@ function viewRender(id,ctx){
         </div>
         <div class="row" style="justify-content:space-between;margin-top:.6rem;font-size:.8rem">
           <div>Customer signature:
-            ${booking&&booking.slot.sig
-              ? `<img src="${booking.slot.sig}" alt="signed" style="display:block;height:44px;max-width:190px;border-bottom:1px solid #333">
+            ${booking&&booking.slot.signed&&!sigIsEmpty(booking.slot.sig)
+              ? `${sigHTML(booking.slot.sig,190)}
                  <span class="muted" style="font-size:.62rem">signed on site${booking.slot.signedOn?` ${escapeHtml(booking.slot.signedOn)}`:''}</span>`
               : `<span style="display:inline-block;border-bottom:1px solid #333;width:150px">&nbsp;</span>`}</div>
           <div>United Rep: <b>${techLabel(tech)}</b></div>
@@ -2547,23 +2882,38 @@ const WDI_KEY=["Fixed ceiling","Suspended ceiling","Fixed wall covering","Floor 
  "Exterior siding","Window well covers","Wood pile","Snow","Unsafe conditions","Rigid foam board",
  "Synthetic stucco","Duct work, wiring, and/or plumbing","Spray foam insulation","Equipment"];
 const WDI_AREAS=["Basement","Crawlspace","Main Level","Attic","Garage","Exterior","Porch","Addition","Other"];
-function wdiState(s){
-  if(!s.wdi) s.wdi={inspDate:TODAY_ISO, structures:"", finding:"", live:"", dead:"", damage:"",
-    rec:"", recNone:"", recAction:"", obstr:{}, comments:"", attachments:""};
+function wdiState(s,at){
+  if(!s.wdi) s.wdi={inspDate:(at&&at.date)||TODAY_ISO, structures:"", finding:"", live:"", dead:"", damage:"",
+    rec:"", recNone:"", recAction:"", obstr:{}, comments:"", attachments:"", sig:null, signedOn:""};
+  /* the 90-day clock runs from the day of the inspection — stamping the day the
+     form happened to be opened can hand a buyer an already-expired report */
+  if(at&&at.date&&!s.wdi._dateSetByHand&&s.wdi.inspDate!==at.date&&!s.wdi.signedOn) s.wdi.inspDate=at.date;
+  if(at){ s.wdi._d=at.date; s.wdi._tm=at.tm; }
   return s.wdi;
+}
+function saveWdiSig(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s){ toast('That inspection has moved'); return; }
+  const w=wdiState(s);
+  const data=sigData();
+  if(sigIsEmpty(data)){ toast('Sign in the box first'); return; }
+  w.sig=data; w.signedOn=fmtToday();
+  const c=byIdSafe(s.cid);
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'job',txt:`WDI report signed by ${tech}`});
+  persist(); toast('Report signed'); rerender();
 }
 function wdiSet(date,tech,tm,field,val){
   const s=slotAt(date,tech,tm); if(!s)return;
   const w=wdiState(s);
   if(field==='finding'||field==='rec'){ w[field]=(w[field]===val)?"":val; }
   else w[field]=sanitizeField(val);
-  persist(); router();
+  if(field==='inspDate') w._dateSetByHand=true;
+  persist(); rerender();
 }
 function wdiToggleArea(date,tech,tm,area){
   const s=slotAt(date,tech,tm); if(!s)return;
   const w=wdiState(s);
   if(w.obstr[area]) delete w.obstr[area]; else w.obstr[area]="";
-  persist(); router();
+  persist(); rerender();
 }
 function wdiSetArea(date,tech,tm,area,val){
   const s=slotAt(date,tech,tm); if(!s)return;
@@ -2605,7 +2955,7 @@ function viewWDIList(){
 function viewWDI(cid,tech,date,tm){
   const c=byId(+cid); const s=slotAt(date,tech,tm);
   if(!c||!s){ location.hash='wdilist'; return; }
-  const w=wdiState(s); const P=propAt(c,s.pid);
+  const w=wdiState(s,{date,tech,tm}); const P=propAt(c,s.pid);
   const days=wdiDaysLeft(w);
   const chk=on=>`<span class="chk ${on?'x':''}">${on?'✓':''}</span>`;
   const A=`'${date}','${tech}','${tm}'`;
@@ -2647,7 +2997,13 @@ function viewWDI(cid,tech,date,tm){
             <div class="muted" style="font-size:.6rem;margin-top:.3rem">Address of Property Inspected</div>
             <b>${escapeHtml(P.addr)}</b><br>${escapeHtml(P.city||sheetCity(P))}, NJ ${escapeHtml(P.zip||'')}
             <div class="muted" style="font-size:.6rem;margin-top:.3rem">Inspector's Name, Signature &amp; Cert./Reg./Lic. #</div>
-            <b>${escapeHtml(techLabel(tech))}</b> &nbsp;<span class="muted">Lic. ${escapeHtml(CO().depApplicator)}</span>
+            <b>${escapeHtml(tech)}</b> &nbsp;<span class="muted">Lic. ${escapeHtml(techLic(tech)||CO().depApplicator)}${techLic(tech)?'':' (company — set this inspector\'s own number in Settings)'}</span>
+            ${w.signedOn&&!sigIsEmpty(w.sig)
+              ? `${sigHTML(w.sig,190)}<div class="muted" style="font-size:.6rem">signed ${escapeHtml(w.signedOn||'')}</div>`
+              : `<div class="noprint">${sigCanvas('wdisig')}
+                  <div class="row" style="margin:.25rem 0 0"><button class="btn ghost mini" onclick="clearSigPad()">Clear</button>
+                    <button class="btn mini" onclick="saveWdiSig('${date}','${jsAttr(tech)}','${tm}')">Save signature</button></div></div>
+                 <div class="printonly" style="display:none">&nbsp;</div>`}
             <div class="muted" style="font-size:.6rem;margin-top:.3rem">Structure(s) Inspected</div>
             ${line('structures','e.g. single family dwelling, detached garage')}
           </div>
@@ -2697,7 +3053,7 @@ function viewWDI(cid,tech,date,tm){
 
       <div class="rs-sec">
         <div class="rs-band">SECTION V. ADDITIONAL COMMENTS AND ATTACHMENTS <span style="font-weight:400;text-transform:none">(these are an integral part of the report)</span></div>
-        <textarea class="fnotes" placeholder="additional comments" onchange="wdiSet(${A},'comments',this.value)">${escapeHtml(w.comments||'')}</textarea>
+        <textarea class="fnotes" placeholder="additional comments" oninput="growNote(this)" onchange="wdiSet(${A},'comments',this.value)">${escapeHtml(w.comments||'')}</textarea>
         <div style="font-size:.68rem;margin-top:.3rem">Attachments: ${line('attachments')}</div>
       </div>
 
@@ -2759,6 +3115,7 @@ function viewWDI(cid,tech,date,tm){
       </div>
     </div>
   </div>`));
+  initSig('wdisig', (w.sig&&typeof w.sig!=='string')?w.sig:null, data=>{ w.sig=data; persist(); });
 }
 
 /* ---------------- THE DAY'S SHEETS, ALL AT ONCE ----------------
@@ -2831,15 +3188,17 @@ const EVAL_READINGS=EVAL_ROWS.slice(16);   // these want a number, not a judgeme
 
 function evalState(l){
   if(!l.eval) l.eval={mode:"Evaluation", date:TODAY_ISO, warrantyYears:"",
+    startDate:"", finishDate:"", taxRate:TAX_RATE,
     billing:{name:"",addr:"",city:"",state:"NJ",zip:"",phone:"",email:""},
     services:{}, rows:{}, sig:"", signedOn:""};
+  if(l.eval.taxRate==null) l.eval.taxRate=TAX_RATE;   // forms started before 1.14
   return l.eval;
 }
 function evalSet(id,field,val){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
   const e=evalState(l);
   if(field==='mode') e.mode=val; else e[field]=sanitizeField(val);
-  persist(); router();
+  persist(); rerender();
 }
 function evalSetBilling(id,field,val){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
@@ -2850,19 +3209,22 @@ function evalToggleService(id,name){
   const e=evalState(l), c=byIdSafe(l.cid);
   if(e.services[name]) delete e.services[name];
   else e.services[name]={price:priceFor(name, propAt(c,l.propertyId).area)||0};
-  syncEvalToQuote(l); persist(); router();
+  syncEvalToQuote(l); persist(); rerender();
 }
 function evalSetPrice(id,name,val){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
   const e=evalState(l);
-  if(e.services[name]){ e.services[name].price=Math.max(0,parseFloat(val)||0); syncEvalToQuote(l); persist(); router(); }
+  if(!e.services[name]) return;
+  const p=readMoney(val);
+  if(p==null){ toast(`"${val}" isn't a price — type it like 1850`); rerender(); return; }
+  e.services[name].price=Math.max(0,p); syncEvalToQuote(l); persist(); rerender();
 }
 function evalSetRow(id,row,state){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
   const e=evalState(l);
   e.rows[row]=e.rows[row]||{state:"",comment:""};
   e.rows[row].state = e.rows[row].state===state ? "" : state;
-  persist(); router();
+  persist(); rerender();
 }
 function evalSetComment(id,row,val){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
@@ -2870,7 +3232,12 @@ function evalSetComment(id,row,val){
   e.rows[row]=e.rows[row]||{state:"",comment:""};
   e.rows[row].comment=sanitizeField(val); persist();
 }
-const evalSubtotal=e=>Object.keys(e.services||{}).reduce((n,k)=>n+(+e.services[k].price||0),0);
+const evalSubtotal=e=>r2(Object.keys(e.services||{}).reduce((n,k)=>n+(+e.services[k].price||0),0));
+/* The rate is snapshotted when the form is started and frozen once it is signed —
+   a signed contract must reprint the same grand total for ever. */
+const evalRate=e=>(e&&e.taxRate!=null)?e.taxRate:TAX_RATE;
+const evalTax=e=>r2(evalSubtotal(e)*evalRate(e));
+const evalTotal=e=>r2(evalSubtotal(e)+evalTax(e));
 /* the quote's amount IS the form's grand total — one number, not two */
 function syncEvalToQuote(l){
   const e=evalState(l), sub=evalSubtotal(e);
@@ -2886,28 +3253,29 @@ function newEvaluation(cid,pid){
   persist(); updateBadges();
   location.hash='eval/'+nid; router();
 }
-let EVAL_SIG=null;
-function initEvalSig(){
-  const cv=document.getElementById('evalsig'); if(!cv)return; EVAL_SIG=cv;
-  const ctx=cv.getContext('2d'); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.strokeStyle='#1c2321';
-  let drawing=false,last=null;
-  const pos=e=>{const r=cv.getBoundingClientRect();const p=(e.touches&&e.touches[0])||e;
-    return {x:(p.clientX-r.left)*(cv.width/r.width), y:(p.clientY-r.top)*(cv.height/r.height)};};
-  const start=e=>{drawing=true;last=pos(e);e.preventDefault();};
-  const move=e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;e.preventDefault();};
-  const end=()=>{drawing=false;};
-  cv.onmousedown=start; cv.onmousemove=move; window.addEventListener('mouseup',end);
-  cv.ontouchstart=start; cv.ontouchmove=move; cv.ontouchend=end;
+/* the crawl-space form uses the same stroke pad, and the same per-stroke saving */
+function initEvalSig(id){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const e=evalState(l);
+  initSig('evalsig', (e.sig&&typeof e.sig!=='string')?e.sig:null, data=>{ e.sig=data; persist(); });
 }
-function clearEvalSig(){ if(EVAL_SIG){const c=EVAL_SIG.getContext('2d');c.clearRect(0,0,EVAL_SIG.width,EVAL_SIG.height);} }
+function clearEvalSig(){ clearSigPad(); }
 function saveEvalSig(id){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
   const e=evalState(l);
-  if(EVAL_SIG){ try{ e.sig=EVAL_SIG.toDataURL('image/png'); }catch(err){} }
-  e.signedOn=fmtToday();
+  const data=sigData();
+  if(sigIsEmpty(data)){ toast('Have them sign in the box first'); return; }
+  if(e.mode==='Contract'){
+    const missing=[];
+    if(!e.startDate) missing.push('a start date');
+    if(!e.finishDate) missing.push('a finish date');
+    if(missing.length){ toast(`A contract needs ${missing.join(' and ')} before it's signed`); return; }
+  }
+  e.sig=data;
+  e.signedOn=fmtToday(); e.signedRate=TAX_RATE; e.taxRate=(e.taxRate!=null?e.taxRate:TAX_RATE);
   const c=byIdSafe(l.cid);
   if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'quote',
-    txt:`${e.mode} signed — ${money(evalSubtotal(e)*(1+TAX_RATE))}`});
+    txt:`${e.mode} signed — ${money(evalTotal(e))}`});
   if(e.mode==='Contract'&&l.status!=='Won'){ l.status='Won'; }   // a signed contract is a sale
   persist(); toast('Signed'); router();
 }
@@ -2916,7 +3284,7 @@ function viewEval(idArg){
   if(!l){ location.hash='leads'; return; }
   const c=byIdSafe(l.cid); const P=propAt(c,l.propertyId);
   const e=evalState(l);
-  const sub=evalSubtotal(e), tax=sub*TAX_RATE, tot=sub+tax;
+  const sub=evalSubtotal(e), tax=evalTax(e), tot=evalTotal(e);
   const v=s=>escapeHtml(s==null?"":String(s));
   const chk=on=>`<span class="chk ${on?'x':''}">${on?'✓':''}</span>`;
   const bill=(label,f,w)=>`<div style="flex:${w||1}">${label}
@@ -2993,21 +3361,22 @@ function viewEval(idArg){
             <div class="fcols" style="grid-template-columns:1fr 1fr">
               ${EVAL_SERVICES.map(col=>`<div>${col.map(sv=>{
                 const on=!!e.services[sv];
-                return `<div class="fbox ${on?'on':''}" onclick="evalToggleService(${id},'${sv.replace(/'/g,"\\'")}')">${chk(on)}${sv}</div>`;}).join("")}</div>`).join("")}
+                return `<div class="fbox ${on?'on':''}" onclick="evalToggleService(${id},'${jsAttr(sv)}')">${chk(on)}${sv}</div>`;}).join("")}</div>`).join("")}
             </div>
             ${Object.keys(e.services).length?`<div style="margin-top:.35rem;border-top:1px dotted #ccc;padding-top:.25rem">
               ${Object.keys(e.services).map(k=>`<div class="rs-line"><span>${escapeHtml(k)}</span>
                 <input class="fcell" style="width:6rem;text-align:right;font-family:ui-monospace,Consolas,monospace"
-                  inputmode="decimal" value="${e.services[k].price}" onchange="evalSetPrice(${id},'${k.replace(/'/g,"\\'")}',this.value)"></div>`).join("")}
+                  inputmode="decimal" value="${e.services[k].price}" onchange="evalSetPrice(${id},'${jsAttr(k)}',this.value)"></div>`).join("")}
             </div>`:'<div class="muted" style="font-size:.72rem;margin-top:.3rem">Tick what you\'re recommending — each one comes down here with its price.</div>'}
           </div>
           <div>
             <div class="rs-band" style="margin:-.5rem -.3rem .35rem">PAYMENT SUMMARY</div>
             <div class="money" style="margin:.5rem 0 0">
               <div>Subtotal</div><div>${money(sub)}</div>
-              <div>Tax (${SETTINGS.taxRate}%)</div><div>${money(tax)}</div>
+              <div>Tax (${(evalRate(e)*100).toFixed(3).replace(/0+$/,'').replace(/\.$/,'')}%)</div><div>${money(tax)}</div>
               <div class="tot">Grand Total</div><div class="tot">${money(tot)}</div>
             </div>
+            ${e.signedOn?`<div style="font-size:.6rem;text-align:center;margin-top:.25rem">Signed ${v(e.signedOn)} — this total is fixed at the rate it was signed at.</div>`:''}
             <div style="text-align:center;font-size:.7rem;margin-top:.4rem;font-weight:700">• Credit Cards Accepted •</div>
           </div>
         </div>
@@ -3017,16 +3386,40 @@ function viewEval(idArg){
         </div>
       </div>
 
+      ${e.mode==='Contract'?`<div class="rs-sec">
+        <div class="rs-band" style="margin:-.5rem -.3rem .35rem">THE WORK AND THE DATES</div>
+        <div class="rs-grid" style="gap:.3rem .8rem">
+          <div><div class="colname">WORK TO START</div>
+            <input type="date" class="fline" value="${v(e.startDate)}" onchange="evalSet(${id},'startDate',this.value)"></div>
+          <div><div class="colname">WORK TO BE FINISHED</div>
+            <input type="date" class="fline" value="${v(e.finishDate)}" onchange="evalSet(${id},'finishDate',this.value)"></div>
+          <div><div class="colname">DATE OF THIS CONTRACT</div>
+            <input type="date" class="fline" value="${v(e.date||TODAY_ISO)}" onchange="evalSet(${id},'date',this.value)"></div>
+        </div>
+        <div style="font-size:.62rem;line-height:1.45;margin-top:.45rem;border:1px solid #333;padding:.3rem .4rem">
+          <b>NOTICE TO THE BUYER — YOUR RIGHT TO CANCEL.</b> You may cancel this contract at any time before midnight of the third
+          business day after receiving a copy of it. To cancel, mail or deliver a signed, dated written notice stating that you
+          are cancelling, addressed to ${v(CO().name)}, ${v(CO().addr)}, ${v(CO().city)}, ${v(CO().state)} ${v(CO().zip)}.
+          If you cancel within that time, any payments made will be returned.
+          ${v(CO().name)} is registered with the New Jersey Division of Consumer Affairs as a home improvement contractor,
+          registration number ${v(CO().contractor)}. This contract sets out the total price above and the dates the work will
+          start and finish. Any change must be agreed in writing by both of us.
+        </div>
+        ${(!e.startDate||!e.finishDate)?`<div class="banner noprint" style="margin:.45rem 0 0;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">
+          Fill in the start and finish dates before this is signed — in New Jersey a home improvement contract needs both,
+          and the sheet won't take a signature without them.</div>`:''}
+      </div>`:''}
+
       <div class="rs-sec">
         <table class="evaltable">
           <tr><th style="text-align:left">Crawl Space Evaluation</th><th>Satisfied</th><th>Unsatisfied</th><th>N/A</th><th style="text-align:left">Comments</th></tr>
           ${EVAL_ROWS.map(row=>{
             const rr=e.rows[row]||{state:"",comment:""};
-            const cell=st=>`<td class="evalcell" onclick="evalSetRow(${id},'${row.replace(/'/g,"\\'")}','${st}')">${chk(rr.state===st)}</td>`;
+            const cell=st=>`<td class="evalcell" onclick="evalSetRow(${id},'${jsAttr(row)}','${st}')">${chk(rr.state===st)}</td>`;
             const isReading=EVAL_READINGS.indexOf(row)>=0;
             return `<tr><td class="evalrow">${row}</td>${cell('S')}${cell('U')}${cell('NA')}
               <td><input class="fline" value="${v(rr.comment)}" placeholder="${isReading?'reading':''}"
-                onchange="evalSetComment(${id},'${row.replace(/'/g,"\\'")}',this.value)"></td></tr>`;}).join("")}
+                onchange="evalSetComment(${id},'${jsAttr(row)}',this.value)"></td></tr>`;}).join("")}
         </table>
       </div>
 
@@ -3038,10 +3431,10 @@ function viewEval(idArg){
             <div>NJ CONTRACTOR #${v(CO().contractor)}</div>
           </div>
           <div style="text-align:center">
-            ${e.sig
-              ? `<img src="${e.sig}" alt="signed" style="display:block;height:44px;max-width:200px;border-bottom:1px solid #333">
+            ${e.signedOn&&!sigIsEmpty(e.sig)
+              ? `${sigHTML(e.sig,200)}
                  <div style="font-size:.6rem">Customer Signature · ${v(e.signedOn)}</div>`
-              : `<canvas id="evalsig" width="440" height="110" style="width:100%;max-width:260px;border:1px dashed var(--line);border-radius:6px;background:#fff;touch-action:none;display:block"></canvas>
+              : `${sigCanvas('evalsig')}
                  <div style="font-size:.6rem">Customer Signature</div>
                  <div class="row noprint" style="justify-content:center;margin-top:.25rem">
                    <button class="btn ghost mini" onclick="clearEvalSig()">Clear</button>
@@ -3052,7 +3445,7 @@ function viewEval(idArg){
       </div>
     </div>
   </div>`));
-  initEvalSig();
+  initEvalSig(id);
 }
 
 /* ---------------- DASHBOARD ("This Month") ---------------- */
@@ -3068,16 +3461,21 @@ function corkBoard(){
   const out=[];
   for(const date in SCHED) for(const tech in SCHED[date]) for(const tm in SCHED[date][tech]){
     const s=SCHED[date][tech][tm];
-    if(s.cid && s.done && !s.cancelled && !s.refunded && (!s.pay || !s.pay.run))
-      out.push({cid:s.cid, service:slotDesc(s), price:slotTotal(s), withTax:slotWithTax(s), date, tech, tm, status:ticketStatus(s), days:daysSince(date), resent:s.resent});
+    /* anything completed with money still short — nothing paid, a card written
+       down but never run, or a part payment that left a balance */
+    if(slotOwes(s))
+      out.push({cid:s.cid, service:slotDesc(s), price:slotTotal(s), withTax:slotWithTax(s),
+        owed:slotShortfall(s), part:slotCollected(s)>0,
+        date, tech, tm, status:ticketStatus(s), days:daysSince(date), resent:s.resent});
   }
   return out.sort((a,b)=> b.days-a.days);   // oldest first
 }
 /* dunning is a RECORDED action, not just a toast — it lands on the folder timeline */
 function resendTicket(date,tech,tm){
-  const s=SCHED[date][tech][tm]; const c=byId(s.cid);
+  const s=slotAt(date,tech,tm); if(!s){ toast("That job has moved — reopen it"); return; }
+  const c=byIdSafe(s.cid);
   s.resent=TODAY_ISO;
-  c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Render sheet re-sent (owes ${money(slotWithTax(s))})`});
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Render sheet re-sent (owes ${money(slotWithTax(s))})`});
   persist();
   toast(`Noted on ${c.name}'s folder — here's the sheet to print and mail`);
   // dunning IS re-mailing the sheet — so end with the sheet, ready to print
@@ -3094,7 +3492,7 @@ function viewDashboard(){
   /* per PROPERTY, same counting as the Warranties screen and the menu badge */
   const warrExp=[]; CUST.forEach(c=>propList(c).forEach(p=>{if(p.star&&p.warrantyExp&&p.warrantyExp<=THIS_YEAR)warrExp.push({c,p});}));
   const preTotal=CUST.filter(c=>c.preSched).length;
-  const preDone=CUST.filter(c=>c.preSched&&PRESCHED_SENT[c.id]).length;
+  const preDone=CUST.filter(c=>c.preSched&&preSent(c.id,PRE_YEAR())).length;
   const cork=corkBoard();
   const arTotal=cork.reduce((s,t)=>s+t.withTax,0);
   const close=scanDay(TODAY_ISO);
@@ -3105,6 +3503,10 @@ function viewDashboard(){
   if(followups.length) attention.push([`${followups.length} quote(s) gone quiet ${SETTINGS.followUpDays||7}+ days — follow up`,"leads","var(--gold)"]);
   if(warrExp.length) attention.push([`${warrExp.length} termite warranty(ies) due to renew`,"warranties","var(--warn)"]);
   if(remaining>0) attention.push([`${remaining} folders still to call in the ${MONTHS[THIS_MONTH-1]} box`,"calls","var(--cal-salmon)"]);
+  const carried=carriedSheets();
+  if(carried.length) attention.push([`${carried.length} sheet${carried.length===1?'':'s'} still out with a tech — oldest ${carried[0].days} day${carried[0].days===1?'':'s'}`,"close","var(--gold)"]);
+  const missedCalls=missedEarlier();
+  if(missedCalls.length) attention.push([`${missedCalls.length} folder${missedCalls.length===1?'':'s'} never got called in an earlier month`,"calls","var(--warn)"]);
   if(wonToSchedule.length) attention.push([`${wonToSchedule.length} sold job(s) not on the calendar yet`,"leads","var(--brand)"]);
 
   const tile=(v,label,sub,route,tone)=>`
@@ -3149,8 +3551,8 @@ function viewDashboard(){
         <div style="flex:1;min-width:9rem"><b>${c.name}</b> · ${t.service} <span class="muted">(${t.status})</span></div>
         <span class="pill">${t.days} days</span>
         ${t.resent?`<span class="pill" style="background:#eaf4ee;color:var(--brand)">re-sent ${fmtDayShort(t.resent)}</span>`:''}
-        <button class="btn ghost mini" onclick="resendTicket('${t.date}','${t.tech}','${t.tm}')">${t.resent?'Re-send again':'Re-send'}</button>
-        <button class="btn mini" onclick="openPaymentModal('${t.date}','${t.tech}','${t.tm}')">Record payment</button>
+        <button class="btn ghost mini" onclick="resendTicket('${t.date}','${jsAttr(t.tech)}','${t.tm}')">${t.resent?'Re-send again':'Re-send'}</button>
+        <button class="btn mini" onclick="openPaymentModal('${t.date}','${jsAttr(t.tech)}','${t.tm}')">Record payment</button>
         <b>${money(t.withTax)}</b>
       </div>`;}).join(""):'<div class="muted">Nothing outstanding — the board is clear.</div>'}
       <div class="muted" style="font-size:.78rem;margin-top:.5rem">Sheets land here <b>automatically</b> when a job comes back unpaid or is marked “To Be Mailed,” and drop off the moment payment is recorded. Dunning = re-send the sheet.</div>
@@ -3165,7 +3567,11 @@ function viewDashboard(){
 const WD_NAME=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 function nthWeekday(year,month/*1-12*/,wd/*0-6*/,nth){
   const firstDow=new Date(year,month-1,1).getDay();
-  const day=1+((wd-firstDow+7)%7)+(nth-1)*7;
+  let day=1+((wd-firstDow+7)%7)+(nth-1)*7;
+  /* the picker offers "last" for the 5th — most months have only four, and the
+     unclamped sum silently rolled into the following month */
+  const dim=new Date(year,month,0).getDate();
+  while(day>dim) day-=7;
   return new Date(year,month-1,day);
 }
 // observed-holiday collisions for a given year
@@ -3228,7 +3634,9 @@ let PRE_EDIT=null;
 function preSet(field,val){
   const c=byId(PRE_EDIT); if(!c)return;
   if(field==='nth'||field==='wd') c[field]=parseInt(val,10);
-  else if(field==='base') c.base=parseFloat(val)||0;
+  else if(field==='base'){ const p=readMoney(val);
+    if(p==null){ toast(`"${val}" isn't a price — type it like 65`); renderPreschedEditor(); return; }
+    c.base=Math.max(0,p); }
   c.slot=`${NTH_LABEL[c.nth]} ${WD_NAME[c.wd]}`;
   persist(); renderPreschedEditor();
 }
@@ -3243,7 +3651,9 @@ function preSetExtra(m,field,val){
   const e=c.extras[m];
   if(typeof e==='string') c.extras[m]={label:e,price:SETTINGS.extraPrice,everyOther:false,baseYear:THIS_YEAR+1};
   const x=c.extras[m];
-  if(field==='price') x.price=parseFloat(val)||0;
+  if(field==='price'){ const p=readMoney(val);
+    if(p==null){ toast(`"${val}" isn't a price — type it like 75`); renderPreschedEditor(); return; }
+    x.price=Math.max(0,p); }
   else if(field==='everyOther') x.everyOther=!!val;
   else if(field==='baseYear') x.baseYear=parseInt(val,10)||THIS_YEAR+1;
   else x[field]=sanitizeField(val);
@@ -3366,9 +3776,12 @@ function filterAddToProgram(q){
 }
 function fmtDate(d){return `${WD_NAME[d.getDay()].slice(0,3)} ${d.getMonth()+1}/${d.getDate()}`;}
 
+let PRE_YEAR_SEL=null;
+function PRE_YEAR(){ return PRE_YEAR_SEL||(THIS_MONTH>=10?THIS_YEAR+1:THIS_YEAR); }
+function setPreYear(y){ PRE_YEAR_SEL=+y; viewPreschedule(); }
 function viewPreschedule(){
   const pre=CUST.filter(c=>c.preSched);
-  const year=THIS_YEAR+1;
+  const year=PRE_YEAR();
   const rows=pre.map(c=>{
     const M=preschedMoney(c,year); const yr=M.yr;
     const flags=yr.filter(x=>x.hol);
@@ -3390,7 +3803,8 @@ function viewPreschedule(){
         <div class="muted" style="font-size:.82rem">5 × ${money(c.base!=null?c.base:SETTINGS.preschedBase)}${M.extras?` + add-ons ${money(M.extras)}`:''} = ${money(M.sub)} + tax ${money(M.tax)} = <b>${money(M.total)}</b></div>
         <div class="row">
           <button class="btn ghost mini" onclick="openPreschedEditor(${c.id})">✎ Slot &amp; add-ons</button>
-          <button class="btn mini" onclick="sendLetter(${c.id})">${PRESCHED_SENT[c.id]?'✓ Reprint letter':'Generate letter'}</button>
+          <button class="btn ghost mini" onclick="putYearInBook(${c.id},${year});persist();router()">${Object.keys(c.booked||{}).filter(k=>k.indexOf(year+'-')===0).length?'✓ In the book':'Put in the book'}</button>
+          <button class="btn mini" onclick="sendLetter(${c.id},${year})">${preSent(c.id,year)?'✓ Reprint letter':'Generate letter'}</button>
         </div>
       </div>
       ${flags.length?`<div class="muted" style="font-size:.75rem;margin-top:.4rem">⚠ ${flags.length} date${flags.length>1?'s':''} land on a holiday — open the slot editor to move ${flags.length>1?'them':'it'}.</div>`:''}
@@ -3401,36 +3815,118 @@ function viewPreschedule(){
   main.appendChild(el(`<div>
     <h2 class="screen-title">Pre-Schedule — ${year} program</h2>
     <p class="sub">The two weeks of hand-typing, as one button. Rule engine: the nth weekday of each month, May–September. Holidays flagged, money to the cent. Rules with overrides — never rules alone.</p>
+    <div class="row" style="gap:.4rem;margin:-.3rem 0 .8rem;align-items:center;flex-wrap:wrap">
+      <span class="muted" style="font-size:.82rem">Laying out</span>
+      ${[THIS_YEAR,THIS_YEAR+1,THIS_YEAR+2].map(y=>`<button class="btn ${y===year?'':'ghost'} mini" onclick="setPreYear(${y})">${y}</button>`).join("")}
+      <span style="flex:1"></span>
+      <span class="muted" style="font-size:.8rem">${pre.filter(c=>preSent(c.id,year)).length} of ${pre.length} letters done · ${programInBookCount(year)} of ${pre.length*5} visits in the book</span>
+    </div>
     <div class="banner">⚡ ${pre.length} customer${pre.length===1?'':'s'} on the program. One press lays out everyone's ${year} and prints every letter — no retyping, so last year's mistakes can't copy themselves forward.</div>
     <div class="row" style="margin-bottom:1rem">
-      <button class="btn" onclick="sendAllLetters()">⚡ Generate all ${pre.length} letters</button>
+      <button class="btn" onclick="putProgramInBook(${year})">📗 Put the whole ${year} program in the book</button>
+      <button class="btn" onclick="sendAllLetters(${year})">⚡ Generate all ${pre.length} letters</button>
       <button class="btn ghost" onclick="openAddToProgram()">＋ Put someone on the program</button>
-      ${pre.length?`<button class="btn ghost" onclick="location.hash='preletter/'+${pre[0].id}">Preview a letter</button>`:''}
+      ${pre.length?`<button class="btn ghost" onclick="location.hash='preletter/'+${pre[0].id}+'/'+${year}">Preview a letter</button>`:''}
     </div>
+    <div class="muted" style="font-size:.8rem;margin:-.6rem 0 1rem">The letter tells them the dates. <b>Put in the book</b> is what reserves the time, so the day fills up honestly and the sheets print themselves. Press it again whenever — it never doubles anything up.</div>
     ${pre.length===0?`<div class="banner">Nobody's on the program yet. Put a customer on and their year gets laid out automatically.</div>`:''}
     ${rows}
   </div>`));
 }
-function sendLetter(id){PRESCHED_SENT[id]=true;persist();const c=byId(id);toast(`${c.name}'s ${THIS_YEAR+1} letter generated`);location.hash='preletter/'+id;}
-/* "generate all" means the STACK, printable — not just flags and a toast */
-function sendAllLetters(){
-  CUST.filter(c=>c.preSched).forEach(c=>PRESCHED_SENT[c.id]=true);
-  persist(); location.hash='preletters';
+/* Letters are tracked PER YEAR. A single true/false per customer meant that from
+   the second season the screen said "done" before a single letter was printed. */
+const preKey=(id,year)=>`${year}-${id}`;
+const preSent=(id,year)=>!!PRESCHED_SENT[preKey(id,year)];
+function markPreSent(id,year){ PRESCHED_SENT[preKey(id,year)]=true; }
+function sendLetter(id,year){
+  year=+year||PRE_YEAR();
+  markPreSent(id,year); persist();
+  const c=byId(id); toast(`${c.name}'s ${year} letter generated`);
+  location.hash='preletter/'+id+'/'+year;
 }
-function letterHTML(cid){
+/* "generate all" means the STACK, printable — not just flags and a toast */
+function sendAllLetters(year){
+  year=+year||PRE_YEAR();
+  CUST.filter(c=>c.preSched).forEach(c=>markPreSent(c.id,year));
+  persist(); location.hash='preletters/'+year;
+}
+/* ---- the program actually reaching the book ----
+   Five visits a year each, for everyone on the program — about 400 appointments
+   that until now existed only on a letter. These are written as ordinary bookings,
+   the same shape as booking one by hand, so the sheets, the money and the close
+   treat them identically. Running it twice never doubles anything up. */
+const programSlotPref=c=>({tech:(c.progTech&&TECHS.indexOf(c.progTech)>=0)?c.progTech:TECHS[0], tm:(c.progTm||"9")});
+function putYearInBook(cid,year,quiet){
+  const c=byId(cid); if(!c||!c.preSched) return {added:0,clash:0,already:0,clashes:[]};
+  year=+year||PRE_YEAR();
+  const pref=programSlotPref(c);
+  const res={added:0,clash:0,already:0,clashes:[]};
+  c.booked=c.booked||{};
+  generateYear(c,year).forEach(x=>{
+    const date=iso(x.date), mk=`${year}-${x.month}`;
+    const prev=c.booked[mk];
+    if(prev){
+      const ps=((SCHED[prev.date]||{})[prev.tech]||{})[prev.tm];
+      if(ps&&ps.cid===c.id&&ps.program){
+        if(prev.date===date){ res.already++; return; }
+        delete SCHED[prev.date][prev.tech][prev.tm];   // the rule date moved — move the booking
+      }
+    }
+    const day=(SCHED[date]=SCHED[date]||{}); const techDay=(day[pref.tech]=day[pref.tech]||{});
+    let tm=pref.tm;
+    if(techDay[tm]&&techDay[tm].cid&&techDay[tm].cid!==c.id){
+      tm=TIMES.filter(t=>t!=="12").find(t=>!(techDay[t]&&techDay[t].cid));
+      if(!tm){ res.clash++; res.clashes.push(`${MONTHS[x.month-1]} ${x.date.getDate()}`); return; }
+    }
+    const price=(c.base!=null?c.base:SETTINGS.preschedBase);
+    const lines=[{service:"Yard spray", price:price}];
+    if(x.extra) lines.push({service:x.extra, price:x.extraPrice||0});
+    techDay[tm]={cid:c.id, service:lines[0].service, price:lines[0].price,
+      lines:(lines.length>1?lines:undefined), taxRate:TAX_RATE, program:true,
+      st:{x:false,w:false,ret:false}, big:false};
+    c.booked[mk]={date:date,tech:pref.tech,tm:tm};
+    res.added++;
+  });
+  if(res.added&&!quiet&&!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'job',
+    txt:`${year} program written into the book — ${res.added} visit${res.added===1?'':'s'} with ${pref.tech}`});
+  return res;
+}
+function putProgramInBook(year){
+  year=+year||PRE_YEAR();
+  let added=0,clash=0,already=0; const clashes=[];
+  CUST.filter(c=>c.preSched).forEach(c=>{ const r=putYearInBook(c.id,year);
+    added+=r.added; clash+=r.clash; already+=r.already;
+    if(r.clashes.length) clashes.push(`${c.name}: ${r.clashes.join(', ')}`); });
+  persist(); updateBadges();
+  toast(`${added} visit${added===1?'':'s'} written into the ${year} book${already?` · ${already} already there`:''}${clash?` · ${clash} could not fit`:''}`);
+  if(clash) showModal(`<div class="pad">
+    <div style="font-weight:800">${clash} visit${clash===1?" could not":"s could not"} fit</div>
+    <div class="muted" style="margin:.4rem 0 .6rem;font-size:.85rem">Those days were already full for that tech. Everything else went in. Book these by hand, or free up a slot and press it again — it will not duplicate what is already there.</div>
+    <div class="muted" style="font-size:.8rem">${clashes.map(escapeHtml).join('<br>')}</div>
+    <div class="row" style="margin-top:.7rem"><button class="btn" onclick="closeModal()">Got it</button></div></div>`);
+  router();
+}
+function programInBookCount(year){
+  year=+year||PRE_YEAR(); let n=0;
+  CUST.filter(c=>c.preSched).forEach(c=>{
+    Object.keys(c.booked||{}).forEach(k=>{ if(k.indexOf(year+'-')===0) n++; }); });
+  return n;
+}
+function letterHTML(cid,year){
   if(!byId(cid)) return "";
   const saved=main.innerHTML; let html="";
-  try{ viewPreletter(cid); const rs=main.querySelector('.rs'); html=rs?rs.outerHTML:""; }
+  try{ viewPreletter(cid,year); const rs=main.querySelector('.rs'); html=rs?rs.outerHTML:""; }
   catch(e){ html=`<div class="card pad">Couldn't build this letter.</div>`; }
   main.innerHTML=saved; return html;
 }
-function viewPreLetters(){
+function viewPreLetters(yearArg){
+  const year=+yearArg||PRE_YEAR();
   const pre=CUST.filter(c=>c.preSched);
   main.innerHTML="";
   main.appendChild(el(`<div>
     <div class="row noprint" style="justify-content:space-between;margin-bottom:.7rem">
       <div>
-        <h2 class="screen-title" style="margin:0">The ${THIS_YEAR+1} letters — all of them</h2>
+        <h2 class="screen-title" style="margin:0">The ${year} letters — all of them</h2>
         <p class="sub" style="margin:.1rem 0 0">${pre.length} letter${pre.length===1?'':'s'}, one per page. The envelope stuffing is still yours.</p>
       </div>
       <div class="row">
@@ -3438,13 +3934,13 @@ function viewPreLetters(){
         <button class="btn" onclick="window.print()">🖨 Print all ${pre.length}</button>
       </div>
     </div>
-    ${pre.length?pre.map(c=>`<div class="daysheet">${letterHTML(c.id)}</div>`).join(""):'<div class="banner">Nobody is on the program yet.</div>'}
+    ${pre.length?pre.map(c=>`<div class="daysheet">${letterHTML(c.id,year)}</div>`).join(""):'<div class="banner">Nobody is on the program yet.</div>'}
   </div>`));
 }
 
-function viewPreletter(id){
+function viewPreletter(id,yearArg){
   const c=byId(id); if(!c||!c.preSched){location.hash='preschedule';return;}
-  const year=THIS_YEAR+1; const M=preschedMoney(c,year); const yr=M.yr;
+  const year=+yearArg||PRE_YEAR(); const M=preschedMoney(c,year); const yr=M.yr;
   const base=(c.base!=null?c.base:SETTINGS.preschedBase);
   const sub=M.sub, tax=M.tax, tot=M.total;
   const datesTable=`<table style="width:100%;font-size:.9rem;border-collapse:collapse;margin:.3rem 0">${yr.map(x=>`<tr><td style="padding:.22rem 0"><b>${MONTHS[x.month-1]}</b></td><td>${WD_NAME[x.date.getDay()]}, ${MONTHS[x.date.getMonth()].slice(0,3)} ${x.date.getDate()}, ${year}</td><td style="text-align:right">${money(base)}${x.extra?` <span class="muted">+ ${escapeHtml(x.extra)} ${money(x.extraPrice)}</span>`:''}</td></tr>`).join("")}</table>`;
@@ -3534,15 +4030,31 @@ function scanDay(date){
   const day=SCHED[date]||{}; const done=[],out=[],flags=[];
   for(const tech of Object.keys(day)){
     for(const tm of Object.keys(day[tech])){
-      const s=day[tech][tm]; if(!s.cid||s.cancelled) continue;
+      const s=day[tech][tm]; if(!s.cid||s.cancelled||s.span) continue;
       const rec={tech,tm,s,c:byIdSafe(s.cid)};
-      if(s.done){ done.push(rec); if(!s.pay||!s.pay.run) flags.push(rec); }
+      if(s.done){ done.push(rec); if(slotOwes(s)) flags.push(rec); }
       else if(s.st&&s.st.w){ out.push(rec); }   // sheet written & in the field, not back yet
     }
   }
-  const completed=done.reduce((n,r)=>n+slotTotal(r.s),0);
-  const recorded=done.filter(r=>r.s.pay&&r.s.pay.run).reduce((n,r)=>n+slotTotal(r.s),0);
-  return {done,out,flags,completed,recorded,atRisk:completed-recorded};
+  /* Both sides of the comparison are what the CUSTOMER handed over — tax included.
+     A pre-tax total can never be tied to a bank deposit, which is the whole point. */
+  const completed=r2(done.reduce((n,r)=>n+(r.s.refunded?0:slotWithTax(r.s)),0));
+  const recorded =r2(done.reduce((n,r)=>n+slotCollected(r.s),0));
+  const refunded =r2(done.reduce((n,r)=>n+((r.s.refund&&r.s.refund.amount)||0),0));
+  /* what should physically be in the deposit, split the way the bank sees it */
+  const bank={cash:0,check:0,card:0,checks:[],cards:[]};
+  done.forEach(r=>{
+    const s=r.s, got=slotCollected(s); if(got<=0) return;
+    const m=String((s.pay&&s.pay.method)||"");
+    if(/^cash$/i.test(m)){ bank.cash=r2(bank.cash+got); }
+    else if(/^check/i.test(m)){ bank.check=r2(bank.check+got); bank.checks.push({name:r.c.name,no:(s.pay&&s.pay.checkNo)||"—",amt:got}); }
+    else if(s.pay&&s.pay.card){ bank.card=r2(bank.card+got); bank.cards.push({name:r.c.name,card:s.pay.card,amt:got}); }
+    else { bank.cash=r2(bank.cash+got); }        // anything unlabelled counts as drawer
+  });
+  bank.total=r2(bank.cash+bank.check+bank.card);
+  const taxable=r2(done.filter(r=>slotCollected(r.s)>0).reduce((n,r)=>n+slotTotal(r.s),0));
+  const taxDue =r2(done.filter(r=>slotCollected(r.s)>0).reduce((n,r)=>n+(slotTotal(r.s)*slotTaxRate(r.s)),0));
+  return {done,out,flags,completed,recorded,refunded,bank,taxable,taxDue,atRisk:r2(completed-recorded)};
 }
 /* record HOW they paid — and the check number, the way the book does (✓#1612) */
 function openPaymentModal(date,tech,tm){
@@ -3551,6 +4063,9 @@ function openPaymentModal(date,tech,tm){
   showModal(`<div class="pad">
     <div style="font-weight:800;font-size:1.1rem">Record payment — ${c.name}</div>
     <div class="muted" style="margin:.2rem 0 .8rem">${slotDesc(s)} · ${money(slotTotal(s))} + tax = <b>${money(total)}</b></div>
+    <label class="muted" style="font-size:.8rem">How much did they hand over?</label>
+    <input id="payamt" class="search" inputmode="decimal" style="margin:.25rem 0 .6rem" value="${total.toFixed(2)}">
+    <div class="muted" style="font-size:.76rem;margin:-.35rem 0 .6rem">Leave it as it is for the full amount. Type less if they paid part of it — the rest stays on the cork board.</div>
     <label class="muted" style="font-size:.8rem">How did they pay?</label>
     <select id="paymethod" class="search" style="margin:.25rem 0 .6rem" onchange="payMethodChanged()">
       <option>Check</option><option>Visa</option><option>MC</option><option>Discover</option><option>Cash</option><option>To Be Mailed</option>
@@ -3567,7 +4082,7 @@ function openPaymentModal(date,tech,tm){
       </label>
     </div>
     <div class="row" style="margin-top:.8rem">
-      <button class="btn" onclick="savePayment('${date}','${tech}','${tm}')">Record payment</button>
+      <button class="btn" onclick="savePayment('${date}','${jsAttr(tech)}','${tm}')">Record payment</button>
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
     </div>
   </div>`);
@@ -3585,7 +4100,7 @@ function openFixCheckModal(date,tech,tm){
     <label class="muted" style="font-size:.78rem">The number printed on the check</label>
     <input id="fixcheckno" class="search" inputmode="numeric" style="margin:.25rem 0 .2rem" value="${escapeHtml(s.pay.checkNo)}">
     <div class="row" style="margin-top:.7rem">
-      <button class="btn" onclick="saveFixedCheck('${date}','${tech}','${tm}')">Save the real number</button>
+      <button class="btn" onclick="saveFixedCheck('${date}','${jsAttr(tech)}','${tm}')">Save the real number</button>
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
     </div>
   </div>`);
@@ -3623,15 +4138,27 @@ function savePayment(date,tech,tm){
      actually run. A card written on the sheet is not collected money. */
   if(s.taxRate==null) s.taxRate=TAX_RATE;   // lock the rate when the money is committed
   const collected = mailed ? false : (isCardMethod(method) ? cardRun : true);
-  s.pay={method:label, amount:slotTotal(s), run:collected, checkNo:(method==='Check'?checkNo:null),
+  const full=slotWithTax(s);
+  const typed=readMoney((document.getElementById('payamt')||{}).value);
+  if(typed==null){ toast("That amount didn't read as a number — type it like 159.94"); return; }
+  if(typed<=0){ toast("Type how much they handed over"); return; }
+  if(typed>full+0.004){ toast(`The sheet only comes to ${money(full)} — take the extra off the sheet first, or record ${money(full)}`); return; }
+  const took=r2(typed);
+  /* COLLECTED is what she actually took, tax included, stamped now and never
+     recalculated. Edit the sheet tomorrow and the banked figure does not move. */
+  s.pay={method:label, amount:slotTotal(s), collected:collected?took:0,
+         run:collected, checkNo:(method==='Check'?checkNo:null),
          card:isCardMethod(method)?method:null};
+  delete s.refunded; delete s.refund;       // money in again clears an earlier refund
   s.st.ret=collected; s.done=true;
   if(c.isNew && collected) delete c.isNew;   // first money in — no longer "new" on later sheets
   if(!s.logged) logServiceDone(s,c,tm);
   else if(collected && !c.missing)           // the job line exists — record the money finally landing
     c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Payment received — ${label} (${money(slotWithTax(s))})`});
   persist(); closeModal();
-  toast(collected ? `${c.name}: recorded ${label}`
+  toast(collected ? (slotShortfall(s)>0.004
+      ? `${c.name}: ${money(took)} in — ${money(slotShortfall(s))} still owed, stays on the board`
+      : `${c.name}: recorded ${label}`)
     : mailed ? `${c.name}: marked To Be Mailed — stays on the cork board`
     : `${c.name}: ${label} noted — the card still needs running`);
   router();
@@ -3660,58 +4187,120 @@ function findPayments(cid){
 function openReverseModal(date,tech,tm){
   const s=SCHED[date][tech][tm], c=byIdSafe(s.cid);
   const b=(reason,label,sub)=>`<button class="btn ghost" style="text-align:left;display:block;width:100%"
-      onclick="reversePayment('${date}','${tech}','${tm}','${reason}')">
+      onclick="reversePayment('${date}','${jsAttr(tech)}','${tm}','${reason}')">
       <b>${label}</b><div class="muted" style="font-size:.78rem;font-weight:400">${sub}</div></button>`;
   showModal(`<div class="pad">
     <div style="font-weight:800;font-size:1.1rem">Mark unpaid — ${c.name}</div>
     <div class="muted" style="margin:.2rem 0 .7rem">${slotDesc(s)} · ${money(slotTotal(s))} · recorded as ${s.pay?s.pay.method:'—'}</div>
-    <div class="banner" style="margin:0 0 .7rem">Every reversal is dated and logged — the record that it was once marked paid is never erased. That's the audit trail.</div>
+    <div class="banner" style="margin:0 0 .7rem">Every reversal is dated and logged — the record that it was once marked paid is never erased. That's the audit trail. Any of these can be undone.</div>
     <div style="display:grid;gap:.5rem">
       ${b('Accidental — clicked by mistake','Accidental','I clicked it by mistake — just revert, no money owed')}
       ${b('Check bounced (NSF)','Check bounced (NSF)','The check did not clear — customer owes again')}
       ${b('Card chargeback','Card chargeback','The card payment was reversed — customer owes again')}
-      ${b('Refund issued','Refund issued','We gave the money back on purpose')}
+      <button class="btn ghost" style="text-align:left;display:block;width:100%" onclick="openRefundModal('${date}','${jsAttr(tech)}','${tm}')">
+        <b>We gave money back</b><div class="muted" style="font-size:.78rem;font-weight:400">All of it or part of it — you type the amount</div></button>
+      ${s.refund?`<button class="btn ghost" style="text-align:left;display:block;width:100%;border-color:var(--brand)" onclick="undoRefund('${date}','${jsAttr(tech)}','${tm}')">
+        <b>Undo the ${money(s.refund.amount)} refund</b><div class="muted" style="font-size:.78rem;font-weight:400">${escapeHtml(s.refund.reason||'')} · ${escapeHtml(s.refund.when||'')} · put it back as collected</div></button>`:''}
     </div>
     <div class="row" style="margin-top:.9rem"><button class="btn ghost mini" onclick="closeModal()">Cancel</button></div>
   </div>`);
+}
+/* A refund can be part of the money — a discount applied after they paid gives
+   back the difference, not the lot. So the amount is asked for, not assumed. */
+function openRefundModal(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s)return; const c=byIdSafe(s.cid);
+  const took=slotCollected(s), owed=slotWithTax(s), back=Math.max(0,r2(took-owed));
+  showModal(`<div class="pad">
+    <div style="font-weight:800;font-size:1.1rem">Give money back — ${escapeHtml(c.name)}</div>
+    <div class="muted" style="margin:.2rem 0 .7rem;font-size:.86rem">They paid <b>${money(took)}</b> and the sheet now comes to <b>${money(owed)}</b>.${back>0?` That leaves <b>${money(back)}</b> to hand back.`:` They are square — only give money back if you are also taking the charge off.`}</div>
+    <label class="muted" style="font-size:.78rem">How much are you giving back?</label>
+    <input id="rf_amt" class="search" inputmode="decimal" style="margin:.25rem 0 .5rem" value="${(back>0?back:took).toFixed(2)}">
+    <label class="muted" style="font-size:.78rem">Why (goes on the folder)</label>
+    <input id="rf_why" class="search" style="margin:.25rem 0 .2rem" placeholder="discount after they complained, overcharged, cancelled the job…">
+    <div class="row" style="margin-top:.7rem">
+      <button class="btn" onclick="saveRefund('${date}','${jsAttr(tech)}','${tm}')">Record the refund</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div></div>`);
+  const i=document.getElementById('rf_amt'); if(i){i.focus();i.select();}
+}
+function saveRefund(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s)return; const c=byIdSafe(s.cid);
+  const amt=readMoney((document.getElementById('rf_amt')||{}).value);
+  const why=sanitizeField((document.getElementById('rf_why')||{}).value||"");
+  const took=slotCollected(s);
+  if(amt==null){ toast("That amount didn't read as a number — type it like 26.66"); return; }
+  if(amt<=0){ toast("Type how much is going back"); return; }
+  if(amt>took+0.004){ toast(`They only paid ${money(took)} — you can't give back more than that`); return; }
+  if(!why){ toast("Say why — it goes on the folder"); return; }
+  const already=(s.refund&&s.refund.amount)||0;
+  s.refund={amount:r2(already+amt), reason:why, when:fmtToday(), who:auditWho()};
+  if(s.refund.amount>=r2((s.pay&&s.pay.collected!=null?s.pay.collected:slotWithTax(s)))-0.004) s.refunded=true;
+  PAYMENT_LOG.unshift({who:auditWho(),when:fmtToday(),cid:c.id,name:c.name,amount:amt,
+    service:slotDesc(s),reason:`Refund issued — ${why}`});
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'money',
+    txt:`Refunded ${money(amt)} — ${why}`});
+  persist(); closeModal();
+  toast(`${c.name}: ${money(amt)} given back`);
+  router();
+}
+function undoRefund(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s||!s.refund)return; const c=byIdSafe(s.cid);
+  const amt=s.refund.amount;
+  delete s.refund; delete s.refunded;
+  PAYMENT_LOG.unshift({who:auditWho(),when:fmtToday(),cid:c.id,name:c.name,amount:amt,
+    service:slotDesc(s),reason:'Refund undone — it was recorded by mistake'});
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Refund of ${money(amt)} undone — recorded by mistake`});
+  persist(); closeModal(); toast(`${c.name}: refund undone`); router();
 }
 function reversePayment(date,tech,tm,reason){
   const s=SCHED[date][tech][tm], c=byIdSafe(s.cid);
   const owesAgain=/bounce|chargeback/i.test(reason);
   const accidental=/accidental/i.test(reason);
-  const refunded=/refund/i.test(reason);
-  if(s.pay){ s.pay.run=false; s.pay.reversedReason = owesAgain?reason:null; }
-  if(refunded) s.refunded=true;      // money went back on purpose — they do NOT owe again
+  const took=slotCollected(s);
+  if(s.pay){ s.pay.run=false; s.pay.collected=0; s.pay.reversedReason = owesAgain?reason:null; }
   if(s.st) s.st.ret=false;
   const when=fmtToday();
-  PAYMENT_LOG.unshift({who:auditWho(),when,cid:c.id,name:c.name,amount:slotTotal(s),service:slotDesc(s),reason});
+  PAYMENT_LOG.unshift({who:auditWho(),when,cid:c.id,name:c.name,amount:took||slotWithTax(s),service:slotDesc(s),reason,
+    undo:{date,tech,tm}});
   // the job is now done-but-unpaid → it returns to the cork board automatically
   if(owesAgain){
-    c.log.push({d:when,t:'money',txt:`Payment reversed — ${reason} — owes ${money(slotWithTax(s))} again`});
+    c.log.push({who:auditWho(),d:when,t:'money',txt:`Payment reversed — ${reason} — owes ${money(slotWithTax(s))} again`});
   } else if(!accidental){
-    c.log.push({d:when,t:'money',txt:`Payment marked unpaid — ${reason}`});
+    c.log.push({who:auditWho(),d:when,t:'money',txt:`Payment marked unpaid — ${reason}`});
   }
   persist(); closeModal();
   toast(`${c.name}: marked unpaid${accidental?' (correction)':' — '+reason}`);
   router();  // refresh whichever screen we're on
 }
 function fmtToday(){const d=new Date();return `${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`;}
-function viewClose(){
-  const date=TODAY_ISO; const r=scanDay(date);
-  const line=(rec,paid)=>{const c=rec.c;return `<div class="queue-item" style="cursor:default">
+function viewClose(dateArg){
+  const date=(dateArg&&/^\d{4}-\d{2}-\d{2}$/.test(dateArg))?dateArg:TODAY_ISO;
+  const r=scanDay(date);
+  const shift=n=>{const d=parseISO(date); d.setDate(d.getDate()+n); return iso(d);};
+  const line=(rec,paid)=>{const c=rec.c, s=rec.s, part=paid&&slotShortfall(s)>0.004;
+    return `<div class="queue-item" style="cursor:default">
       <span class="dot" style="background:${areaOf(c.area).dot}"></span>
-      <div style="flex:1"><b>${c.name}</b> — ${rec.s.service} <span class="muted" style="font-size:.8rem">· ${rec.tech} ${rec.tm}:00</span></div>
+      <div style="flex:1"><b>${escapeHtml(c.name)}</b> — ${escapeHtml(slotDesc(s))} <span class="muted" style="font-size:.8rem">· ${escapeHtml(rec.tech)} ${rec.tm}:00</span>
+        ${s.refund?`<div class="muted" style="font-size:.76rem">gave back ${money(s.refund.amount)} — ${escapeHtml(s.refund.reason||'')}</div>`:''}</div>
       ${paid
-        ? `<span class="pill" style="background:#eaf4ee;color:var(--brand)">✓ ${escapeHtml(rec.s.pay.method)}</span>${rec.s.pay.checkNo?`<button class="btn ghost mini" onclick="openFixCheckModal('${date}','${rec.tech}','${rec.tm}')">Fix check #</button>`:''}<button class="btn ghost mini" onclick="openReverseModal('${date}','${rec.tech}','${rec.tm}')">Mark unpaid…</button><b>${money(slotTotal(rec.s))}</b>`
-        : `<span class="pill" style="background:#fbe9e3;color:var(--warn)">⚠ ${rec.s.pay?rec.s.pay.method+' — not run':'no payment'}</span>
-           <button class="btn mini" onclick="openPaymentModal('${date}','${rec.tech}','${rec.tm}')">Record payment</button><b>${money(slotTotal(rec.s))}</b>`}
+        ? `<span class="pill" style="background:${part?'#fbf1dd':'#eaf4ee'};color:${part?'var(--gold)':'var(--brand)'}">${part?'part paid':'✓'} ${escapeHtml(s.pay.method)}</span>${s.pay.checkNo?`<button class="btn ghost mini" onclick="openFixCheckModal('${date}','${jsAttr(rec.tech)}','${rec.tm}')">Fix check #</button>`:''}<button class="btn ghost mini" onclick="openReverseModal('${date}','${jsAttr(rec.tech)}','${rec.tm}')">Payment issue…</button><b>${money(slotCollected(s))}</b>`
+        : `<span class="pill" style="background:#fbe9e3;color:var(--warn)">⚠ ${s.pay?escapeHtml(s.pay.method)+' — not run':'no payment'}</span>
+           <button class="btn mini" onclick="openPaymentModal('${date}','${jsAttr(rec.tech)}','${rec.tm}')">Record payment</button><b>${money(slotShortfall(s))}</b>`}
     </div>`;};
 
-  const balanced=r.atRisk===0;
+  const balanced=Math.abs(r.atRisk)<0.005;
   main.innerHTML="";
   main.appendChild(el(`<div>
     <h2 class="screen-title">Daily Close — ${fmtDayLong(date)}</h2>
     <p class="sub">The report United has never had. Every completed job checked against payment recorded — like the deposit-must-match report from a dealership close.</p>
+    <div class="row noprint" style="gap:.4rem;margin:-.3rem 0 .8rem;align-items:center">
+      <button class="btn ghost mini" onclick="location.hash='close/${shift(-1)}';router()">‹ ${fmtDayShort(shift(-1))}</button>
+      <button class="btn ghost mini" onclick="location.hash='close/${shift(1)}';router()">${fmtDayShort(shift(1))} ›</button>
+      ${date!==TODAY_ISO?`<button class="btn ghost mini" onclick="location.hash='close';router()">Back to today</button>`:''}
+      <span style="flex:1"></span>
+      <span class="muted" style="font-size:.8rem">Sheets come back the next day — close the day they belong to.</span>
+      <button class="btn ghost mini" onclick="window.print()">🖨 Print</button>
+    </div>
 
     <div class="card pad" style="border-left:4px solid ${balanced?'var(--brand)':'var(--warn)'};margin-bottom:1rem">
       <div class="row" style="justify-content:space-between;align-items:center">
@@ -3733,7 +4322,21 @@ function viewClose(){
       ${balanced
         ? `<div style="margin-top:.5rem;color:var(--brand)">Day balances. Every completed job's payment is in.</div>`
         : `<div style="margin-top:.5rem;color:var(--warn)"><b>${money(r.atRisk)} of completed work has no payment recorded.</b> The kind of catch that used to depend on somebody noticing — now the day cannot close without it. Check the flagged job before the sheet gets filed.</div>`}
+      <div class="muted" style="font-size:.76rem;margin-top:.4rem">Both figures are what the customer actually handed over — tax included — so they can be matched against the deposit slip.${r.refunded?` ${money(r.refunded)} was given back today; the charge came off too, so the day still balances.`:''}</div>
     </div>
+
+    ${r.bank.total>0?`<div class="card pad" style="margin-bottom:1rem">
+      <div style="font-weight:700;margin-bottom:.2rem">What should go to the bank — ${money(r.bank.total)}</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.5rem">Count the drawer against this before the deposit goes in. If it doesn't match, it's on this page, not next month's statement.</div>
+      <div class="kv">
+        <dt>Cash</dt><dd><b>${money(r.bank.cash)}</b></dd>
+        <dt>Checks (${r.bank.checks.length})</dt><dd><b>${money(r.bank.check)}</b>${r.bank.checks.length?`<div class="muted" style="font-size:.78rem">${r.bank.checks.map(x=>`#${escapeHtml(String(x.no))} ${escapeHtml(x.name)} ${money(x.amt)}`).join(' · ')}</div>`:''}</dd>
+        <dt>Cards run (${r.bank.cards.length})</dt><dd><b>${money(r.bank.card)}</b>${r.bank.cards.length?`<div class="muted" style="font-size:.78rem">${r.bank.cards.map(x=>`${escapeHtml(x.card)} ${escapeHtml(x.name)} ${money(x.amt)}`).join(' · ')}</div>`:''}
+          <div class="muted" style="font-size:.74rem">Cards settle through Authorize.Net, not the drawer.</div></dd>
+      </div>
+      <div class="muted" style="font-size:.78rem;margin-top:.5rem;padding-top:.45rem;border-top:1px solid var(--line)">
+        Of that, <b>${money(r.taxDue)}</b> is sales tax on ${money(r.taxable)} of work — the State's money, not the company's.</div>
+    </div>`:''}
 
     ${r.flags.length?`<div class="card pad" style="margin-bottom:1rem">
       <div style="font-weight:700;color:var(--warn);margin-bottom:.4rem">⚠ Needs attention — completed, payment not recorded (${r.flags.length})</div>
@@ -3741,9 +4344,21 @@ function viewClose(){
     </div>`:''}
 
     <div class="card pad" style="margin-bottom:1rem">
-      <div style="font-weight:700;margin-bottom:.4rem">Completed &amp; reconciled (${r.done.filter(x=>x.s.pay&&x.s.pay.run).length})</div>
-      ${r.done.filter(x=>x.s.pay&&x.s.pay.run).map(rec=>line(rec,true)).join("")||'<div class="muted">None yet.</div>'}
+      <div style="font-weight:700;margin-bottom:.4rem">Money in (${r.done.filter(x=>slotCollected(x.s)>0).length})</div>
+      ${r.done.filter(x=>slotCollected(x.s)>0).map(rec=>line(rec,true)).join("")||'<div class="muted">None yet.</div>'}
     </div>
+
+    ${(()=>{const carried=carriedSheets().filter(x=>x.date!==date); return carried.length?`<div class="card pad" style="margin-bottom:1rem;border-left:4px solid var(--gold)">
+      <div style="font-weight:700;margin-bottom:.2rem">Out with a tech from an earlier day (${carried.length})</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.4rem">Rained out, or written up and never brought back. They stay on their own date because the tech fits them in — but if one has been sitting a while, it is worth a word.</div>
+      ${carried.slice(0,12).map(x=>`<div class="queue-item" style="cursor:pointer" onclick="location.hash='close/${x.date}'">
+        <span class="dot" style="background:${areaOf(propAt(x.c,x.s.pid).area).dot}"></span>
+        <div style="flex:1"><b>${escapeHtml(x.c.name)}</b> <span class="muted" style="font-size:.8rem">· ${escapeHtml(x.tech)} · ${fmtDayShort(x.date)} ${x.tm}:00</span>
+          <div class="muted" style="font-size:.78rem">${x.rained?'rained out':'sheet written'} — ${x.days} day${x.days===1?'':'s'} ago</div></div>
+        <span class="pill" style="${x.days>=7?'background:#fbe9e3;color:var(--warn)':''}">${x.days>=7?'worth a nudge':'with '+escapeHtml(x.tech)}</span>
+        <b>${money(slotWithTax(x.s))}</b>
+      </div>`).join("")}
+    </div>`:'';})()}
 
     <div class="card pad">
       <div style="font-weight:700;margin-bottom:.4rem">Still in the field — sheets not back (${r.out.length})</div>
@@ -3854,7 +4469,10 @@ function saveQuote(){
   const Q=QUOTE_EDIT; if(!Q||!Q.cid){ toast('Pick a customer first'); return; }
   const c=byId(Q.cid); if(!c)return;
   const type=(document.getElementById('q_type')||{}).value||'Estimate';
-  const amt=parseFloat((document.getElementById('q_amt')||{}).value)||0;
+  const amtRaw=(document.getElementById('q_amt')||{}).value;
+  const amtRead=readMoney(amtRaw);
+  if(String(amtRaw||"").trim()!=="" && amtRead==null){ toast(`"${amtRaw}" isn't an amount — type it like 1850`); return; }
+  const amt=amtRead||0;
   const desc=sanitizeField((document.getElementById('q_desc')||{}).value);
   const note=sanitizeField((document.getElementById('q_note')||{}).value);
   if(!desc){ toast('Say what the quote is for'); return; }
@@ -3869,13 +4487,28 @@ function saveQuote(){
   }
   QUOTE_EDIT=null; persist(); closeModal(); updateBadges(); location.hash='leads'; router();
 }
+function confirmDeleteQuote(id){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const c=byIdSafe(l.cid);
+  const signed=l.eval&&l.eval.signedOn&&!sigIsEmpty(l.eval.sig);
+  showModal(`<div class="pad">
+    <div style="font-weight:800">Throw away this quote?</div>
+    <div class="muted" style="margin:.4rem 0 .6rem;font-size:.87rem">${escapeHtml(c.name)} — ${escapeHtml(l.desc||'quote')}${l.amount?` · ${money(l.amount)}`:''}</div>
+    ${signed?`<div class="banner" style="margin:0 0 .7rem;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">
+      This quote carries a <b>crawl space sheet the customer signed</b> on ${escapeHtml(l.eval.signedOn)}${l.eval.mode==='Contract'?' as a contract':''}, with the checklist and the readings on it. Throwing the quote away throws that away too.</div>`:''}
+    <div class="row"><button class="btn" style="background:var(--warn)" onclick="deleteQuote(${id})">Throw it away</button>
+      <button class="btn ghost" onclick="closeModal()">Keep it</button></div></div>`);
+}
 function deleteQuote(id){
   const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const c=byIdSafe(l.cid);
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'quote',
+    txt:`Quote thrown away — ${l.desc||'quote'}${l.amount?` (${money(l.amount)})`:''}${(l.eval&&l.eval.signedOn)?' — it had a signed crawl space sheet on it':''}`});
   LEADS=LEADS.filter(x=>x.id!==id);
-  persist(); closeModal(); updateBadges(); toast('Quote deleted'); location.hash='leads'; router();
+  persist(); closeModal(); updateBadges(); toast('Quote thrown away — noted on the folder'); location.hash='leads'; router();
 }
 function setLeadStatus(id,status){
-  const l=LEADS.find(x=>x.id===id); if(!l)return; const c=byId(l.cid);
+  const l=LEADS.find(x=>x.id===id); if(!l)return; const c=byIdSafe(l.cid);
   l.status=status;
   if(status==="Thinking"){ l.sentISO=TODAY_ISO; l.note="Followed up "+fmtToday()+" — still deciding."; }
   if(status==="Won"){ c.log.push({who:auditWho(),d:fmtToday(),t:'quote',txt:`${l.type} SOLD — ${money(l.amount)} (${l.desc})`}); }
@@ -3988,6 +4621,14 @@ function openFromSearch(id){
    Five daily tabs stay on the bar; everything else lives here, grouped and
    described, so nothing is hidden off the edge of an iPad screen. */
 const PRIMARY_ROUTES=["home","today","calls","customers","close"];
+/* Settings promises a field tech "sees their own day, not the whole customer list".
+   Until hosting makes this a real sign-in it is a courtesy screen, not security —
+   and it says so — but it has to actually do what it claims. */
+const FIELD_ROUTES=["field","render","wdi","home"];
+function roleBlocks(route){
+  if(myRole()!=="field") return false;
+  return FIELD_ROUTES.indexOf(route)<0;
+}
 const MORE_GROUPS=[
   {title:"Daily work", items:[
     {route:"field",    label:"Field",        hint:"the day's sheets on a tablet"},
@@ -4103,96 +4744,212 @@ function resetLetterOverride(key,cid){
   toast(`${c.name}: back to the shared template`); router();
 }
 
+/* ---------------- SIGNATURE PAD ----------------
+   Stored as the STROKES the finger drew, not a PNG. A picture of a signature is
+   3–7 KB; the strokes are a few hundred bytes, and there are ~1,300 visits a year
+   in one browser's storage. It also draws crisply at any size on paper.
+   Every finished stroke is saved immediately, so a signature can never be lost by
+   the screen changing underneath it. */
+let SIG={cv:null,strokes:[],onStroke:null};
+function sigPoints(stroke){ const o=[]; for(let i=0;i<stroke.length;i+=2) o.push(stroke[i]+','+stroke[i+1]); return o.join(' '); }
+function sigHTML(sig,maxw){
+  if(!sig) return '';
+  const w=maxw||220;
+  if(typeof sig==='string')   // captured before 1.14 — still shows
+    return `<img src="${sig}" alt="signature" style="display:block;max-width:${w}px;border:1px solid var(--line);border-radius:6px;margin-top:.3rem;background:#fff">`;
+  const strokes=(sig.strokes||[]).filter(s=>s&&s.length>=4);
+  if(!strokes.length) return '';
+  return `<svg viewBox="0 0 ${sig.w||440} ${sig.h||130}" style="display:block;width:100%;max-width:${w}px;height:auto;border:1px solid var(--line);border-radius:6px;margin-top:.3rem;background:#fff" aria-label="signature">
+    ${strokes.map(s=>`<polyline points="${sigPoints(s)}" fill="none" stroke="#1c2321" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}</svg>`;
+}
+const sigIsEmpty=sig=>!(sig&&(typeof sig==='string'||(sig.strokes||[]).some(s=>s&&s.length>=4)));
+function redrawSig(){
+  const cv=SIG.cv; if(!cv)return;
+  const ctx=cv.getContext('2d'); ctx.clearRect(0,0,cv.width,cv.height);
+  ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#1c2321';
+  SIG.strokes.forEach(st=>{ if(st.length<4)return; ctx.beginPath(); ctx.moveTo(st[0],st[1]);
+    for(let i=2;i<st.length;i+=2) ctx.lineTo(st[i],st[i+1]); ctx.stroke(); });
+}
+function initSig(canvasId,existing,onStroke){
+  const cv=document.getElementById(canvasId); if(!cv)return;
+  SIG={cv, strokes:(existing&&existing.strokes?existing.strokes.map(a=>a.slice()):[]), onStroke};
+  redrawSig();
+  let drawing=false,cur=null;
+  const pos=e=>{const r=cv.getBoundingClientRect();const p=(e.touches&&e.touches[0])||e;
+    return {x:Math.round((p.clientX-r.left)*(cv.width/r.width)), y:Math.round((p.clientY-r.top)*(cv.height/r.height))};};
+  const start=e=>{drawing=true;cur=[];SIG.strokes.push(cur);const p=pos(e);cur.push(p.x,p.y);e.preventDefault();};
+  const move=e=>{if(!drawing||!cur)return;const p=pos(e);
+    const n=cur.length; if(n&&Math.abs(cur[n-2]-p.x)<1&&Math.abs(cur[n-1]-p.y)<1)return;   // thin it out
+    cur.push(p.x,p.y);redrawSig();e.preventDefault();};
+  const end=()=>{ if(!drawing)return; drawing=false;
+    if(cur&&cur.length<4) SIG.strokes.pop();
+    cur=null; redrawSig();
+    if(SIG.onStroke) SIG.onStroke(sigData());   // saved the moment they lift the finger
+  };
+  if(window.PointerEvent){ cv.onpointerdown=start; cv.onpointermove=move; cv.onpointerup=end; cv.onpointercancel=end; cv.onpointerleave=end; }
+  else { cv.onmousedown=start; cv.onmousemove=move; cv.onmouseup=end;
+    cv.ontouchstart=start; cv.ontouchmove=move; cv.ontouchend=end; }
+  window.addEventListener('mouseup',end);
+}
+function sigData(){ const cv=SIG.cv; if(!cv)return null;
+  return {w:cv.width, h:cv.height, strokes:SIG.strokes.filter(s=>s&&s.length>=4)}; }
+function clearSigPad(){ SIG.strokes=[]; redrawSig(); if(SIG.onStroke) SIG.onStroke(sigData()); }
+const sigCanvas=id=>`<canvas id="${id}" width="440" height="130" style="width:100%;max-width:440px;border:1px dashed var(--line);border-radius:8px;background:#fff;touch-action:none;display:block"></canvas>`;
+
 /* ---------------- FIELD / TABLET (the tech's day) ---------------- */
 function tmVal(tm){ const n=+tm; return n>=7?n:n+12; }
-function viewField(tech){
+/* Sheets a tech is still carrying — rained out, or written up and never brought
+   back. They stay on the day they belong to (he fits them in), but they must be
+   visible from the truck and from the office, or they quietly disappear. */
+function carriedSheets(tech){
+  const out=[];
+  for(const date in SCHED){
+    const day=SCHED[date]; if(!day) continue;
+    for(const t in day){
+      if(tech && t!==tech) continue;
+      for(const tm in day[t]){
+        const s=day[t][tm]; if(!s||!s.cid||s.cancelled||s.done||s.span) continue;
+        const stale=s.rained || (s.st&&s.st.w && daysSince(date)>=1);
+        if(stale) out.push({date,tech:t,tm,s,c:byIdSafe(s.cid),days:daysSince(date),rained:!!s.rained});
+      }
+    }
+  }
+  return out.sort((a,b)=>b.days-a.days);
+}
+function viewField(tech,dateArg){
   tech=TECHS.indexOf(tech)>=0?tech:TECHS[0];
-  const date=TODAY_ISO; const day=(SCHED[date]||{})[tech]||{};
-  const jobs=Object.keys(day).filter(tm=>day[tm]&&day[tm].cid).sort((a,b)=>tmVal(a)-tmVal(b));
-  const card=tm=>{ const s=day[tm], c=byIdSafe(s.cid); const col=calColor({area:c.area,big:s.big,cancelled:s.cancelled});
-    const chips=[]; if(s.signed)chips.push("✓ signed"); if(s.pay&&s.pay.run)chips.push("✓ paid"); if(s.done&&!(s.pay&&s.pay.run))chips.push("done");
-    return `<div class="card pad" style="margin-bottom:.6rem;border-left:6px solid ${col.v};cursor:pointer" onclick="openFieldJob('${tech}','${tm}')">
+  const date=(dateArg&&/^\d{4}-\d{2}-\d{2}$/.test(dateArg))?dateArg:TODAY_ISO;
+  const shift=n=>{const d=parseISO(date); d.setDate(d.getDate()+n); return iso(d);};
+  const day=(SCHED[date]||{})[tech]||{};
+  const jobs=Object.keys(day).filter(tm=>day[tm]&&day[tm].cid&&!day[tm].span).sort((a,b)=>tmVal(a)-tmVal(b));
+  const carried=carriedSheets(tech).filter(x=>x.date!==date);
+  const card=tm=>{ const s=day[tm], c=byIdSafe(s.cid);
+    const jp=propAt(c,s.pid);                       // the house this visit is AT
+    const col=calColor({area:jp.area,big:s.big,cancelled:s.cancelled});
+    const chips=[]; if(s.signed)chips.push("✓ signed");
+    if(slotCollected(s)>0)chips.push(slotShortfall(s)>0.004?"part paid":"✓ paid");
+    if(s.done&&slotCollected(s)<=0)chips.push("done");
+    if(s.rained)chips.push("🌧 rained out");
+    if(s.cancelled)chips.push("✕ cancelled");
+    return `<div class="card pad" style="margin-bottom:.6rem;border-left:6px solid ${col.v};cursor:pointer" onclick="openFieldJob('${jsAttr(tech)}','${tm}','${date}')">
       <div class="row" style="justify-content:space-between">
-        <div style="font-weight:800;font-size:1.05rem">${tm}:00 · ${c.name}</div>
+        <div style="font-weight:800;font-size:1.05rem;${s.cancelled?'text-decoration:line-through;opacity:.55':''}">${tm}:00 · ${escapeHtml(c.name)}</div>
         <div>${chips.length?chips.map(x=>`<span class="pill" style="background:#eaf4ee;color:var(--brand)">${x}</span>`).join(" "):'<span class="pill">to do</span>'}</div>
       </div>
-      <div class="muted">${c.addr} · ${areaOf(c.area).name}</div>
-      <div style="margin-top:.2rem">${slotDesc(s)} · ${money(slotTotal(s))}${s.note?` · <span style="color:var(--warn)">${s.note}</span>`:''}</div>
+      <div class="muted">${escapeHtml(jp.addr)}${jp.label?` <b>(${escapeHtml(jp.label)})</b>`:''} · ${escapeHtml(areaOf(jp.area).name)}</div>
+      <div style="margin-top:.2rem">${escapeHtml(slotDesc(s))} · ${money(slotTotal(s))}${s.note?` · <span style="color:var(--warn)">${escapeHtml(s.note)}</span>`:''}</div>
     </div>`;
   };
   main.innerHTML="";
   main.appendChild(el(`<div>
     <div class="row" style="justify-content:space-between;align-items:center">
-      <h2 class="screen-title" style="margin:0">Field — ${tech}'s day</h2>
+      <h2 class="screen-title" style="margin:0">Field — ${escapeHtml(tech)}'s day</h2>
       <div class="row">
-        ${TECHS.map(t=>`<button class="btn ${tech===t?'':'ghost'} mini" onclick="location.hash='field/${encodeURIComponent(t)}'">${escapeHtml(t)}</button>`).join("")}
+        ${TECHS.map(t=>`<button class="btn ${tech===t?'':'ghost'} mini" onclick="location.hash='field/${encodeURIComponent(t)}/${date}'">${escapeHtml(t)}</button>`).join("")}
       </div>
     </div>
-    <p class="sub">${fmtDayLong(TODAY_ISO)} · the day's render sheets, tablet-ready. Tap a job to sign, take payment, and note what you saw.</p>
+    <p class="sub">${fmtDayLong(date)} · the day's render sheets, tablet-ready. Tap a job to sign, take payment, and note what you saw.</p>
+    <div class="row" style="gap:.4rem;margin:-.4rem 0 .7rem">
+      <button class="btn ghost mini" onclick="location.hash='field/${encodeURIComponent(tech)}/${shift(-1)}'">‹ ${fmtDayShort(shift(-1))}</button>
+      <button class="btn ghost mini" onclick="location.hash='field/${encodeURIComponent(tech)}/${shift(1)}'">${fmtDayShort(shift(1))} ›</button>
+      ${date!==TODAY_ISO?`<button class="btn ghost mini" onclick="location.hash='field/${encodeURIComponent(tech)}'">Back to today</button>`:''}
+    </div>
     <div class="banner">📴 Works with no signal — everything saves right on this tablet. (Live sharing between devices arrives with hosting; until then the office syncs by backup file.)</div>
-    ${jobs.length?jobs.map(card).join(""):'<div class="muted">No jobs assigned.</div>'}
+    ${carried.length?`<div class="card pad" style="margin-bottom:.8rem;border-left:6px solid var(--gold)">
+      <div style="font-weight:700;margin-bottom:.2rem">Still carrying (${carried.length})</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.4rem">Sheets you still have — rained out or never brought back. Fit them in when you can; the office can see them too.</div>
+      ${carried.slice(0,8).map(x=>`<div class="queue-item" style="cursor:pointer" onclick="location.hash='field/${encodeURIComponent(x.tech)}/${x.date}'">
+        <span class="dot" style="background:${areaOf(propAt(x.c,x.s.pid).area).dot}"></span>
+        <div style="flex:1"><b>${escapeHtml(x.c.name)}</b> <span class="muted" style="font-size:.8rem">· ${escapeHtml(propAt(x.c,x.s.pid).addr)}</span>
+          <div class="muted" style="font-size:.78rem">${x.rained?'rained out':'sheet written'} ${fmtDayShort(x.date)} — ${x.days} day${x.days===1?'':'s'} ago</div></div>
+        <span class="pill">${x.tm}:00</span>
+      </div>`).join("")}
+    </div>`:''}
+    ${jobs.length?jobs.map(card).join(""):'<div class="muted">No jobs assigned this day.</div>'}
   </div>`));
 }
-function openFieldJob(tech,tm){
-  const date=TODAY_ISO; const s=SCHED[date][tech][tm]; const c=byIdSafe(s.cid);
-  const paid=s.pay&&s.pay.run;
+function openFieldJob(tech,tm,dateArg){
+  const date=(dateArg&&/^\d{4}-\d{2}-\d{2}$/.test(dateArg))?dateArg:TODAY_ISO;
+  const s=((SCHED[date]||{})[tech]||{})[tm]; if(!s){ toast("That job isn't there any more"); return; }
+  const c=byIdSafe(s.cid), jp=propAt(c,s.pid);
+  const got=slotCollected(s), short=slotShortfall(s);
   showModal(`<div class="pad">
     <div class="row" style="justify-content:space-between">
-      <div><div style="font-weight:800;font-size:1.15rem">${c.name}</div><div class="muted">${c.addr} · ${areaOf(c.area).name}</div></div>
-      ${areaTag(c.area)}
+      <div><div style="font-weight:800;font-size:1.15rem">${escapeHtml(c.name)}</div>
+        <div class="muted">${escapeHtml(jp.addr)}${jp.label?` <b>(${escapeHtml(jp.label)})</b>`:''} · ${escapeHtml(areaOf(jp.area).name)}</div></div>
+      ${areaTag(jp.area)}
     </div>
+    ${!jp.primary?`<div class="muted" style="font-size:.78rem;margin-top:.25rem">Not their own house — this is ${escapeHtml(jp.label||'a second address')} on ${escapeHtml(c.name)}'s folder.</div>`:''}
     <div class="card pad" style="margin:.7rem 0;background:var(--brand-soft);border:none">
-      <div style="font-weight:700">${slotDesc(s)} — ${money(slotTotal(s))} + tax</div>
-      <div class="muted" style="font-size:.85rem">${slotLines(s,c.area).map(l=>l.service).join(" · ")} · ${c.phone}</div>
+      <div style="font-weight:700">${escapeHtml(slotDesc(s))} — ${money(slotTotal(s))} + tax = ${money(slotWithTax(s))}</div>
+      <div class="muted" style="font-size:.85rem">${slotLines(s,jp.area).map(l=>escapeHtml(l.service)).join(" · ")}${c.phone?` · ${escapeHtml(c.phone)}`:''}</div>
     </div>
-    <div style="font-weight:700;font-size:.75rem;letter-spacing:.5px;color:var(--ink-soft);margin:.5rem 0 .3rem">CUSTOMER SIGNATURE</div>
-    ${s.signed?`<span class="pill" style="background:#eaf4ee;color:var(--brand)">✓ Signed on site</span>${s.sig?`<img src="${s.sig}" alt="signature" style="display:block;max-width:220px;border:1px solid var(--line);border-radius:6px;margin-top:.3rem;background:#fff">`:''}`:
-      `<canvas id="sigpad" width="440" height="130" style="width:100%;max-width:440px;border:1px dashed var(--line);border-radius:8px;background:#fff;touch-action:none;display:block"></canvas>
-       <div class="row" style="margin:.35rem 0 .3rem"><button class="btn ghost mini" onclick="clearSig()">Clear</button><button class="btn mini" onclick="saveSig('${tech}','${tm}')">Save signature</button></div>`}
+    <div class="row" style="gap:.4rem">
+      <button class="btn ghost mini" onclick="closeModal();location.hash='render/${c.id}/${encodeURIComponent(tech)}/${date}/${tm}'">Open the render sheet</button>
+      ${s.rained?`<span class="pill" style="background:#fbe9e3;color:var(--warn)">🌧 rained out ${fmtDayShort(s.rained)}</span>`:''}
+    </div>
+    <div style="font-weight:700;font-size:.75rem;letter-spacing:.5px;color:var(--ink-soft);margin:.7rem 0 .3rem">CUSTOMER SIGNATURE</div>
+    ${s.signed?`<span class="pill" style="background:#eaf4ee;color:var(--brand)">✓ Signed on site${s.signedOn?' '+escapeHtml(s.signedOn):''}</span>${sigHTML(s.sig)}
+       <div class="row" style="margin-top:.3rem"><button class="btn ghost mini" onclick="unsignField('${jsAttr(tech)}','${tm}','${date}')">Sign again</button></div>`:
+      `${sigCanvas('sigpad')}
+       <div class="row" style="margin:.35rem 0 .3rem"><button class="btn ghost mini" onclick="clearSigPad()">Clear</button><button class="btn mini" onclick="saveSig('${jsAttr(tech)}','${tm}','${date}')">Save signature</button>
+       <span class="muted" style="font-size:.74rem">Each stroke saves as you go — nothing is lost if this closes.</span></div>`}
     <div style="font-weight:700;font-size:.75rem;letter-spacing:.5px;color:var(--ink-soft);margin:.7rem 0 .3rem">PAYMENT</div>
-    ${paid?`<span class="pill" style="background:#eaf4ee;color:var(--brand)">✓ ${s.pay.method}</span>`:
-      `<button class="btn" onclick="openPaymentModal('${date}','${tech}','${tm}')">Record payment</button>`}
+    ${got>0?`<span class="pill" style="background:${short>0.004?'#fbf1dd':'#eaf4ee'};color:${short>0.004?'var(--gold)':'var(--brand)'}">${short>0.004?`part paid — ${money(short)} still owed`:`✓ ${escapeHtml(s.pay.method)}`}</span>
+        ${short>0.004?`<button class="btn mini" style="margin-left:.4rem" onclick="openPaymentModal('${date}','${jsAttr(tech)}','${tm}')">Take the rest</button>`:''}`:
+      `<button class="btn" onclick="openPaymentModal('${date}','${jsAttr(tech)}','${tm}')">Record payment</button>`}
     <div style="font-weight:700;font-size:.75rem;letter-spacing:.5px;color:var(--ink-soft);margin:.8rem 0 .3rem">WHAT YOU SAW <span class="muted" style="font-weight:400;text-transform:none;letter-spacing:0">— sends the office a lead</span></div>
-    <textarea id="fieldobs" class="tpl-edit" style="height:70px" placeholder="e.g. crawlspace vapor barrier is shot toward the back — needs replacing">${s.obs||''}</textarea>
-    <div class="row"><button class="btn ghost mini" onclick="saveObs('${tech}','${tm}')">Save note</button><button class="btn mini" onclick="obsToLead('${tech}','${tm}')">Flag as sales lead →</button></div>
+    <textarea id="fieldobs" class="tpl-edit" style="height:70px" oninput="saveObsDraft('${jsAttr(tech)}','${tm}','${date}')" placeholder="e.g. crawlspace vapor barrier is shot toward the back — needs replacing">${escapeHtml(s.obs||'')}</textarea>
+    <div class="row"><button class="btn ghost mini" onclick="saveObs('${jsAttr(tech)}','${tm}','${date}')">Save note</button><button class="btn mini" onclick="obsToLead('${jsAttr(tech)}','${tm}','${date}')">Flag as sales lead →</button></div>
     <div class="row" style="margin-top:1rem">
-      ${s.done?`<span class="pill" style="background:#eaf4ee;color:var(--brand)">✓ Job complete</span>`:`<button class="btn" onclick="fieldComplete('${tech}','${tm}')">Mark job complete</button>`}
+      ${s.done?`<span class="pill" style="background:#eaf4ee;color:var(--brand)">✓ Job complete</span>`:`<button class="btn" onclick="fieldComplete('${jsAttr(tech)}','${tm}','${date}')">Mark job complete</button>`}
+      ${!s.done&&!s.rained?`<button class="btn ghost mini" onclick="markRainedOut('${date}','${jsAttr(tech)}','${tm}')">Rained out — keeping the sheet</button>`:''}
       <span style="flex:1"></span><button class="btn ghost" onclick="closeModal()">Close</button>
     </div>
   </div>`);
-  initSigPad();
+  /* pre-fill from whatever was already drawn, and keep saving every stroke */
+  initSig('sigpad', (s.sig&&typeof s.sig!=='string')?s.sig:null, data=>{
+    s.sig=data; s.sigDrawn=!sigIsEmpty(data); persist();
+  });
 }
-let _sig=null;
-function initSigPad(){
-  const cv=document.getElementById('sigpad'); if(!cv)return; _sig=cv;
-  const ctx=cv.getContext('2d'); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.strokeStyle='#1c2321';
-  let drawing=false,last=null;
-  const pos=e=>{const r=cv.getBoundingClientRect();const p=(e.touches&&e.touches[0])||e;
-    return {x:(p.clientX-r.left)*(cv.width/r.width), y:(p.clientY-r.top)*(cv.height/r.height)};};
-  const start=e=>{drawing=true;last=pos(e);e.preventDefault();};
-  const move=e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;e.preventDefault();};
-  const end=()=>{drawing=false;};
-  cv.onmousedown=start; cv.onmousemove=move; window.addEventListener('mouseup',end);
-  cv.ontouchstart=start; cv.ontouchmove=move; cv.ontouchend=end;
+const fieldSlot=(tech,tm,date)=>((SCHED[(date&&/^\d{4}-\d{2}-\d{2}$/.test(date))?date:TODAY_ISO]||{})[tech]||{})[tm];
+function clearSig(){ clearSigPad(); }                     // older label, same act
+function saveSig(tech,tm,date){
+  const s=fieldSlot(tech,tm,date); if(!s)return;
+  const data=sigData();
+  if(sigIsEmpty(data)){ toast('Have them sign in the box first'); return; }
+  s.sig=data; s.signed=true; s.signedOn=fmtToday(); s.signedBy=tech;
+  const c=byIdSafe(s.cid);
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'job',txt:`Signed on site — ${slotDesc(s)} (${tech})`});
+  persist();
+  toast(`${c.name}: signature captured — it prints on the sheet`); openFieldJob(tech,tm,date); }
+function unsignField(tech,tm,date){
+  const s=fieldSlot(tech,tm,date); if(!s)return;
+  delete s.signed; delete s.signedOn; delete s.sig; persist();
+  toast('Cleared — have them sign again'); openFieldJob(tech,tm,date);
 }
-function clearSig(){ if(_sig){const c=_sig.getContext('2d');c.clearRect(0,0,_sig.width,_sig.height);} }
-function saveSig(tech,tm){ const s=SCHED[TODAY_ISO][tech][tm];
-  if(_sig){ try{ s.sig=_sig.toDataURL('image/png'); }catch(e){} }   // keep the actual signature — it's the consent record
-  s.signed=true; s.signedOn=fmtToday(); persist();
-  toast(`${byIdSafe(s.cid).name}: signature captured — it prints on the sheet`); openFieldJob(tech,tm); }
-function saveObs(tech,tm){ const s=SCHED[TODAY_ISO][tech][tm]; const t=document.getElementById('fieldobs'); s.obs=t?t.value:""; persist(); toast('Note saved'); }
-function obsToLead(tech,tm){
-  const s=SCHED[TODAY_ISO][tech][tm]; const c=byIdSafe(s.cid);
-  const t=document.getElementById('fieldobs'); const txt=t?t.value.trim():"";
+function saveObsDraft(tech,tm,date){
+  const s=fieldSlot(tech,tm,date), t=document.getElementById('fieldobs');
+  if(s&&t){ s.obs=t.value; persist(); }                   // typing is never lost to a re-render
+}
+function saveObs(tech,tm,date){ saveObsDraft(tech,tm,date); toast('Note saved'); }
+function obsToLead(tech,tm,date){
+  const s=fieldSlot(tech,tm,date); if(!s)return; const c=byIdSafe(s.cid);
+  const t=document.getElementById('fieldobs'); const txt=sanitizeField(t?t.value:(s.obs||""));
   if(!txt){ toast('Write what you saw first'); return; }
   s.obs=txt;
   const nid=Math.max(100,...LEADS.map(l=>l.id))+1;
-  LEADS.unshift({id:nid, cid:c.id, type:"Estimate", desc:txt, amount:0, status:"Sent", sentISO:TODAY_ISO, note:`Field observation from ${tech} — needs Bryan's price`});
-  c.log.push({who:auditWho(),d:fmtToday(),t:'quote',txt:`Field lead (${tech}): ${txt}`});
+  LEADS.unshift({id:nid, cid:c.id, propertyId:s.pid, type:"Estimate", desc:txt, amount:0,
+    status:"Sent", sentISO:TODAY_ISO, note:`Field observation from ${tech} — needs Bryan's price`});
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'quote',txt:`Field lead (${tech}): ${txt}`});
   persist(); updateBadges(); closeModal();
   toast('Sent to the office as a lead'); location.hash='leads';
 }
-function fieldComplete(tech,tm){ const s=SCHED[TODAY_ISO][tech][tm]; s.done=true; persist(); toast('Marked complete'); openFieldJob(tech,tm); }
+function fieldComplete(tech,tm,date){
+  const s=fieldSlot(tech,tm,date); if(!s)return;
+  s.done=true; if(s.st) s.st.w=true;
+  if(s.taxRate==null) s.taxRate=TAX_RATE;
+  persist(); toast('Marked complete'); openFieldJob(tech,tm,date); }
 
 /* ---------------- YEAR AT A GLANCE (capacity / load smoothing) ---------------- */
 function viewCapacity(){
@@ -4233,7 +4990,13 @@ function viewBusiness(){
   const REV=revenueByMonth(THIS_YEAR), JOBS=jobsByMonth(THIS_YEAR);
   const ytdRev=REV.reduce((a,b)=>a+b,0);
   const ytdJobs=JOBS.reduce((a,b)=>a+b,0);
-  const avgTicket=ytdJobs?Math.round(ytdRev/ytdJobs):0;
+  /* dividing money collected by ALL completed jobs, paid or not, understates the
+     ticket every time work is waiting on payment */
+  let paidJobs=0;
+  for(const d in SCHED){ const dt=parseISO(d); if(dt.getFullYear()!==THIS_YEAR) continue;
+    for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
+      const sl=SCHED[d][t][tm]; if(sl.cid&&sl.done&&!sl.cancelled&&slotCollected(sl)>0) paidJobs++; } }
+  const avgTicket=paidJobs?Math.round(ytdRev/paidJobs):0;
   const mix=serviceMix(THIS_YEAR);
   const openPipe=LEADS.filter(l=>l.status==="Sent"||l.status==="Thinking").reduce((s,l)=>s+l.amount,0);
   const arTotal=cork.reduce((s,t)=>s+t.withTax,0);
@@ -4261,7 +5024,7 @@ function viewBusiness(){
       ${kpi(dollars(arTotal),"Owed","var(--warn)")}
     </div>
     <div class="card pad" style="margin-bottom:1rem"><div style="font-weight:700;margin-bottom:.5rem">Money collected by month — ${THIS_YEAR}</div>${revBars}
-      <div class="muted" style="font-size:.78rem;margin-top:.4rem">${ytdRev?`Cash, checks and cards actually in. ${money(ytdRev)} collected · ${ytdJobs} job${ytdJobs===1?'':'s'} completed. Work done but not yet paid sits under “Owed”.`:'Nothing collected yet this year — this fills in as payments land.'}</div></div>
+      <div class="muted" style="font-size:.78rem;margin-top:.4rem">${ytdRev?`Cash, checks and cards actually in, <b>tax included</b> — the same figure the deposits add up to. ${money(ytdRev)} collected · ${ytdJobs} job${ytdJobs===1?'':'s'} completed. Work done but not yet paid sits under “Owed”, also with tax.`:'Nothing collected yet this year — this fills in as payments land.'}</div></div>
     <div class="card pad" style="margin-bottom:1rem"><div style="font-weight:700;margin-bottom:.5rem">Where the revenue comes from</div>
       ${mix.total?`<div class="seg" style="margin-bottom:.6rem">${Object.keys(mix.buckets).map(k=>`<div style="width:${Math.round(mix.buckets[k]/mix.total*100)}%;background:${MIXCOLORS[k]}"></div>`).join("")}</div>
       ${Object.keys(mix.buckets).map(k=>`<div class="row" style="justify-content:space-between;margin:.15rem 0"><div><span class="dot" style="background:${MIXCOLORS[k]}"></span> ${k}</div><div class="muted" style="font-size:.8rem">${Math.round(mix.buckets[k]/mix.total*100)}% · ${money(mix.buckets[k])}</div></div>`).join("")}`
@@ -4276,6 +5039,28 @@ function viewBusiness(){
         ${PAYMENT_LOG.length>12?`<div class="muted" style="font-size:.78rem;margin-top:.3rem">…and ${PAYMENT_LOG.length-12} older.</div>`:''}`
       :'<div class="muted" style="font-size:.85rem">No payment has needed correcting. Bounced checks, chargebacks and refunds would be listed here.</div>'}
     </div>
+    <div class="card pad" style="margin-bottom:1rem"><div style="font-weight:700;margin-bottom:.3rem">Sales tax collected — the State's money</div>
+      ${(()=>{
+        const perMonth=new Array(12).fill(0), perQ=[0,0,0,0]; let taxable=0, taxTot=0;
+        for(const d in SCHED){ const dt=parseISO(d); if(dt.getFullYear()!==THIS_YEAR) continue;
+          for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
+            const sl=SCHED[d][t][tm];
+            if(!sl.cid||!sl.done||sl.cancelled||slotCollected(sl)<=0) continue;
+            const base=slotTotal(sl), tx=r2(base*slotTaxRate(sl));
+            perMonth[dt.getMonth()]=r2(perMonth[dt.getMonth()]+tx);
+            perQ[Math.floor(dt.getMonth()/3)]=r2(perQ[Math.floor(dt.getMonth()/3)]+tx);
+            taxable=r2(taxable+base); taxTot=r2(taxTot+tx);
+          } }
+        if(!taxTot) return '<div class="muted" style="font-size:.85rem">Nothing collected yet this year, so no tax has been taken in.</div>';
+        return `<div class="muted" style="font-size:.82rem;margin-bottom:.5rem">Every job is taxed, so part of what came in was never yours. This is what has been collected on the company's behalf, so the return can be checked against the book instead of guessed.</div>
+        <div class="kv">
+          <dt>Taxable work ${THIS_YEAR}</dt><dd>${money(taxable)}</dd>
+          <dt>Tax collected ${THIS_YEAR}</dt><dd><b>${money(taxTot)}</b></dd>
+          ${perQ.map((q,i)=>q?`<dt>Q${i+1}</dt><dd>${money(q)}</dd>`:'').join("")}
+        </div>
+        <div class="muted" style="font-size:.76rem;margin-top:.4rem">Each job is counted at the rate it was written at, so a rate change mid-year doesn't rewrite the earlier quarters.</div>`;
+      })()}
+    </div>
     <div class="card pad" style="margin-bottom:1rem"><div style="font-weight:700;margin-bottom:.5rem">Money owed — aging</div>
       ${Object.entries(buckets).map(([k,v])=>`<div class="row" style="justify-content:space-between;margin:.1rem 0"><div>${k}</div><b style="color:${k.charAt(0)==='3'&&v>0?'var(--warn)':'inherit'}">${money(v)}</b></div>`).join("")}
       <div class="muted" style="font-size:.78rem;margin-top:.4rem">Straight off the cork board. The 31+ line is the money most likely to slip away — <a href="#home">chase it</a>.</div></div>
@@ -4286,9 +5071,15 @@ function viewBusiness(){
 }
 
 /* ---------------- MAILING — labels + reminder postcards ---------------- */
-function viewMailing(mode){
+function viewMailing(mode,monthArg){
   mode=(mode==="cards")?"cards":"labels";
-  const m=THIS_MONTH;
+  /* Postcards go out ahead of the month they are for — that is the whole loop:
+     mail the cards, wait a few days, then start calling. Labels default to the
+     month being called now. Either can be pointed at any month. */
+  const mDefault = mode==="cards" ? (THIS_MONTH%12)+1 : THIS_MONTH;
+  const mArg=parseInt(monthArg,10);
+  const m=(mArg>=1&&mArg<=12)?mArg:mDefault;
+  const mYear = (mode==="cards"&&m<THIS_MONTH)?THIS_YEAR+1:THIS_YEAR;
   /* one card/label per PROPERTY due this month — a second house needs its own */
   const box=propsDue(m);
   const order=Object.keys(AREAS);
@@ -4311,14 +5102,19 @@ function viewMailing(mode){
     <div class="noprint">
       <h2 class="screen-title">Mailing — start the ${MONTHS[m-1]} month box</h2>
       <p class="sub">The month begins here: mail the reminder cards, give it a few days, then start calling. Labels and postcards generate straight from the box — no hand-addressing.</p>
-      <div class="row" style="margin-bottom:1rem">
-        <button class="btn ${mode==='labels'?'':'ghost'}" onclick="location.hash='mailing/labels'">Mailing labels</button>
-        <button class="btn ${mode==='cards'?'':'ghost'}" onclick="location.hash='mailing/cards'">Reminder postcards</button>
+      <div class="row" style="margin-bottom:.6rem">
+        <button class="btn ${mode==='labels'?'':'ghost'}" onclick="location.hash='mailing/labels/${m}'">Mailing labels</button>
+        <button class="btn ${mode==='cards'?'':'ghost'}" onclick="location.hash='mailing/cards/${m}'">Reminder postcards</button>
         <span style="flex:1"></span>
         <button class="btn ghost" onclick="window.print()">🖨 Print ${mode==='cards'?'postcards':'labels'}</button>
       </div>
-      <div class="banner">${box.length} ${box.length===1?'address':'addresses'} due in ${MONTHS[m-1]}, area-sorted so the mailing matches the way you'll call.
-        ${mode==='labels'?'Sized for <b>Avery 5160</b> sheets (3 across, 10 down) — print at 100%, no scaling.':'One card per address.'}</div>
+      <div class="row" style="gap:.25rem;margin-bottom:.8rem;flex-wrap:wrap;align-items:center">
+        <span class="muted" style="font-size:.8rem;margin-right:.2rem">Month box</span>
+        ${MONTHS.map((nm,i)=>`<button class="btn ${m===i+1?'':'ghost'} mini" style="padding:0 .5rem" onclick="location.hash='mailing/${mode}/${i+1}'">${nm}</button>`).join("")}
+      </div>
+      <div class="banner">${box.length} ${box.length===1?'address':'addresses'} due in ${MONTHS[m-1]}${mYear!==THIS_YEAR?' '+mYear:''}, area-sorted so the mailing matches the way you'll call.
+        ${mode==='labels'?'Sized for <b>Avery 5160</b> sheets (3 across, 10 down) — print at 100%, no scaling.':'One card per address.'}
+        ${mode==='cards'&&m===(THIS_MONTH%12)+1?` These go out now so they land before you start calling ${MONTHS[m-1]}.`:''}</div>
     </div>
     ${body}
   </div>`));
@@ -4432,17 +5228,21 @@ function handleCsvFile(input){
     const res=importMyMailList(rd.result);
     if(res.error){ toast(res.error); return; }
     PENDING_IMPORT=res;
+    const plan=importPlan(res.customers);
     showModal(`<div class="pad">
-      <div style="font-weight:800;font-size:1.1rem">Import preview — ${f.name}</div>
+      <div style="font-weight:800;font-size:1.1rem">Import preview — ${escapeHtml(f.name)}</div>
+      <div class="muted" style="font-size:.84rem;margin:.2rem 0 .6rem">Read ${res.customers.length} customers off the list. Here is exactly what would change:</div>
       <div class="kv" style="margin:.7rem 0">
-        <dt>Customers found</dt><dd><b>${res.customers.length}</b></dd>
+        <dt>New folders to make</dt><dd><b>${plan.add.length}</b></dd>
+        <dt>Folders already here, details refreshed</dt><dd>${plan.update.length}${plan.moved?` <span class="muted">(${plan.moved} matched by phone — they moved)</span>`:''}</dd>
+        <dt>Folders here but not on this list</dt><dd>${plan.untouched.length} <span class="muted">— left alone</span></dd>
         <dt>Skipped (vendors / placeholders)</dt><dd>${res.skipped.length}</dd>
         <dt>Need review (area or month unclear)</dt><dd>${res.review.length}</dd>
       </div>
-      ${res.review.length?`<div class="muted" style="font-size:.78rem;max-height:7rem;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;margin-bottom:.6rem">${res.review.slice(0,20).map(x=>`${x.name} — area "${x.area}", month "${x.month}"`).join("<br>")}${res.review.length>20?`<br>…and ${res.review.length-20} more`:''}</div>`:''}
-      <div class="banner" style="margin:0 0 .7rem">Importing <b>replaces the current customer list</b> and clears the schedule and quotes. Your letters, settings, and the <b>pre-scheduled program</b> are kept (program members are matched by name + street). Export a backup first if unsure.</div>
+      ${res.review.length?`<div class="muted" style="font-size:.78rem;max-height:7rem;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:.4rem .6rem;margin-bottom:.6rem">${res.review.slice(0,20).map(x=>`${escapeHtml(x.name)} — area "${escapeHtml(x.area)}", month "${escapeHtml(x.month)}"`).join("<br>")}${res.review.length>20?`<br>…and ${res.review.length-20} more`:''}</div>`:''}
+      <div class="banner" style="margin:0 0 .7rem"><b>Nothing in the book is touched.</b> Every job, render sheet, signature, payment and quote stays exactly where it is — folders keep their place, they only get their mailing details brought up to date. A warranty you fixed by hand here is kept, even if the old list still says something different. If you don't like the result, <b>Put the book back</b> on this screen undoes the whole import.</div>
       <div class="row">
-        <button class="btn" onclick="applyImport()">Import ${res.customers.length} customers</button>
+        <button class="btn" onclick="applyImport()">${plan.add.length?`Make ${plan.add.length} new folder${plan.add.length===1?'':'s'} and refresh the rest`:'Refresh the details'}</button>
         <button class="btn ghost" onclick="PENDING_IMPORT=null;closeModal()">Cancel</button>
       </div>
     </div>`);
@@ -4450,27 +5250,65 @@ function handleCsvFile(input){
   rd.readAsText(f);
   input.value="";
 }
+/* An import UPDATES the book, it never replaces it. Every folder keeps its id, so
+   every job, sheet, signature, payment and quote already attached to it stays
+   attached. Nothing in the schedule or the money is touched. */
+function importPlan(rows){
+  const norm=s=>String(s||"").toLowerCase().replace(/\s+/g,' ').trim();
+  const byStreet={}, byPhone={};
+  CUST.forEach(c=>{
+    byStreet[norm(c.name)+'|'+norm(c.addr)]=c;
+    const p=String(c.phone||"").replace(/\D/g,"");
+    if(p.length>=7){ const k=norm(c.name)+'|'+p; byPhone[k]=byPhone[k]===undefined?c:null; } // null = ambiguous
+  });
+  const plan={update:[], add:[], moved:0};
+  const claimed=new Set();
+  rows.forEach(row=>{
+    const sk=norm(row.name)+'|'+norm(row.addr);
+    let ex=byStreet[sk];
+    let movedHouse=false;
+    if(!ex){                                        // maybe they moved — same name and phone
+      const p=String(row.phone||"").replace(/\D/g,"");
+      if(p.length>=7){ const c=byPhone[norm(row.name)+'|'+p]; if(c){ ex=c; movedHouse=true; } }
+    }
+    if(ex && !claimed.has(ex.id)){ claimed.add(ex.id); plan.update.push({row,ex,movedHouse}); if(movedHouse)plan.moved++; }
+    else plan.add.push(row);
+  });
+  plan.untouched=CUST.filter(c=>!claimed.has(c.id));
+  return plan;
+}
 function applyImport(){
   if(!PENDING_IMPORT)return;
-  /* the pre-scheduled program is hand-built and must survive an import —
-     carry each member's slot, price and add-ons across by name + street */
-  const norm=s=>String(s||"").toLowerCase().replace(/\s+/g,' ').trim();
-  const carry={};
-  CUST.filter(c=>c.preSched).forEach(c=>{
-    carry[norm(c.name)+'|'+norm(c.addr)]={preSched:true, nth:c.nth, wd:c.wd, base:c.base,
-      extras:c.extras, overrides:c.overrides, slot:c.slot, augPullEarly:c.augPullEarly};
+  checkpoint("the import");                    // so it can be walked all the way back
+  const plan=importPlan(PENDING_IMPORT.customers);
+  let changedFolders=0, warrantyKept=0;
+  plan.update.forEach(({row,ex,movedHouse})=>{
+    const ch=[];
+    const put=(f,label)=>{ if(row[f]!=null && row[f]!=="" && row[f]!==ex[f]){ ex[f]=row[f]; ch.push(label); } };
+    if(movedHouse && row.addr && row.addr!==ex.addr){ ex.addr=row.addr; ch.push("street"); }
+    put('first',"name on the letter"); put('phone',"phone"); put('email',"email");
+    put('city',"town"); put('zip',"zip");
+    if(row.area && row.area!==ex.area){ ex.area=row.area; ch.push("area"); }
+    if(row.month && row.month!==ex.month){ ex.month=row.month; ch.push("month box"); }
+    /* The mailing list is the master for mailing details. The FOLDER is the master
+       for anything the office corrected by hand — a warranty term fixed here is not
+       thrown away because the old list still says something else. */
+    if(row.star){
+      if(!ex.star){ ex.star=true; ex.ft=row.ft; if(row.warrantyExp)ex.warrantyExp=row.warrantyExp; ch.push("termite history"); }
+      else if(row.ft && ex.ft && row.ft!==ex.ft) warrantyKept++;
+    }
+    if(ch.length){
+      changedFolders++;
+      if(!Array.isArray(ex.log)) ex.log=[];
+      ex.log.push({who:auditWho(),d:fmtToday(),t:'call',
+        txt:`Updated from the mailing list — ${ch.join(', ')}${movedHouse?' (matched by phone — they moved)':''}`});
+    }
   });
-  let carried=0;
-  CUST=PENDING_IMPORT.customers.map(c=>{
-    const k=norm(c.name)+'|'+norm(c.addr);
-    if(carry[k]){ carried++; return Object.assign(c,carry[k]); }
-    return c;
-  });
-  SCHED={}; LEADS=[]; CALLED={}; PRESCHED_SENT={}; PAYMENT_LOG=[];
+  let maxId=nextCustId()-1;                    // never reuse a number the book still points at
+  plan.add.forEach(row=>{ row.id=++maxId; CUST.push(row); });
   PENDING_IMPORT=null;
   persist(); closeModal(); updateBadges();
-  const lost=Object.keys(carry).length-carried;
-  toast(`Imported ${CUST.length} customers${carried?` · ${carried} kept on the program`:''}${lost>0?` · ${lost} program member${lost>1?'s':''} not matched — check Pre-Schedule`:''}`);
+  toast(`${plan.add.length} new folder${plan.add.length===1?'':'s'} · ${changedFolders} updated · nothing in the book was touched`);
   location.hash='customers'; router();
 }
 
@@ -4527,6 +5365,7 @@ function validateBackup(s){
 }
 function doRestore(){
   const s=PENDING_RESTORE; if(!s){ closeModal(); return; }
+  checkpoint("the restore");
   CUST=s.CUST.map(c=>Object.assign({},c,{log:Array.isArray(c.log)?c.log:[]}));
   SCHED=(s.SCHED&&typeof s.SCHED==="object")?s.SCHED:{};
   LEADS=Array.isArray(s.LEADS)?s.LEADS:[];
@@ -4537,6 +5376,7 @@ function doRestore(){
   CALLED=(s.called&&typeof s.called==="object"&&!Array.isArray(s.called))?s.called
         :(Array.isArray(s.called)?{[monthKey()]:s.called}:{});   // tolerate the old flat format
   PRESCHED_SENT=s.presched||{}; PAYMENT_LOG=Array.isArray(s.plog)?s.plog:[];
+  stampMissingTaxRates(); stampMissingCollected();   // the same catch-up a normal load does
   PENDING_RESTORE=null;
   persist(); closeModal(); updateBadges();
   toast(`Restored — ${CUST.length} customers back on this device`);
@@ -4545,9 +5385,9 @@ function doRestore(){
 function resetSample(){
   showModal(`<div class="pad">
     <div style="font-weight:800">Reset to sample data?</div>
-    <div class="muted" style="margin:.4rem 0">Everything saved on this device is discarded and the demo data comes back fresh. There is no undo — export a backup first if any of this is real.</div>
+    <div class="muted" style="margin:.4rem 0">Everything saved on this device is discarded and the demo data comes back fresh. A copy of the book is kept so <b>Put the book back</b> can undo this — but export a backup too if any of this is real.</div>
     <div class="row" style="margin-top:.6rem">
-      <button class="btn" style="background:var(--warn)" onclick="localStorage.removeItem(LS_KEY);location.reload()">Reset everything</button>
+      <button class="btn" style="background:var(--warn)" onclick="checkpoint('the reset');localStorage.removeItem(LS_KEY);location.reload()">Reset everything</button>
       <button class="btn ghost" onclick="closeModal()">Cancel</button>
     </div></div>`);
 }
@@ -4558,14 +5398,35 @@ function setSetting(path,val,isNum){
   o[parts[parts.length-1]] = isNum ? (parseFloat(val)||0) : sanitizeField(val);
   applySettings(); persist();
 }
+/* The tax rate is the one number that, typed wrong, quietly under-bills every job
+   from then on — and the rate is stamped onto each visit, so a bad one can't be
+   fixed by retyping it later. So it refuses nonsense instead of turning it into 0. */
+function setTaxRate(val){
+  const raw=String(val==null?"":val).replace(/[%\s,]/g,"");
+  const n=raw===""?NaN:parseFloat(raw);
+  if(!isFinite(n)||n<0){
+    toast("A tax rate has to be a plain number like 6.625 — left as it was");
+    viewSettings(); return;
+  }
+  if(n>20){ toast(`${n}% looks like a typo — left as it was`); viewSettings(); return; }
+  const before=SETTINGS.taxRate;
+  if(+before===n){ viewSettings(); return; }
+  SETTINGS.taxRate=n; applySettings();
+  /* a money-affecting change is logged, like every other one */
+  SETTINGS.taxHistory=(SETTINGS.taxHistory||[]).concat([{from:+before,to:n,who:auditWho(),when:fmtToday()}]).slice(-10);
+  persist();
+  toast(`Tax is now ${n}% — jobs already in the book keep the rate they were written at`);
+  viewSettings();
+}
 function setRate(service,val){
-  const v=parseFloat(val); if(isNaN(v))return;
-  SETTINGS.rates[service]=v; applySettings(); persist();
+  const v=readMoney(val);
+  if(v==null){ toast(`"${val}" isn't a price — type it like 150, or 0 for "priced on the job"`); viewSettings(); return; }
+  SETTINGS.rates[service]=Math.max(0,v); applySettings(); persist();
 }
 function addRate(){
   const n=document.getElementById('newrate_name'), p=document.getElementById('newrate_price');
-  const name=sanitizeField(n.value), price=parseFloat(p.value);
-  if(!name||isNaN(price)){ toast('Give it a name and a price'); return; }
+  const name=sanitizeField(n.value), price=readMoney(p.value);
+  if(!name||price==null){ toast('Give it a name and a price — a plain number like 150'); return; }
   SETTINGS.rates[name]=price; applySettings(); persist(); toast(`${name} added at ${money(price)}`); viewSettings();
 }
 function removeRate(service){
@@ -4619,7 +5480,12 @@ function setTech(i,field,val){
   }
   SETTINGS.techs[i][field]=val; applySettings(); persist();
 }
-function addTech(){ SETTINGS.techs.push({name:"New tech",lic:""}); applySettings(); persist(); viewSettings(); }
+function addTech(){
+  /* a duplicate name gives the book two columns that write to the same key */
+  let n="New tech", i=2;
+  while(SETTINGS.techs.some(t=>t.name===n)){ n="New tech "+i; i++; }
+  SETTINGS.techs.push({name:n,lic:""}); applySettings(); persist(); viewSettings();
+}
 function setUser(i,field,val){
   if(!SETTINGS.users||!SETTINGS.users[i])return;
   val=sanitizeField(val);
@@ -4641,15 +5507,52 @@ function removeUser(i){
 function removeTech(i){
   const t=SETTINGS.techs[i]; if(!t)return;
   const has=(()=>{for(const d in SCHED) if(SCHED[d][t.name]&&Object.keys(SCHED[d][t.name]).length) return true; return false;})();
-  if(has){ toast(`${t.name} has jobs in the book — can't be removed`); return; }
   if(SETTINGS.techs.length<=1){ toast('There has to be at least one tech'); return; }
+  if(has){
+    /* His history, his signatures and his applicator number all have to stay
+       readable, so he is retired rather than deleted. */
+    showModal(`<div class="pad">
+      <div style="font-weight:800">${escapeHtml(t.name)} has jobs in the book</div>
+      <div class="muted" style="margin:.4rem 0 .7rem;font-size:.87rem">Everything he has done stays exactly as it is — the sheets, the signatures and his applicator number on them. Retiring him takes him off the booking lists and out of how full the days look, so a new tech doesn't leave an empty column behind.</div>
+      <div class="row"><button class="btn" onclick="retireTech(${i})">Retire ${escapeHtml(t.name)}</button>
+        <button class="btn ghost" onclick="closeModal()">Cancel</button></div></div>`);
+    return;
+  }
   SETTINGS.techs.splice(i,1); applySettings(); persist(); viewSettings();
 }
+function retireTech(i){
+  const t=SETTINGS.techs[i]; if(!t)return;
+  if(SETTINGS.techs.filter(x=>!x.inactive).length<=1){ toast('There has to be at least one tech working'); return; }
+  t.inactive=true; applySettings(); persist(); closeModal();
+  toast(`${t.name} retired — his history is untouched`); viewSettings();
+}
+function unretireTech(i){
+  const t=SETTINGS.techs[i]; if(!t)return;
+  delete t.inactive; applySettings(); persist(); toast(`${t.name} is back on the book`); viewSettings();
+}
 function resetSettings(){
+  /* Resetting techs would strand every booking filed under a renamed tech, and
+     nobody expects "put the settings back" to wipe the people list or the colours.
+     So this resets exactly what it says and nothing else. */
+  const stranded=(()=>{
+    const keep=DEFAULT_SETTINGS.techs.map(t=>t.name), bad={};
+    for(const d in SCHED) for(const t in SCHED[d]){
+      if(keep.indexOf(t)<0 && Object.keys(SCHED[d][t]).length) bad[t]=(bad[t]||0)+Object.keys(SCHED[d][t]).length; }
+    return Object.keys(bad).map(k=>`${k} (${bad[k]} job${bad[k]===1?'':'s'})`);
+  })();
   showModal(`<div class="pad"><div style="font-weight:800">Put the settings back to normal?</div>
-    <div class="muted" style="margin:.4rem 0 .7rem;font-size:.87rem">Company details, tax, prices and techs go back to how they started. Your customers and jobs aren't touched.</div>
-    <div class="row"><button class="btn" onclick="SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));applySettings();persist();closeModal();toast('Settings reset');viewSettings()">Reset them</button>
+    <div class="muted" style="margin:.4rem 0 .55rem;font-size:.87rem">Company details, licence numbers, the tax rate and the price book go back to how they started. Your customers, jobs, money, people, colours and the screen-lock setting are <b>not</b> touched.</div>
+    ${stranded.length?`<div class="banner" style="margin:0 0 .7rem;background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">
+      The techs are being left alone. Putting them back to the original names would hide work already in the book under ${escapeHtml(stranded.join(', '))}.</div>`:''}
+    <div class="row"><button class="btn" onclick="doResetSettings()">Reset them</button>
     <button class="btn ghost" onclick="closeModal()">Cancel</button></div></div>`);
+}
+function doResetSettings(){
+  const keep={users:SETTINGS.users, techs:SETTINGS.techs, lockMinutes:SETTINGS.lockMinutes,
+    calColors:SETTINGS.calColors, areaColors:SETTINGS.areaColors, taxHistory:SETTINGS.taxHistory};
+  SETTINGS=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),keep);
+  applySettings(); persist(); closeModal();
+  toast('Company details, tax and prices are back to normal'); viewSettings();
 }
 function viewSettings(){
   const v=s=>escapeHtml(s==null?"":String(s)).replace(/"/g,'&quot;');
@@ -4657,7 +5560,8 @@ function viewSettings(){
   const fld=(label,path,opts)=>{const o=opts||{};
     return `<div><label class="muted" style="font-size:.78rem">${label}</label>
       <input class="search" style="margin:.2rem 0 0" value="${v(o.val!=null?o.val:path.split('.').reduce((a,k)=>a[k],SETTINGS))}"
-        ${o.num?'inputmode="decimal"':''} onchange="setSetting('${path}',this.value,${!!o.num})"></div>`;};
+        ${o.num?'inputmode="decimal"':''} onchange="setSetting('${path}',this.value,${!!o.num})">
+      ${o.hint?`<div class="muted" style="font-size:.72rem;margin-top:.15rem">${o.hint}</div>`:''}</div>`;};
   main.innerHTML="";
   main.appendChild(el(`<div>
     <h2 class="screen-title">Settings</h2>
@@ -4707,35 +5611,50 @@ function viewSettings(){
     <div class="card pad" style="margin-bottom:1rem">
       <div style="font-weight:700;margin-bottom:.5rem">Technicians</div>
       <div class="muted" style="font-size:.82rem;margin-bottom:.5rem">Each tech gets a column in the book and their own applicator number on the sheets they sign.</div>
-      ${SETTINGS.techs.map((t,i)=>`<div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-bottom:.4rem">
+      ${SETTINGS.techs.map((t,i)=>`<div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-bottom:.4rem;${t.inactive?'opacity:.6':''}">
         <input class="search" style="margin:0;flex:1" value="${v(t.name)}" onchange="setTech(${i},'name',this.value)">
         <input class="search" style="margin:0;width:9rem" placeholder="applicator #" value="${v(t.lic)}" onchange="setTech(${i},'lic',this.value)">
-        <button class="btn ghost mini" onclick="removeTech(${i})">✕</button>
+        ${t.inactive?`<span class="pill">retired</span><button class="btn ghost mini" onclick="unretireTech(${i})" title="Put back on the book">↺</button>`
+                    :`<button class="btn ghost mini" onclick="removeTech(${i})">✕</button>`}
       </div>`).join("")}
+      ${SETTINGS.techs.some(t=>t.inactive)?`<div class="muted" style="font-size:.76rem;margin:.1rem 0 .4rem">A retired tech is off the booking lists and out of how full the days look, but every sheet he signed still shows his name and applicator number.</div>`:''}
       <button class="btn ghost mini" onclick="addTech()">＋ Add a tech</button>
     </div>
 
     <div class="card pad" style="margin-bottom:1rem">
-      <div style="font-weight:700;margin-bottom:.5rem">Money</div>
+      <div style="font-weight:700;margin-bottom:.3rem">How you work</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.6rem">Two numbers the rest of the app follows.</div>
       <div class="rs-grid" style="gap:.55rem .8rem">
-        ${fld('Sales tax %','taxRate',{num:true})}
-        ${fld('Pre-schedule price per spray','preschedBase',{num:true})}
-        ${fld('Bundled extra (dryer vent, inspection)','extraPrice',{num:true})}
-        ${fld('Silverton termite inspection','silvertonTermiteInspection',{num:true})}
-        ${fld('A quote is “quiet” after this many days','followUpDays',{num:true})}
-        ${fld('Slots per tech per day','capacityPerTechPerDay',{num:true})}
+        ${fld('A quote is “quiet” after this many days','followUpDays',{num:true,hint:'Then it shows up on the home screen as one to chase.'})}
+        ${fld('Slots per tech per day','capacityPerTechPerDay',{num:true,hint:'One-hour slots, noon blocked. Sets the day’s columns and the “how full are we” read.'})}
       </div>
-      <div class="muted" style="font-size:.76rem;margin-top:.4rem">Tax is applied to every job, the way you do it now. ${money(100)} + tax = <b>${money(100*(1+TAX_RATE))}</b>.</div>
+    </div>
+
+    <div class="card pad" style="margin-bottom:1rem">
+      <div style="font-weight:700;margin-bottom:.5rem">Sales tax</div>
+      <div class="rs-grid" style="gap:.55rem .8rem">
+        <div><label class="muted" style="font-size:.78rem">Sales tax %</label>
+          <input class="search" style="margin:.2rem 0 0" inputmode="decimal" value="${v(SETTINGS.taxRate)}" onchange="setTaxRate(this.value)"></div>
+      </div>
+      <div class="muted" style="font-size:.76rem;margin-top:.4rem">Tax is applied to every job, the way you do it now. ${money(100)} + tax = <b>${money(100*(1+TAX_RATE))}</b>. Change it and only jobs booked from now on use the new rate — every job already on the books keeps the rate it was written at, so last year's numbers never move.</div>
+      ${(SETTINGS.taxHistory||[]).length?`<div class="muted" style="font-size:.74rem;margin-top:.4rem;padding-top:.4rem;border-top:1px solid var(--line)">
+        ${SETTINGS.taxHistory.slice().reverse().slice(0,3).map(h=>`Changed from ${h.from}% to ${h.to}% by ${escapeHtml(h.who||'—')} on ${escapeHtml(h.when||'')}`).join('<br>')}</div>`:''}
     </div>
 
     <div class="card pad" style="margin-bottom:1rem">
       <div style="font-weight:700;margin-bottom:.3rem">The price book</div>
-      <div class="muted" style="font-size:.82rem;margin-bottom:.6rem">Every service on the render sheet is here, so ticking a box on a sheet always pulls a price. Leave one at <b>0</b> and the sheet shows it blank for you to write in — that's right for the work Bryan prices on site.</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.6rem">Every price in the business lives here — the boxes on the render sheet and the few that aren't on it. Ticking a box on a sheet always pulls its price. Leave one at <b>0</b> and the sheet shows it blank for you to write in — that's right for the work Bryan prices on site.</div>
+      <div style="font-weight:700;font-size:.72rem;letter-spacing:.5px;color:var(--ink-soft);margin:.2rem 0 .35rem">NOT BOXES ON THE SHEET</div>
+      <div class="rs-grid" style="gap:.55rem .8rem;margin-bottom:.3rem">
+        ${fld('Pre-schedule spray — each visit','preschedBase',{num:true,hint:'The program rate. Five of these make the year on a pre-schedule letter.'})}
+        ${fld('Bundled extra on a pre-schedule','extraPrice',{num:true,hint:'The dryer vent or inspection you add to one month of the program.'})}
+        ${fld('Silverton termite inspection','silvertonTermiteInspection',{num:true,hint:'The one price that differs by area. Silverton inspections use this instead of the sheet price.'})}
+      </div>
       ${(()=>{
         const rate=s=>`<div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-bottom:.3rem">
           <div style="flex:1;font-size:.88rem">${escapeHtml(s)}${(+SETTINGS.rates[s])?'':' <span class="pill" style="font-size:.6rem">priced on the job</span>'}</div>
-          <input class="search" style="margin:0;width:6.5rem" inputmode="decimal" value="${v(SETTINGS.rates[s])}" onchange="setRate('${s.replace(/'/g,"\\'")}',this.value)">
-          <button class="btn ghost mini" onclick="removeRate('${s.replace(/'/g,"\\'")}')" title="Remove">✕</button>
+          <input class="search" style="margin:0;width:6.5rem" inputmode="decimal" value="${v(SETTINGS.rates[s])}" onchange="setRate('${jsAttr(s)}',this.value)">
+          <button class="btn ghost mini" onclick="removeRate('${jsAttr(s)}')" title="Remove">✕</button>
         </div>`;
         const groups=[["Termite work",FORM_SERVICES[0]],["Crawl space &amp; the building",FORM_SERVICES[1]],
           ["Pest &amp; general",FORM_SERVICES[2]],["Dryer vents &amp; the rest",FORM_SERVICES[3]]];
@@ -4810,6 +5729,11 @@ function viewData(){
       <div class="card pad"><div style="font-size:1.55rem;font-weight:800">${(bytes/1024).toFixed(0)}<span style="font-size:.9rem"> KB</span></div><div style="font-weight:600;font-size:.9rem">Saved locally</div></div>
       ${needsReview?`<div class="card pad" style="border-left:4px solid var(--gold)"><div style="font-size:1.55rem;font-weight:800">${needsReview}</div><div style="font-weight:600;font-size:.9rem">Need review</div><div class="muted" style="font-size:.75rem">area or month unclear</div></div>`:''}
     </div>
+    ${(()=>{const cp=readCheckpoint(); return cp?`<div class="card pad" style="margin-bottom:1rem;border-left:4px solid var(--brand)">
+      <div style="font-weight:700;margin-bottom:.2rem">↩ Put the book back</div>
+      <div class="muted" style="font-size:.85rem;margin-bottom:.5rem">A copy of the whole book was kept just before <b>${escapeHtml(cp.label||'the last big change')}</b> on ${escapeHtml(cp.when||'')}${cp.at?` at ${escapeHtml(cp.at)}`:''}. If that didn't go the way you wanted, this puts everything back the way it was — customers, jobs, sheets, payments, all of it.</div>
+      <button class="btn ghost" onclick="confirmUndoCheckpoint()">Put the book back to before ${escapeHtml(cp.label||'that')}…</button>
+    </div>`:'';})()}
     ${orphans?`<div class="card pad" style="margin-bottom:1rem;border-left:4px solid var(--warn)">
       <div style="font-weight:700;color:var(--warn);margin-bottom:.2rem">⚠ ${orphans} job${orphans>1?'s':''} or quote${orphans>1?'s':''} without a customer</div>
       <div class="muted" style="font-size:.85rem">These point at customers no longer in the list — usually after a re-import or restoring an older backup. They show as “(customer not in the list)” rather than disappearing, so no money goes missing quietly. Restoring the matching backup reconnects them.</div>
@@ -4848,15 +5772,31 @@ function viewData(){
 /* ---------------- modal + router ---------------- */
 function showModal(html){const m=document.getElementById("modal");
   m.innerHTML='<button class="modal-x" onclick="closeModal()" aria-label="Close">✕</button>'+html;
-  document.getElementById("modalbg").classList.add("show");}
-function closeModal(){document.getElementById("modalbg").classList.remove("show");}
+  const bg=document.getElementById("modalbg");
+  bg.classList.add("show");
+  bg.setAttribute("role","dialog"); bg.setAttribute("aria-modal","true");
+  document.body.style.overflow="hidden";            // stop the page sliding behind it
+  /* land on something useful — the first field, or the first button */
+  setTimeout(()=>{ const f=m.querySelector('input:not([type=hidden]),select,textarea,button:not(.modal-x)');
+    if(f&&f.focus){ try{ f.focus(); if(f.select&&f.tagName==='INPUT'&&/decimal|numeric/.test(f.getAttribute('inputmode')||'')) f.select(); }catch(e){} } },30);
+}
+function closeModal(){
+  document.getElementById("modalbg").classList.remove("show");
+  document.body.style.overflow="";
+}
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  const bg=document.getElementById("modalbg");
+  if(bg&&bg.classList.contains("show")){ closeModal(); return; }
+  if(document.getElementById("lockscreen")&&document.getElementById("lockscreen").classList.contains("show")) return;
+});
 document.getElementById("modalbg").addEventListener("click",e=>{if(e.target.id==="modalbg")closeModal();});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeModal();closeMore();}});
 
 /* Nothing may ever leave her looking at a blank page. If a screen fails, say
    so plainly, keep the data safe, and offer a way out. */
 function router(){
-  try{ routeTo(); }
+  try{ routeTo(); growAllNotes(); }
   catch(e){
     try{
       main.innerHTML="";
@@ -4872,6 +5812,20 @@ function router(){
       </div>`));
     }catch(_){}
   }
+}
+/* Redraw the screen you are ALREADY on without jumping to the top. Ticking the
+   14th box on a render sheet must not throw you back to the header. */
+/* a note that scrolls out of its box is a note that does not print */
+function growNote(el){ if(!el)return; el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+function growAllNotes(){ document.querySelectorAll('.fnotes').forEach(growNote); }
+function rerender(){
+  const y=window.scrollY||window.pageYOffset||0;
+  const ae=document.activeElement, aid=ae&&ae.id, sel=(ae&&ae.selectionStart);
+  router();
+  window.scrollTo(0,y);
+  if(aid){ const back=document.getElementById(aid);
+    if(back&&back.focus){ back.focus();
+      if(sel!=null&&back.setSelectionRange){ try{ back.setSelectionRange(sel,sel); }catch(e){} } } }
 }
 function routeTo(){
   const h=(location.hash||"#home").slice(1);
@@ -4889,21 +5843,32 @@ function routeTo(){
   const act=document.querySelector("nav.tabs button.active");
   if(act&&act.scrollIntoView) act.scrollIntoView({inline:"center",block:"nearest"});
   window.scrollTo(0,0);
+  if(roleBlocks(route)){
+    main.innerHTML="";
+    main.appendChild(el(`<div class="card pad" style="border-left:4px solid var(--brand)">
+      <div style="font-weight:800;font-size:1.05rem">This is the office's side</div>
+      <p class="sub" style="margin:.35rem 0 .6rem">You're signed in as <b>${escapeHtml(CURRENT_USER)}</b>, who works in the field, so this device shows your day and your sheets — not the whole customer list or the money.</p>
+      <div class="row"><button class="btn" onclick="location.hash='field/${encodeURIComponent(TECHS.indexOf(CURRENT_USER)>=0?CURRENT_USER:TECHS[0])}';router()">Go to my day</button>
+        <button class="btn ghost" onclick="openWhoModal()">I'm someone else</button></div>
+      <div class="muted" style="font-size:.76rem;margin-top:.6rem">This is a courtesy, not a lock — the tablet's own passcode is what keeps the book private until each person has a real sign-in.</div>
+    </div>`));
+    return;
+  }
   if(route==="home")return viewDashboard();
   if(route==="today")return viewToday(arg);
   if(route==="week")return viewWeek(arg);
   if(route==="month")return viewMonth(arg);
-  if(route==="field")return viewField(arg);
+  if(route==="field")return viewField(arg,arg2);
   if(route==="calls")return viewCalls();
-  if(route==="mailing")return viewMailing(arg);
+  if(route==="mailing")return viewMailing(arg,arg2);
   if(route==="customers")return viewCustomers();
   if(route==="cust")return viewCustomer(+arg);
   if(route==="render")return viewRender(+arg||null, arg2?{tech:arg2,date:arg3,tm:arg4}:null);
   if(route==="leads")return viewLeads();
-  if(route==="close")return viewClose();
+  if(route==="close")return viewClose(arg);
   if(route==="preschedule")return viewPreschedule();
-  if(route==="preletter")return viewPreletter(+arg);
-  if(route==="preletters")return viewPreLetters();
+  if(route==="preletter")return viewPreletter(+arg,arg2);
+  if(route==="preletters")return viewPreLetters(arg);
   if(route==="warranties")return viewWarranties();
   if(route==="warrantyletter")return viewWarrantyLetter(+arg);
   if(route==="capacity")return viewCapacity();
@@ -4958,6 +5923,10 @@ document.addEventListener("visibilitychange",()=>{
     toast("It's a new day — refreshing"); setTimeout(()=>location.reload(),900);
   }
 });
+/* One-time catch-up on data written by older versions, run here because it needs
+   every money helper above. Both are safe to run repeatedly. */
+if(stampMissingTaxRates()+stampMissingCollected()) persist();
+
 router();
 updateBadges();
 updateWhoLabel();
