@@ -293,6 +293,13 @@
   }
   .postcard .stamp{float:right;border:1px dashed #bbb;width:3rem;height:3.4rem;font-size:.52rem;color:#aaa;text-align:center;padding-top:.55rem;border-radius:3px}
   .barrow{display:flex;gap:.6rem;align-items:center;margin:.28rem 0;flex-wrap:nowrap}
+  /* the crawl space evaluation checklist */
+  .evaltable{width:100%;border-collapse:collapse;font-size:.7rem}
+  .evaltable th{background:#f0f0f0;border:1px solid #bbb;padding:.15rem .2rem;font-size:.6rem}
+  .evaltable td{border:1px solid #ccc;padding:.05rem .2rem}
+  .evalrow{font-size:.68rem;white-space:nowrap}
+  .evalcell{text-align:center;width:3.2rem;cursor:pointer}
+  .evalcell:hover{background:#eef4f2}
   .colourpick{width:2.6rem;height:2rem;border:1px solid var(--line);border-radius:6px;
        padding:2px;background:#fff;cursor:pointer;flex:0 0 auto}
   .tpl-edit{width:100%;height:200px;border:1px solid var(--line);border-radius:9px;padding:.6rem .7rem;
@@ -465,7 +472,7 @@ const CAL_LABELS={ inArea:"Right in area", silverton:"Silverton", outOfArea:"Out
 const NO_COLOUR="#d4dbd8";   // what "no dot" looks like (out-of-area folders)
 const ROLES={office:"Office", owner:"Owner", field:"Field"};
 /* shown in the corner so it's never a mystery which version is in front of you */
-const APP_VERSION="1.12";
+const APP_VERSION="1.13";
 let SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let TAX_RATE=SETTINGS.taxRate/100;
 let RATES=SETTINGS.rates;
@@ -1990,6 +1997,7 @@ function viewCustomer(id){
         <button class="btn ghost" onclick="openBookModal(${c.id})">Book a visit</button>
         <button class="btn ghost" onclick="openEditCustomerModal(${c.id})">✎ Edit folder</button>
         <button class="btn ghost" onclick="openQuoteModal(${c.id})">Write a quote</button>
+        <button class="btn ghost" onclick="newEvaluation(${c.id})">Crawl space sheet</button>
       </div>
     </div>
     <div class="card pad" style="margin-top:.9rem">
@@ -2104,6 +2112,53 @@ function toggleServiceLine(date,tech,tm,formName){
   }
   writeSlotLines(s,lines); persist(); router();
 }
+/* ---- adjustments: a discount, a goodwill credit, a correction ----
+   Money-affecting, so it's reasoned and logged. A discount comes off before
+   tax, the way it does on paper. */
+function openAdjustModal(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s)return;
+  const c=byIdSafe(s.cid);
+  const cur=s.adjust||{amount:0,reason:""};
+  const v=x=>escapeHtml(x==null?"":String(x));
+  showModal(`<div class="pad">
+    <div style="font-weight:800;font-size:1.05rem">Take something off — ${escapeHtml(c.name)}</div>
+    <div class="muted" style="margin:.15rem 0 .7rem;font-size:.85rem">A discount, a credit for a complaint, or a correction. It comes off before tax and gets noted on the folder.</div>
+    <div class="rs-grid" style="gap:.55rem .8rem">
+      <div><label class="muted" style="font-size:.78rem">Amount to take off</label>
+        <input id="adj_amt" class="search" style="margin:.2rem 0 0" inputmode="decimal" value="${v(cur.amount?Math.abs(cur.amount):'')}" placeholder="e.g. 20"></div>
+      <div><label class="muted" style="font-size:.78rem">Why</label>
+        <input id="adj_why" class="search" style="margin:.2rem 0 0" value="${v(cur.reason)}" placeholder="e.g. came back for ants"></div>
+    </div>
+    <div class="row" style="margin-top:.8rem">
+      <button class="btn" onclick="saveAdjust('${date}','${tech}','${tm}')">Take it off</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+      ${cur.amount?`<span style="flex:1"></span><button class="btn ghost mini" onclick="clearAdjust('${date}','${tech}','${tm}')">Remove the discount</button>`:''}
+    </div>
+  </div>`);
+}
+function saveAdjust(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s)return;
+  const c=byIdSafe(s.cid);
+  const amt=Math.abs(parseFloat((document.getElementById('adj_amt')||{}).value)||0);
+  const why=sanitizeField((document.getElementById('adj_why')||{}).value);
+  if(!amt){ toast('How much should come off?'); return; }
+  if(!why){ toast('Say why — it goes on the folder'); return; }
+  const lines=slotLines(s,propAt(c,s.pid).area);
+  const gross=lines.reduce((n,l)=>n+l.price,0);
+  if(amt>gross){ toast(`That's more than the ${money(gross)} on the sheet`); return; }
+  s.adjust={amount:-amt, reason:why};
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'money',
+    txt:`${money(amt)} taken off — ${why}`});
+  persist(); closeModal(); toast(`${money(amt)} off`); router();
+}
+function clearAdjust(date,tech,tm){
+  const s=slotAt(date,tech,tm); if(!s)return;
+  const c=byIdSafe(s.cid); const had=s.adjust?Math.abs(s.adjust.amount):0;
+  delete s.adjust;
+  if(had&&!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Discount of ${money(had)} removed`});
+  persist(); closeModal(); toast('Discount removed'); router();
+}
+const slotAdjust=s=>(s&&s.adjust&&s.adjust.amount)||0;
 function setLinePrice(date,tech,tm,idx,val){
   const s=slotAt(date,tech,tm); if(!s)return;
   const c=byIdSafe(s.cid), area=propAt(c,s.pid).area;
@@ -2230,7 +2285,16 @@ function slotLines(slot,area){
   const svc="General pest service"; return [{service:svc, price:priceFor(svc,area)}];
 }
 /* a visit's money and description — honors multi-line sheets everywhere */
-function slotTotal(s){ return (s.lines&&s.lines.length)?s.lines.reduce((a,l)=>a+l.price,0):s.price; }
+const slotGross=s=>(s.lines&&s.lines.length)?s.lines.reduce((a,l)=>a+l.price,0):s.price;
+/* the total is what they actually owe — gross less any discount, so the cork
+   board, the daily close and the folder all agree with the sheet */
+function slotTotal(s){ return Math.max(0, slotGross(s)+slotAdjust(s)); }
+/* what was collected vs what's owed now — a discount after payment means a refund */
+function slotOverpaid(s){
+  if(!(s.pay&&s.pay.run)) return 0;
+  const paid=(s.pay.amount!=null?s.pay.amount:slotGross(s));
+  return Math.max(0, paid-slotTotal(s));
+}
 /* the tax rate is SNAPSHOTTED on the visit when it's booked — changing the
    rate in Settings must never rewrite what an old job owed or was billed */
 function slotTaxRate(s){ return (s&&s.taxRate!=null)?s.taxRate:TAX_RATE; }
@@ -2255,9 +2319,12 @@ function viewRender(id,ctx){
   /* the sheet documents work at a specific ADDRESS — resolve the booked property */
   const P=propAt(c, booking?booking.slot.pid:0);
   const lines=slotLines(booking&&booking.slot, P.area);
-  const price=lines.reduce((s,l)=>s+l.price,0);
+  const adj=booking?slotAdjust(booking.slot):0;
+  const gross=lines.reduce((s,l)=>s+l.price,0);
+  const price=Math.max(0,gross+adj);                       // less any discount
   const rate=booking?slotTaxRate(booking.slot):TAX_RATE;   // an old sheet keeps its old tax
   const tax = price*rate, total=price+tax;
+  const overpaid=booking?slotOverpaid(booking.slot):0;
   const tech=booking?booking.tech:TECHS[0];
   const isAM=booking?(+booking.tm>=7&&+booking.tm<12):false;
   const sheetDate=booking?booking.date:TODAY_ISO;
@@ -2308,6 +2375,9 @@ function viewRender(id,ctx){
       ?`<div class="muted noprint" style="font-size:.8rem;margin-bottom:.5rem">📖 Filled from the book — ${fmtDayShort(booking.date)} at ${booking.tm}:00 with ${booking.tech}: ${lines.map(l=>l.service).join(" + ")}. Change the booking and the sheet follows.</div>`
       :`<div class="banner noprint">${c.name} has no appointment in the book — this is a standard general-pest sheet. Book the visit and it fills itself from the booking.</div>`}
     ${booking&&booking.slot.resent&&!(booking.slot.pay&&booking.slot.pay.run)?`<div class="banner noprint">📮 This sheet was re-sent ${fmtDayShort(booking.slot.resent)} — payment still owed. Print it and it goes right back in the mail.</div>`:''}
+    ${overpaid>0?`<div class="banner noprint" style="background:#fbe9e3;border-color:#f0cfc2;color:var(--warn)">
+      They already paid ${money((booking.slot.pay.amount!=null?booking.slot.pay.amount:gross)*(1+rate))} and the sheet now comes to ${money(total)} —
+      <b>${money(overpaid*(1+rate))} to give back.</b> Record it under “Payment issue → Refund issued” on the folder so the books match.</div>`:''}
     ${live&&st.services.indexOf('WDI Report')>=0?`<div class="banner noprint">📋 This is a home-sale inspection — the <b>WDI report (NPMA-33)</b> goes with it.
       <button class="btn mini" style="margin-left:.4rem" onclick="location.hash='wdi/${c.id}/${B.tech}/${B.date}/${B.tm}'">${booking.slot.wdi?'Open the WDI report':'Start the WDI report'}</button></div>`:''}
     <div class="rs">
@@ -2360,8 +2430,14 @@ function viewRender(id,ctx){
                    inputmode="decimal" value="${l.price}" onchange="setLinePrice('${B.date}','${B.tech}','${B.tm}',${i},this.value)">`
               : `<span style="font-family:ui-monospace,Consolas,monospace">${money(l.price)}</span>`}
           </div>`).join("")}
+          ${adj?`<div class="rs-line"><span>${escapeHtml(booking.slot.adjust.reason||'Discount')}
+              ${live?`<button class="btn ghost mini noprint" style="min-height:20px;padding:0 .3rem" onclick="clearAdjust('${B.date}','${B.tech}','${B.tm}')">✕</button>`:''}</span>
+            <span style="font-family:ui-monospace,Consolas,monospace">−${money(Math.abs(adj))}</span></div>`:''}
           <div class="rs-line" style="border-bottom:none;font-weight:800"><span>Service Fee</span>
             <span style="font-family:ui-monospace,Consolas,monospace">${money(price)}</span></div>
+          ${live?`<div class="row noprint" style="margin-top:.3rem">
+            <button class="btn ghost mini" onclick="openAdjustModal('${B.date}','${B.tech}','${B.tm}')">${adj?'Change the discount':'Take something off…'}</button>
+          </div>`:''}
         </div>`:''}
       </div>
 
@@ -2730,6 +2806,253 @@ function viewDaySheets(dateArg){
 function markAllWritten(date){
   daySlots(date).forEach(x=>{ if(x.s.st&&!x.s.st.w) x.s.st.w=true; });
   persist();
+}
+
+/* ============================================================
+   CRAWL SPACE EVALUATION / ESTIMATE / CONTRACT
+   Transcribed from the real form (photographed Aug 2026). One sheet does three
+   jobs — Contract, Service or Evaluation — which is also the answer to the
+   brief's open question about whether a separate contract exists.
+   ============================================================ */
+const EVAL_MODES=["Contract","Service","Evaluation"];
+const EVAL_SERVICES=[
+  ["Foundation Vents","Crawl Space Clean Out","Vapor Barrier","Insulation Removal",
+   "Floor Insulation","Pipe Insulation","Side Wall Insulation","Dehumidifier"],
+  ["Fungicide Treatment","Termite Treatment","General Pest Control Service","Sanitizer",
+   "Deodorizer","Rodent Treatment","Dryer Vent","Waterproofing"],
+];
+/* the evaluation checklist — the last seven are readings, so their comment holds the number */
+const EVAL_ROWS=["Foundation Vents","Floor Insulation","Pipe Insulation","Side Wall Insulation",
+  "Mold-Like Substance","Termite Activity","Animal Activity","Insect Activity","Dryer Vent",
+  "Air Leaks","Vapor Barrier","Damp Rot","Moisture","Odor","Water Seepage","Dehumidifier",
+  "Outside Relative Humidity","Outside Temperature","Outside Dew Point",
+  "Inside Relative Humidity","Inside Temperature","Inside Dew Point","Wood Moisture Content"];
+const EVAL_READINGS=EVAL_ROWS.slice(16);   // these want a number, not a judgement
+
+function evalState(l){
+  if(!l.eval) l.eval={mode:"Evaluation", date:TODAY_ISO, warrantyYears:"",
+    billing:{name:"",addr:"",city:"",state:"NJ",zip:"",phone:"",email:""},
+    services:{}, rows:{}, sig:"", signedOn:""};
+  return l.eval;
+}
+function evalSet(id,field,val){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const e=evalState(l);
+  if(field==='mode') e.mode=val; else e[field]=sanitizeField(val);
+  persist(); router();
+}
+function evalSetBilling(id,field,val){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  evalState(l).billing[field]=sanitizeField(val); persist();
+}
+function evalToggleService(id,name){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const e=evalState(l), c=byIdSafe(l.cid);
+  if(e.services[name]) delete e.services[name];
+  else e.services[name]={price:priceFor(name, propAt(c,l.propertyId).area)||0};
+  syncEvalToQuote(l); persist(); router();
+}
+function evalSetPrice(id,name,val){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const e=evalState(l);
+  if(e.services[name]){ e.services[name].price=Math.max(0,parseFloat(val)||0); syncEvalToQuote(l); persist(); router(); }
+}
+function evalSetRow(id,row,state){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const e=evalState(l);
+  e.rows[row]=e.rows[row]||{state:"",comment:""};
+  e.rows[row].state = e.rows[row].state===state ? "" : state;
+  persist(); router();
+}
+function evalSetComment(id,row,val){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const e=evalState(l);
+  e.rows[row]=e.rows[row]||{state:"",comment:""};
+  e.rows[row].comment=sanitizeField(val); persist();
+}
+const evalSubtotal=e=>Object.keys(e.services||{}).reduce((n,k)=>n+(+e.services[k].price||0),0);
+/* the quote's amount IS the form's grand total — one number, not two */
+function syncEvalToQuote(l){
+  const e=evalState(l), sub=evalSubtotal(e);
+  if(sub>0){ l.amount=sub; if(!l.desc||/^Crawl space evaluation/.test(l.desc)) l.desc=Object.keys(e.services).join(", ")||l.desc; }
+}
+function newEvaluation(cid,pid){
+  const c=byId(cid); if(!c)return;
+  const nid=Math.max(100,...LEADS.map(l=>l.id))+1;
+  LEADS.unshift({id:nid, cid, propertyId:pid||0, type:"Estimate",
+    desc:"Crawl space evaluation", amount:0, status:"Sent", sentISO:TODAY_ISO,
+    note:"Evaluation started"});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'quote',txt:'Crawl space evaluation started'});
+  persist(); updateBadges();
+  location.hash='eval/'+nid; router();
+}
+let EVAL_SIG=null;
+function initEvalSig(){
+  const cv=document.getElementById('evalsig'); if(!cv)return; EVAL_SIG=cv;
+  const ctx=cv.getContext('2d'); ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.strokeStyle='#1c2321';
+  let drawing=false,last=null;
+  const pos=e=>{const r=cv.getBoundingClientRect();const p=(e.touches&&e.touches[0])||e;
+    return {x:(p.clientX-r.left)*(cv.width/r.width), y:(p.clientY-r.top)*(cv.height/r.height)};};
+  const start=e=>{drawing=true;last=pos(e);e.preventDefault();};
+  const move=e=>{if(!drawing)return;const p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;e.preventDefault();};
+  const end=()=>{drawing=false;};
+  cv.onmousedown=start; cv.onmousemove=move; window.addEventListener('mouseup',end);
+  cv.ontouchstart=start; cv.ontouchmove=move; cv.ontouchend=end;
+}
+function clearEvalSig(){ if(EVAL_SIG){const c=EVAL_SIG.getContext('2d');c.clearRect(0,0,EVAL_SIG.width,EVAL_SIG.height);} }
+function saveEvalSig(id){
+  const l=LEADS.find(x=>x.id===id); if(!l)return;
+  const e=evalState(l);
+  if(EVAL_SIG){ try{ e.sig=EVAL_SIG.toDataURL('image/png'); }catch(err){} }
+  e.signedOn=fmtToday();
+  const c=byIdSafe(l.cid);
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'quote',
+    txt:`${e.mode} signed — ${money(evalSubtotal(e)*(1+TAX_RATE))}`});
+  if(e.mode==='Contract'&&l.status!=='Won'){ l.status='Won'; }   // a signed contract is a sale
+  persist(); toast('Signed'); router();
+}
+function viewEval(idArg){
+  const id=+idArg; const l=LEADS.find(x=>x.id===id);
+  if(!l){ location.hash='leads'; return; }
+  const c=byIdSafe(l.cid); const P=propAt(c,l.propertyId);
+  const e=evalState(l);
+  const sub=evalSubtotal(e), tax=sub*TAX_RATE, tot=sub+tax;
+  const v=s=>escapeHtml(s==null?"":String(s));
+  const chk=on=>`<span class="chk ${on?'x':''}">${on?'✓':''}</span>`;
+  const bill=(label,f,w)=>`<div style="flex:${w||1}">${label}
+    <input class="fline" value="${v(e.billing[f])}" onchange="evalSetBilling(${id},'${f}',this.value)"></div>`;
+  main.innerHTML="";
+  main.appendChild(el(`<div>
+    <div class="row noprint" style="justify-content:space-between;margin-bottom:.7rem">
+      <div>
+        <h2 class="screen-title" style="margin:0">${e.mode} — ${escapeHtml(c.name)}</h2>
+        <p class="sub" style="margin:.1rem 0 0">The crawl space sheet: what you found, what you recommend, and the price. One form does the evaluation, the service and the contract.</p>
+      </div>
+      <div class="row">
+        <button class="btn ghost mini" onclick="location.hash='leads'">All quotes</button>
+        <button class="btn" onclick="window.print()">🖨 Print</button>
+      </div>
+    </div>
+    ${e.mode==='Contract'?`<div class="banner noprint">A signed contract over $500 in New Jersey also needs the start and finish dates and the three-day cancellation notice in writing. Worth checking this form carries them before it's used as the contract.</div>`:''}
+
+    <div class="rs" style="max-width:820px">
+      <div class="rs-head">
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <div style="text-align:left">
+            <div class="co" style="font-size:1.5rem;letter-spacing:-.5px">${v(CO().short)}</div>
+            <div style="font-size:.66rem;letter-spacing:.5px;border-top:1px solid #333;padding-top:1px">TERMITE &amp; PEST CONTROL, LLC</div>
+            <div style="font-size:.62rem;margin-top:.1rem">${v(CO().addr)}, ${v(CO().city)}, ${v(CO().state)} ${v(CO().zip)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-weight:700;font-size:.72rem">Mold, Moisture &amp; Pest Control</div>
+            <div style="font-style:italic;font-size:.72rem">“Crawlspace Experts”</div>
+            <div style="font-weight:800;font-size:1.1rem">${v(CO().phone)}</div>
+            <div style="font-size:.72rem">${v(CO().web)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rs-sec">
+        <div class="row" style="justify-content:space-between;align-items:center;gap:.8rem">
+          <div style="font-size:.8rem">Date:
+            <input type="date" class="fline" style="width:9rem;display:inline-block" value="${v(e.date)}" onchange="evalSet(${id},'date',this.value)"></div>
+          <div class="row" style="gap:.7rem">
+            ${EVAL_MODES.map(m=>`<span class="fbox" style="display:inline-flex" onclick="evalSet(${id},'mode','${m}')">${chk(e.mode===m)}<b>${m}</b></span>`).join("")}
+          </div>
+        </div>
+      </div>
+
+      <div class="rs-sec">
+        <div class="fcols" style="grid-template-columns:1fr 1fr;gap:.8rem">
+          <div>
+            <div class="rs-band" style="margin:-.5rem -.3rem .35rem">CUSTOMER INFORMATION</div>
+            <div style="font-size:.76rem;line-height:1.7">
+              <div>Name: <b>${v((c.first?c.first+' ':'')+c.name)}</b></div>
+              <div>Address: <b>${v(P.addr)}</b></div>
+              <div>City: <b>${v(P.city||sheetCity(P))}</b> · State: NJ · Zip: ${v(P.zip)}</div>
+              <div>Home Phone: ${v(c.phone)}</div>
+              <div>Alt Phone: <input class="fline" style="width:7rem;display:inline-block" value="${v(e.altPhone)}" onchange="evalSet(${id},'altPhone',this.value)"></div>
+            </div>
+          </div>
+          <div>
+            <div class="rs-band" style="margin:-.5rem -.3rem .35rem">BILLING INFORMATION</div>
+            <div style="font-size:.76rem;line-height:1.5">
+              <div class="muted noprint" style="font-size:.66rem;margin-bottom:.2rem">Leave blank if it's the same as the customer.</div>
+              ${bill('Name:','name')}${bill('Address:','addr')}
+              <div class="row" style="gap:.3rem">${bill('City:','city',2)}${bill('Zip:','zip',1)}</div>
+              <div class="row" style="gap:.3rem">${bill('Home Ph:','phone',1)}${bill('Email:','email',1)}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rs-sec">
+        <div class="fcols" style="grid-template-columns:1.5fr 1fr;gap:.8rem">
+          <div>
+            <div class="rs-band" style="margin:-.5rem -.3rem .35rem">RECOMMENDED SERVICES</div>
+            <div class="fcols" style="grid-template-columns:1fr 1fr">
+              ${EVAL_SERVICES.map(col=>`<div>${col.map(sv=>{
+                const on=!!e.services[sv];
+                return `<div class="fbox ${on?'on':''}" onclick="evalToggleService(${id},'${sv.replace(/'/g,"\\'")}')">${chk(on)}${sv}</div>`;}).join("")}</div>`).join("")}
+            </div>
+            ${Object.keys(e.services).length?`<div style="margin-top:.35rem;border-top:1px dotted #ccc;padding-top:.25rem">
+              ${Object.keys(e.services).map(k=>`<div class="rs-line"><span>${escapeHtml(k)}</span>
+                <input class="fcell" style="width:6rem;text-align:right;font-family:ui-monospace,Consolas,monospace"
+                  inputmode="decimal" value="${e.services[k].price}" onchange="evalSetPrice(${id},'${k.replace(/'/g,"\\'")}',this.value)"></div>`).join("")}
+            </div>`:'<div class="muted" style="font-size:.72rem;margin-top:.3rem">Tick what you\'re recommending — each one comes down here with its price.</div>'}
+          </div>
+          <div>
+            <div class="rs-band" style="margin:-.5rem -.3rem .35rem">PAYMENT SUMMARY</div>
+            <div class="money" style="margin:.5rem 0 0">
+              <div>Subtotal</div><div>${money(sub)}</div>
+              <div>Tax (${SETTINGS.taxRate}%)</div><div>${money(tax)}</div>
+              <div class="tot">Grand Total</div><div class="tot">${money(tot)}</div>
+            </div>
+            <div style="text-align:center;font-size:.7rem;margin-top:.4rem;font-weight:700">• Credit Cards Accepted •</div>
+          </div>
+        </div>
+        <div style="margin-top:.5rem;font-size:.8rem;text-align:center">
+          <input class="fline" style="width:3rem;display:inline-block;text-align:center" value="${v(e.warrantyYears)}" onchange="evalSet(${id},'warrantyYears',this.value)">
+          Year warranty on Vapor Barrier / Mold Remediation
+        </div>
+      </div>
+
+      <div class="rs-sec">
+        <table class="evaltable">
+          <tr><th style="text-align:left">Crawl Space Evaluation</th><th>Satisfied</th><th>Unsatisfied</th><th>N/A</th><th style="text-align:left">Comments</th></tr>
+          ${EVAL_ROWS.map(row=>{
+            const rr=e.rows[row]||{state:"",comment:""};
+            const cell=st=>`<td class="evalcell" onclick="evalSetRow(${id},'${row.replace(/'/g,"\\'")}','${st}')">${chk(rr.state===st)}</td>`;
+            const isReading=EVAL_READINGS.indexOf(row)>=0;
+            return `<tr><td class="evalrow">${row}</td>${cell('S')}${cell('U')}${cell('NA')}
+              <td><input class="fline" value="${v(rr.comment)}" placeholder="${isReading?'reading':''}"
+                onchange="evalSetComment(${id},'${row.replace(/'/g,"\\'")}',this.value)"></td></tr>`;}).join("")}
+        </table>
+      </div>
+
+      <div class="rs-sec">
+        <div class="row" style="justify-content:space-between;align-items:flex-end;gap:1rem">
+          <div style="font-size:.6rem;color:#555;line-height:1.5">
+            <div>DEP APPLICATOR #${v(CO().depApplicator)}</div>
+            <div>BUSINESS # ${v(CO().business)}</div>
+            <div>NJ CONTRACTOR #${v(CO().contractor)}</div>
+          </div>
+          <div style="text-align:center">
+            ${e.sig
+              ? `<img src="${e.sig}" alt="signed" style="display:block;height:44px;max-width:200px;border-bottom:1px solid #333">
+                 <div style="font-size:.6rem">Customer Signature · ${v(e.signedOn)}</div>`
+              : `<canvas id="evalsig" width="440" height="110" style="width:100%;max-width:260px;border:1px dashed var(--line);border-radius:6px;background:#fff;touch-action:none;display:block"></canvas>
+                 <div style="font-size:.6rem">Customer Signature</div>
+                 <div class="row noprint" style="justify-content:center;margin-top:.25rem">
+                   <button class="btn ghost mini" onclick="clearEvalSig()">Clear</button>
+                   <button class="btn mini" onclick="saveEvalSig(${id})">Save signature</button>
+                 </div>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`));
+  initEvalSig();
 }
 
 /* ---------------- DASHBOARD ("This Month") ---------------- */
@@ -3453,6 +3776,7 @@ function leadCard(l){
       <button class="btn mini" onclick="setLeadStatus(${l.id},'Won')">Won — schedule it</button>
       <button class="btn ghost mini" onclick="setLeadStatus(${l.id},'Thinking')">Followed up today</button>
       <button class="btn ghost mini" onclick="setLeadStatus(${l.id},'Lost')">Lost</button>
+      <button class="btn ghost mini" onclick="location.hash='eval/${l.id}'">${l.eval?`${l.eval.mode} sheet`:'Crawl space sheet'}</button>
       <button class="btn ghost mini" onclick="openQuoteModal(null,${l.id})">✎ Edit</button>
       <button class="btn ghost mini" onclick="location.hash='cust/${c.id}'">Open folder</button>
     </div>`:l.status==="Won"?`<div class="row" style="margin-top:.6rem">${l.scheduled?`<span class="pill" style="background:#eaf4ee;color:var(--brand)">✓ on the calendar</span>`:`<button class="btn mini" onclick="bookLead(${l.id})">Put on the calendar</button>`}</div>`:''}
@@ -4554,7 +4878,8 @@ function routeTo(){
   const dec=x=>{ if(x==null)return x; try{return decodeURIComponent(x);}catch(e){return x;} };
   const [route,arg,arg2,arg3,arg4]=h.split("/").map(dec);
   const activeMap={cust:"customers",preletter:"preschedule",preletters:"preschedule",
-  warrantyletter:"warranties",wdi:"wdilist",week:"today",month:"today",daysheets:"today"};
+  warrantyletter:"warranties",wdi:"wdilist",week:"today",month:"today",daysheets:"today",
+  eval:"leads"};
   const canonical=activeMap[route]||route;
   closeMore();
   document.querySelectorAll("nav.tabs button[data-route]").forEach(b=>
@@ -4583,6 +4908,7 @@ function routeTo(){
   if(route==="warrantyletter")return viewWarrantyLetter(+arg);
   if(route==="capacity")return viewCapacity();
   if(route==="daysheets")return viewDaySheets(arg);
+  if(route==="eval")return viewEval(arg);
   if(route==="wdilist")return viewWDIList();
   if(route==="wdi")return viewWDI(arg,arg2,arg3,arg4);
   if(route==="business")return viewBusiness();
