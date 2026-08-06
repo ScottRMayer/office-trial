@@ -293,6 +293,8 @@
   }
   .postcard .stamp{float:right;border:1px dashed #bbb;width:3rem;height:3.4rem;font-size:.52rem;color:#aaa;text-align:center;padding-top:.55rem;border-radius:3px}
   .barrow{display:flex;gap:.6rem;align-items:center;margin:.28rem 0;flex-wrap:nowrap}
+  .colourpick{width:2.6rem;height:2rem;border:1px solid var(--line);border-radius:6px;
+       padding:2px;background:#fff;cursor:pointer;flex:0 0 auto}
   .tpl-edit{width:100%;height:200px;border:1px solid var(--line);border-radius:9px;padding:.6rem .7rem;
        font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;line-height:1.45;white-space:pre-wrap;margin:.5rem 0;resize:vertical}
   .seg{display:flex;height:1.4rem;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
@@ -403,12 +405,13 @@ const fmtDayShort=s=>{const d=parseISO(s);return `${DOW_SHORT[d.getDay()]} ${d.g
 
 /* ---- the calendar colour code (mirrored) ---- */
 function calColor(job){
-  if(job.cancelled) return {v:"var(--cal-gray)",  label:"Cancelled"};
-  if(job.big)       return {v:"var(--cal-blue)",  label:"Bigger job"};
+  const K=k=>({v:calColour(k), label:CAL_LABELS[k]});
+  if(job.cancelled) return K('cancelled');
+  if(job.big)       return K('big');
   const a=AREAS[job.area]||{};
-  if(a.silverton)   return {v:"var(--cal-lgreen)",label:"Silverton"};
-  if(a.out)         return {v:"var(--cal-dgreen)",label:"Out of area"};
-  return {v:"var(--cal-salmon)",label:"Right in area"};
+  if(a.silverton)   return K('silverton');
+  if(a.out)         return K('outOfArea');
+  return K('inArea');
 }
 
 /* ============================================================
@@ -452,10 +455,17 @@ const DEFAULT_SETTINGS={
   users:[ {name:"Kim", role:"office"}, {name:"Bryan", role:"owner"},
           {name:"Michael", role:"field"}, {name:"Louise", role:"office"} ],
   lockMinutes:15,
+  /* colours are hers to change — the folder dots and her calendar code */
+  areaColors:{},          // area code -> hex, overriding the built-in default
+  calColors:{ inArea:"#f4a58f", silverton:"#a9d99b", outOfArea:"#3f7d54",
+              big:"#8fb4e0", cancelled:"#c3cbc8" },
 };
+const CAL_LABELS={ inArea:"Right in area", silverton:"Silverton", outOfArea:"Out of area",
+  big:"Bigger job", cancelled:"Cancelled" };
+const NO_COLOUR="#d4dbd8";   // what "no dot" looks like (out-of-area folders)
 const ROLES={office:"Office", owner:"Owner", field:"Field"};
 /* shown in the corner so it's never a mystery which version is in front of you */
-const APP_VERSION="1.11";
+const APP_VERSION="1.12";
 let SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let TAX_RATE=SETTINGS.taxRate/100;
 let RATES=SETTINGS.rates;
@@ -472,7 +482,17 @@ function applySettings(){
   RATES=SETTINGS.rates;
   TECHS=(SETTINGS.techs||[]).map(t=>t.name).filter(Boolean);
   if(!TECHS.length) TECHS=["Bryan"];
+  /* push her calendar colours into the stylesheet so legends, jobs, the week
+     and the month all follow from one place */
+  const cc=SETTINGS.calColors||{};
+  const root=document.documentElement;
+  const map={inArea:'--cal-salmon', silverton:'--cal-lgreen', outOfArea:'--cal-dgreen',
+             big:'--cal-blue', cancelled:'--cal-gray'};
+  Object.keys(map).forEach(k=>{
+    if(cc[k]) root.style.setProperty(map[k], cc[k]);
+  });
 }
+const calColour=k=>(SETTINGS.calColors&&SETTINGS.calColors[k])||DEFAULT_SETTINGS.calColors[k];
 const techLic=name=>{const t=(SETTINGS.techs||[]).find(x=>x.name===name); return t&&t.lic?t.lic:"";};
 const techLabel=name=>{const l=techLic(name); return l?`${name} #${l}`:name;};
 const CO=()=>SETTINGS.company;
@@ -840,6 +860,17 @@ function persist(){
       if(s.user)CURRENT_USER=s.user; }
   }catch(e){}
   applySettings();
+  /* Any visit already done or paid that never recorded its tax rate gets today's
+     stamped on it now. A rate that was never written down can't be recovered —
+     but from here it can't drift either, so an old sheet reprints the same. */
+  try{
+    let stamped=0;
+    for(const d in SCHED) for(const t in SCHED[d]) for(const tm in SCHED[d][t]){
+      const s=SCHED[d][t][tm];
+      if(s.cid && s.taxRate==null && (s.done||s.pay)){ s.taxRate=TAX_RATE; stamped++; }
+    }
+    if(stamped) persist();
+  }catch(e){}
 })();
 
 /* ============================================================
@@ -849,7 +880,11 @@ const el=(h)=>{const t=document.createElement("template");t.innerHTML=h.trim();r
 const main=document.getElementById("main");
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1900);}
 /* tolerant area lookup — imported data may carry area codes we have not mapped yet */
-const areaOf=code=>AREAS[code]||{name:(code||"Needs review"),dot:"#d4dbd8",core:false,unknown:true};
+function areaOf(code){
+  const base=AREAS[code]||{name:(code||"Needs review"),dot:NO_COLOUR,core:false,unknown:true};
+  const own=(SETTINGS.areaColors||{})[code];          // her colour wins
+  return own?Object.assign({},base,{dot:own}):base;
+}
 function areaTag(code){const a=areaOf(code);return `<span class="pill"><span class="dot" style="background:${a.dot}"></span>${code||"?"}</span>`;}
 
 /* ---------------- TODAY / BOOK ---------------- */
@@ -1890,6 +1925,25 @@ function viewCustomer(id){
       ${l.who?`<span class="tl-who">${escapeHtml(l.who)}</span>`:''}
       ${l.manual?`<button class="tl-edit" onclick="openLogNoteModal(${c.id},${i})" title="Edit this note">✎</button>`:''}
     </div>`).join("");
+  /* every job on record — with its own render sheet, pullable and reprintable */
+  const visits=customerVisits(c.id);
+  const visitsHtml = visits.length ? `<div class="card pad" style="margin-top:.9rem">
+      <div style="font-weight:700;margin-bottom:.3rem">Every job on record <span class="muted" style="font-weight:400">— ${visits.length}</span></div>
+      <div class="muted" style="font-size:.8rem;margin-bottom:.5rem">Any of these can be opened and reprinted exactly as it was written — the services, the materials, the tax and the signature are all kept with the job.</div>
+      ${visits.map(x=>{const stt=visitStatus(x.s); const pr=propAt(c,x.s.pid);
+        return `<div class="queue-item" style="cursor:default;flex-wrap:wrap">
+        <div style="flex:1;min-width:10rem">
+          <b>${fmtDayShort(x.date)}</b> <span class="muted" style="font-size:.8rem">${x.tm}:00 · ${escapeHtml(x.tech)}</span>
+          <div class="muted" style="font-size:.8rem">${escapeHtml(slotLines(x.s,pr.area).map(l=>l.service).join(" + "))}${!pr.primary?` · ${escapeHtml(pr.addr)}`:''}</div>
+        </div>
+        <b>${money(slotTotal(x.s))}</b>
+        <span class="pill" ${stt.tone==='good'?'style="background:#eaf4ee;color:var(--brand)"':stt.tone==='warn'?'style="background:#fbe9e3;color:var(--warn)"':''}>${stt.t}</span>
+        ${x.s.wdi?`<button class="btn ghost mini" onclick="location.hash='wdi/${c.id}/${encodeURIComponent(x.tech)}/${x.date}/${x.tm}'">WDI</button>`:''}
+        <button class="btn mini" onclick="location.hash='render/${c.id}/${encodeURIComponent(x.tech)}/${x.date}/${x.tm}'">Sheet</button>
+      </div>`;}).join("")}
+    </div>` : `<div class="card pad" style="margin-top:.9rem">
+      <div style="font-weight:700;margin-bottom:.2rem">Every job on record</div>
+      <div class="muted" style="font-size:.85rem">Nothing booked through the system yet. Once a job goes in the book, its render sheet stays here to pull back up.</div></div>`;
   const pays=findPayments(c.id);
   const paysHtml = pays.length ? `<div class="card pad" style="margin-top:.9rem">
       <div style="font-weight:700;margin-bottom:.3rem">Payments on file</div>
@@ -1968,6 +2022,7 @@ function viewCustomer(id){
       </div>
       <div class="timeline">${tl||'<div class="muted" style="font-size:.85rem">Nothing on the cover yet — add the first note.</div>'}</div>
     </div>
+    ${visitsHtml}
     ${paysHtml}
   </div>`));
 }
@@ -2142,6 +2197,26 @@ function setSheetField(date,tech,tm,field,val){
   const s=slotAt(date,tech,tm); if(!s)return;
   const st=sheetState(s);
   st[field]=sanitizeField(val); persist();
+}
+/* every visit this customer has ever had in the system, newest first — so any
+   old render sheet can be pulled back up and reprinted */
+function customerVisits(cid){
+  const out=[];
+  for(const date in SCHED) for(const tech in SCHED[date]) for(const tm in SCHED[date][tech]){
+    const s=SCHED[date][tech][tm];
+    if(s.cid===cid) out.push({date,tech,tm,s});
+  }
+  return out.sort((a,b)=> b.date.localeCompare(a.date) || tmVal(b.tm)-tmVal(a.tm));
+}
+function visitStatus(s){
+  if(s.cancelled) return {t:s.notHome?'nobody home':'cancelled', tone:'plain'};
+  if(s.refunded)  return {t:'refunded', tone:'plain'};
+  if(s.pay&&s.pay.run) return {t:'paid · '+s.pay.method, tone:'good'};
+  if(s.pay&&s.pay.method==='To Be Mailed') return {t:'to be mailed', tone:'warn'};
+  if(s.done) return {t:s.pay?escapeHtml(s.pay.method)+' — not collected':'done, unpaid', tone:'warn'};
+  if(s.rained) return {t:'rained out', tone:'warn'};
+  if(s.st&&s.st.w) return {t:'sheet written', tone:'plain'};
+  return {t:'booked', tone:'plain'};
 }
 function findBookingFor(cid){
   for(const date of Object.keys(SCHED).sort().reverse())
@@ -3223,6 +3298,7 @@ function savePayment(date,tech,tm){
   const cardRun = isCardMethod(method) ? !!(document.getElementById('cardrun')||{}).checked : false;
   /* money is only IN when it's really in: cash/check in hand, or a card
      actually run. A card written on the sheet is not collected money. */
+  if(s.taxRate==null) s.taxRate=TAX_RATE;   // lock the rate when the money is committed
   const collected = mailed ? false : (isCardMethod(method) ? cardRun : true);
   s.pay={method:label, amount:slotTotal(s), run:collected, checkNo:(method==='Check'?checkNo:null),
          card:isCardMethod(method)?method:null};
@@ -4175,6 +4251,26 @@ function removeRate(service){
     SETTINGS.ratesRemoved.push(service);      // remember, so applySettings doesn't put it back
   persist(); RATES=SETTINGS.rates; viewSettings();
 }
+function setCalColour(key,hex){
+  SETTINGS.calColors=SETTINGS.calColors||{};
+  SETTINGS.calColors[key]=hex; applySettings(); persist(); viewSettings();
+}
+function setAreaColour(code,hex){
+  SETTINGS.areaColors=SETTINGS.areaColors||{};
+  SETTINGS.areaColors[code]=hex; persist(); viewSettings();
+}
+function clearAreaColour(code){
+  if(SETTINGS.areaColors) delete SETTINGS.areaColors[code];
+  persist(); viewSettings();
+}
+function resetColours(){
+  showModal(`<div class="pad"><div style="font-weight:800">Put all the colours back?</div>
+    <div class="muted" style="margin:.4rem 0 .7rem;font-size:.87rem">The calendar colours and every folder dot go back to how they started. Nothing else changes.</div>
+    <div class="row">
+      <button class="btn" onclick="SETTINGS.calColors=JSON.parse(JSON.stringify(DEFAULT_SETTINGS.calColors));SETTINGS.areaColors={};applySettings();persist();closeModal();toast('Colours put back');viewSettings()">Put them back</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div></div>`);
+}
 function addMissingRates(){
   const added=[];
   FORM_SERVICES.flat().forEach(s=>{
@@ -4342,15 +4438,31 @@ function viewSettings(){
         return `${priced} of ${onForm.length} sheet services have a set price. The rest get written in on the job.`;})()}</div>
     </div>
 
+    <div class="card pad" style="margin-bottom:1rem">
+      <div style="font-weight:700;margin-bottom:.3rem">Your calendar colours</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.6rem">The colours the jobs take in the book, the week and the month — the same code you use on the calendar now. Change one and it changes everywhere.</div>
+      ${Object.keys(CAL_LABELS).map(k=>`<div class="row" style="gap:.6rem;flex-wrap:nowrap;margin-bottom:.4rem;align-items:center">
+        <input type="color" class="colourpick" value="${escapeHtml(calColour(k))}" onchange="setCalColour('${k}',this.value)">
+        <div style="flex:1">${CAL_LABELS[k]}</div>
+        <span class="swatch" style="background:${escapeHtml(calColour(k))};width:2.6rem;height:1.1rem;border-radius:4px"></span>
+      </div>`).join("")}
+    </div>
+
     <div class="card pad">
-      <div style="font-weight:700;margin-bottom:.3rem">Areas &amp; folder colours</div>
-      <div class="muted" style="font-size:.82rem;margin-bottom:.5rem">The area codes and their dot colours, as confirmed. Out-of-area customers have no colour.</div>
-      <div class="fcols" style="grid-template-columns:repeat(auto-fill,minmax(11rem,1fr))">
-        ${Object.keys(AREAS).map(k=>`<div class="row" style="gap:.35rem">
-          <span class="dot" style="background:${AREAS[k].dot}"></span><b>${k}</b>
-          <span class="muted" style="font-size:.74rem">${escapeHtml(AREAS[k].name)}</span></div>`).join("")}
+      <div style="font-weight:700;margin-bottom:.3rem">Folder dot colours</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.6rem">The coloured dot on each folder cover. Several areas can share one colour — set them to match. Out-of-area folders have no dot, so leave those grey.</div>
+      <div class="fcols" style="grid-template-columns:repeat(auto-fill,minmax(15rem,1fr));gap:.35rem .8rem">
+        ${Object.keys(AREAS).map(k=>{
+          const cur=areaOf(k).dot, custom=!!(SETTINGS.areaColors||{})[k];
+          return `<div class="row" style="gap:.5rem;flex-wrap:nowrap;align-items:center">
+            <input type="color" class="colourpick" value="${escapeHtml(cur)}" onchange="setAreaColour('${k}',this.value)">
+            <div style="flex:1;font-size:.86rem"><b>${k}</b> <span class="muted" style="font-size:.74rem">${escapeHtml(AREAS[k].name)}</span></div>
+            ${custom?`<button class="btn ghost mini" onclick="clearAreaColour('${k}')" title="Back to the original">↺</button>`:''}
+          </div>`;}).join("")}
       </div>
-      <div class="muted" style="font-size:.76rem;margin-top:.5rem">Silverton and Manchester dot colours are still to confirm — tell me and they go in here.</div>
+      <div class="row" style="margin-top:.8rem">
+        <button class="btn ghost mini" onclick="resetColours()">Put all the colours back</button>
+      </div>
     </div>
 
     <div class="row" style="margin-top:1rem"><button class="btn ghost" onclick="resetSettings()">Put settings back to normal…</button></div>
