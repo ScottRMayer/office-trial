@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#0e5a4f">
@@ -34,6 +35,15 @@
   header.topbar .logo small{display:block;font-weight:500;opacity:.8;font-size:.66rem;letter-spacing:.4px}
   header.topbar .spacer{flex:1}
   header.topbar .who{font-size:.78rem;opacity:.9}
+  header.topbar .whobtn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);
+       color:#fff;font-size:.78rem;padding:.3rem .6rem;border-radius:999px;cursor:pointer;min-height:36px;white-space:nowrap}
+  header.topbar .whobtn:hover{background:rgba(255,255,255,.26)}
+  /* screen lock — hides the book when the device is left sitting */
+  .lockscreen{position:fixed;inset:0;background:var(--brand);z-index:60;display:none;
+       align-items:center;justify-content:center;padding:1.5rem}
+  .lockscreen.show{display:flex}
+  .lockcard{background:#fff;border-radius:16px;padding:1.6rem;max-width:24rem;text-align:center;
+       box-shadow:0 20px 50px rgba(0,0,0,.3)}
   .demo-flag{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);color:#fff;
        font-size:.64rem;padding:.15rem .45rem;border-radius:999px;letter-spacing:.3px}
 
@@ -106,7 +116,7 @@
   /* ---------- Today / book ---------- */
   .daynav{display:flex;align-items:center;gap:.6rem;margin-bottom:.8rem}
   .daynav .date{font-weight:600;font-size:1.05rem}
-  .book{display:grid;grid-template-columns:3.2rem 1fr 1fr;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+  .book{display:grid;grid-template-columns:3.2rem repeat(var(--techcols,2),1fr);gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
   .book .colhead{background:var(--brand-soft);color:var(--brand);font-weight:700;padding:.5rem;text-align:center;font-size:.9rem;border-bottom:1px solid var(--line)}
   .book .colhead.time{background:#eef2f0;color:var(--ink-soft)}
   .book .tcell{border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft);min-height:60px;padding:3px}
@@ -115,9 +125,58 @@
   .job{border-radius:7px;padding:.38rem .45rem;font-size:.86rem;color:#20302b;height:100%;cursor:pointer;position:relative;border:1px solid rgba(0,0,0,.08)}
   .job .cust{font-weight:700;line-height:1.18}
   .job .meta{font-size:.74rem;opacity:.88}
-  .job .colname{display:none;font-size:.62rem;color:#333}
+  /* the colour's name in words — hidden on screen, printed so a grey-scale
+     printout still says which colour each job was */
+  .colname{display:none;font-size:.62rem;color:#333}
   /* cancelled = a line through it on that date, exactly like the book */
   .job.struck .cust,.job.struck .meta{text-decoration:line-through;opacity:.65}
+
+  /* ---------- the week ---------- */
+  .weekgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:.25rem;align-items:start}
+  @media(max-width:820px){.weekgrid{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:560px){.weekgrid{grid-template-columns:repeat(2,1fr)}}
+  .wkcol{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;min-height:6rem}
+  .wkcol.istoday{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+  .wkhead{padding:.3rem .35rem;border-bottom:1px solid var(--line-soft);cursor:pointer;background:#fafbfb}
+  .wkhead:hover{background:var(--brand-soft)}
+  .wkdow{font-size:.6rem;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-soft)}
+  .wknum{font-size:1.05rem;font-weight:800;line-height:1.05}
+  .wkcount{font-size:.62rem;color:var(--ink-soft)}
+  .wkbar{height:3px;background:var(--line-soft);border-radius:2px;margin-top:.2rem;overflow:hidden}
+  .wkbar i{display:block;height:100%}
+  .wkhol{font-size:.58rem;color:var(--warn);font-weight:700;margin-top:.15rem}
+  .wkareas{display:flex;gap:.15rem;margin-top:.22rem;align-items:center}
+  .wkareas .dot{width:.5rem;height:.5rem}
+  .wkbody{padding:.2rem}
+  .wkjob{display:flex;align-items:center;gap:.2rem;font-size:.66rem;border-radius:5px;
+       padding:.16rem .22rem;margin-bottom:.15rem;cursor:pointer;color:#20302b;border:1px solid rgba(0,0,0,.07)}
+  .wkjob:hover{filter:brightness(.96)}
+  .wkjob.struck .wkname{text-decoration:line-through;opacity:.7}
+  .wktime{font-weight:700;min-width:.85rem}
+  .wkname{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+  .wkarea{font-size:.56rem;opacity:.8}
+  .wkmark{font-size:.55rem;font-weight:800}
+  .wktech{font-size:.55rem;background:rgba(255,255,255,.6);border-radius:3px;padding:0 .15rem;font-weight:700}
+  .wkempty{color:var(--ink-soft);font-size:.7rem;text-align:center;padding:.5rem 0}
+
+  /* ---------- the month ---------- */
+  .monthgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:.2rem}
+  .modow{font-size:.6rem;letter-spacing:.6px;text-transform:uppercase;color:var(--ink-soft);
+       text-align:center;padding:.2rem 0;font-weight:700}
+  .mocell{background:var(--card);border:1px solid var(--line);border-radius:8px;min-height:4.4rem;
+       padding:.25rem .3rem;cursor:pointer;display:flex;flex-direction:column;gap:.15rem}
+  .mocell:hover{border-color:var(--brand);background:var(--brand-soft)}
+  .mocell.outside{opacity:.4}
+  .mocell.istoday{border-color:var(--brand);box-shadow:0 0 0 2px var(--brand-soft)}
+  .morow{display:flex;justify-content:space-between;align-items:center}
+  .monum{font-weight:700;font-size:.85rem}
+  .mocount{font-size:.6rem;background:var(--line-soft);color:var(--ink-soft);border-radius:999px;padding:0 .3rem;font-weight:700}
+  .mocount.full{background:#fbe9e3;color:var(--warn)}
+  .mohol{font-size:.55rem;color:var(--warn);font-weight:700;line-height:1.1}
+  .mobars{display:flex;flex-wrap:wrap;gap:.12rem;align-items:center;margin-top:auto}
+  .mobars i{display:block;height:.42rem;flex:1 1 40%;min-width:.8rem;border-radius:2px;border:1px solid rgba(0,0,0,.06)}
+  .momore{font-size:.55rem;color:var(--ink-soft)}
+  @media(max-width:560px){.mocell{min-height:3.4rem}.monum{font-size:.75rem}}
   .job .st{position:absolute;top:2px;right:4px;font-size:.62rem;font-weight:700}
   .legend{display:flex;gap:.7rem;flex-wrap:wrap;margin:.6rem 0 0;font-size:.72rem;color:var(--ink-soft)}
   .legend span{display:inline-flex;align-items:center;gap:.3rem}
@@ -146,6 +205,8 @@
   .tl-item.quote::before{background:var(--gold)}
   .tl-item.money::before{background:var(--warn)}
   .tl-item.money{color:var(--warn)}
+  .tl-who{font-size:.66rem;color:var(--ink-soft);background:var(--line-soft);padding:.05rem .3rem;
+       border-radius:999px;margin-left:.3rem;white-space:nowrap}
   .tl-edit{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:.85rem;
        padding:.1rem .3rem;border-radius:5px;opacity:.45;margin-left:.2rem}
   .tl-item:hover .tl-edit{opacity:1}
@@ -247,6 +308,7 @@
     .daysheet:last-child{page-break-after:auto}
     @page{margin:.4in}
     .job .colname{display:block}
+    .wkjob .colname{display:inline;margin-left:.2rem}
     .label{border-color:transparent}
     main{padding:0;max-width:none}
     .rs{border:1px solid #000}
@@ -266,8 +328,17 @@
     <div class="gresults" id="gresults"></div>
   </div>
   <span class="demo-flag">PROTOTYPE</span>
-  <div class="who">Office</div>
+  <button class="whobtn" onclick="openWhoModal()" title="Who's using this">
+    <span id="wholabel">Kim</span> <span style="opacity:.7;font-size:.7rem">▾</span>
+  </button>
 </header>
+<div class="lockscreen" id="lockscreen">
+  <div class="lockcard">
+    <div style="font-weight:800;font-size:1.15rem;margin-bottom:.3rem">Put away</div>
+    <p class="muted" style="font-size:.88rem;margin:0 0 1rem">This was sitting untouched, so the book was closed. Nothing was lost.</p>
+    <button class="btn" onclick="unlockApp()">Open it back up</button>
+  </div>
+</div>
 
 <div class="navwrap">
   <nav class="tabs" id="tabs">
@@ -358,7 +429,13 @@ const DEFAULT_SETTINGS={
   extraPrice:75,                       // bundled extras on a pre-schedule letter
   followUpDays:7,                      // when a quote counts as "gone quiet"
   capacityPerTechPerDay:10,
+  /* who can use the system. Separate from the tech list on purpose — being a
+     technician and having a login are different facts (Bryan is both). */
+  users:[ {name:"Kim", role:"office"}, {name:"Bryan", role:"owner"},
+          {name:"Michael", role:"field"}, {name:"Louise", role:"office"} ],
+  lockMinutes:15,
 };
+const ROLES={office:"Office", owner:"Owner", field:"Field"};
 let SETTINGS=JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
 let TAX_RATE=SETTINGS.taxRate/100;
 let RATES=SETTINGS.rates;
@@ -545,7 +622,7 @@ let SCHED = {
 
 /* ---- Leads / quotes pipeline ----
    Estimates: package mailed → customer calls back if yes (no contract, no deposit).
-   Treatments: the office calls with the price → yes, or "I'll get back to you".
+   Treatments: the office calls with the price → yes, or "I will get back to you".
    The "get back to you" ones are the money that disappears today. */
 let LEADS=[
   {id:101, cid:10, type:"Estimate",  desc:"Crawlspace vapor barrier + insulation",   amount:2400, status:"Thinking", sentISO:iso(addDays(TODAY,-23)), note:"Sent photo package. Liked it — checking with her son."},
@@ -679,13 +756,39 @@ function unmarkCalled(k){ const a=calledThisMonth();
   [String(k),+k].forEach(v=>{const i=a.indexOf(v); if(i>=0)a.splice(i,1);}); }
 let PRESCHED_SENT={};         // customerId -> true once their letter is generated
 let PAYMENT_LOG=[];           // audit trail of payment reversals (bounced / chargeback / correction)
+
+/* ---- who is using this device ----
+   Locally this is a selector; when hosting lands it becomes the signed-in
+   account and this same stamping keeps working unchanged. */
+let CURRENT_USER="Kim";
+function auditWho(){ return CURRENT_USER||"—"; }
+function userRole(name){ const u=(SETTINGS.users||[]).find(x=>x.name===name); return u?u.role:"office"; }
+const myRole=()=>userRole(CURRENT_USER);
+function setCurrentUser(name){
+  if(!(SETTINGS.users||[]).some(u=>u.name===name)) return;
+  CURRENT_USER=name; persist(); updateWhoLabel();
+  toast(`Now using it as ${name}`); closeModal(); router();
+}
+function openWhoModal(){
+  showModal(`<div class="pad">
+    <div style="font-weight:800;font-size:1.05rem">Who's using this?</div>
+    <div class="muted" style="margin:.15rem 0 .7rem;font-size:.85rem">Everything you change is noted under this name. When the system moves onto its own hosting this becomes a real sign-in.</div>
+    <div style="display:grid;gap:.4rem">
+      ${(SETTINGS.users||[]).map(u=>`<button class="btn ${u.name===CURRENT_USER?'':'ghost'}" style="text-align:left" onclick="setCurrentUser('${u.name.replace(/'/g,"\\'")}')">
+        <b>${escapeHtml(u.name)}</b> <span class="muted" style="font-weight:400">— ${ROLES[u.role]||u.role}</span></button>`).join("")}
+    </div>
+    <div class="row" style="margin-top:.8rem"><button class="btn ghost mini" onclick="closeModal()">Cancel</button>
+      <span style="flex:1"></span><button class="btn ghost mini" onclick="closeModal();location.hash='settings';router()">Manage people</button></div>
+  </div>`);
+}
+function updateWhoLabel(){ const el=document.getElementById('wholabel'); if(el) el.textContent=CURRENT_USER; }
 /* Durable-data policy: this key is STABLE from here on. App updates change code,
    never data. Sample data seeds only when no saved data exists; "Reset sample data"
    on the Data screen is the only thing that discards state. */
 const LS_KEY="united_termite_data_v1";
 function persist(){
   try{ localStorage.setItem(LS_KEY, JSON.stringify(
-    {CUST,SCHED,LEADS,templates:TEMPLATES,settings:SETTINGS,called:CALLED,presched:PRESCHED_SENT,plog:PAYMENT_LOG})); }
+    {CUST,SCHED,LEADS,templates:TEMPLATES,settings:SETTINGS,user:CURRENT_USER,called:CALLED,presched:PRESCHED_SENT,plog:PAYMENT_LOG})); }
   catch(e){ // NEVER fail silently — the user must know if their work isn't saving
     if(!window._pwarn || Date.now()-window._pwarn>60000){ window._pwarn=Date.now();
       try{ toast("⚠ Couldn't save — storage may be full. Export a backup from the Data screen."); }catch(_){} }
@@ -696,7 +799,8 @@ function persist(){
     if(s){ if(s.CUST)CUST=s.CUST; if(s.SCHED)SCHED=s.SCHED; if(s.LEADS)LEADS=s.LEADS;
       if(s.called&&!Array.isArray(s.called))CALLED=s.called; else if(Array.isArray(s.called))CALLED={[monthKey()]:s.called}; if(s.presched)PRESCHED_SENT=s.presched;
       if(s.plog)PAYMENT_LOG=s.plog; if(s.templates)TEMPLATES=s.templates;
-      if(s.settings)SETTINGS=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),s.settings); }
+      if(s.settings)SETTINGS=Object.assign(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),s.settings);
+      if(s.user)CURRENT_USER=s.user; }
   }catch(e){}
   applySettings();
 })();
@@ -718,7 +822,7 @@ function viewToday(dateArg){
   const techs=TECHS;
   let rows="";
   TIMES.forEach(tm=>{
-    if(tm==="12"){ rows+=`<div class="timecell">12</div><div class="tcell noon">— noon —</div><div class="tcell noon">— noon —</div>`; return; }
+    if(tm==="12"){ rows+=`<div class="timecell">12</div>${techs.map(()=>'<div class="tcell noon">— noon —</div>').join("")}`; return; }
     let cells="";
     techs.forEach(tech=>{
       const slot=day[tech]?.[tm];
@@ -744,7 +848,8 @@ function viewToday(dateArg){
   main.innerHTML="";
   main.appendChild(el(`<div>
     <h2 class="screen-title">${isToday?'Today':fmtDayShort(date)} — the book</h2>
-    <p class="sub">${fmtDayLong(date)} · the appointment book and Google Calendar as one screen. 10 one-hour slots per tech, noon blocked.</p>
+    <p class="sub">${fmtDayLong(date)} · the appointment book and the calendar as one screen. ${SETTINGS.capacityPerTechPerDay} one-hour slots per tech, noon blocked.</p>
+    ${bookSwitcher('day',date)}
     <div class="daynav noprint">
       <button class="btn ghost mini" onclick="location.hash='today/${prev}'">‹ ${fmtDayShort(prev)}</button>
       <span class="date">${fmtDayShort(date)}</span>
@@ -755,7 +860,7 @@ function viewToday(dateArg){
       <button class="btn ghost mini" onclick="window.print()">🖨 Print the book</button>
     </div>
     ${jobCount===0?`<div class="banner">Nothing in the book for this day yet — an open page.</div>`:''}
-    <div class="book">
+    <div class="book" style="--techcols:${techs.length}">
       <div class="colhead time">Time</div>${techs.map(t=>`<div class="colhead">${escapeHtml(t)}</div>`).join("")}
       ${rows}
     </div>
@@ -772,6 +877,164 @@ function viewToday(dateArg){
   </div>`));
 }
 function areaShort(code){return code;}
+
+/* ================================================================
+   THE BOOK — day, week and month.
+   Her Google Calendar already has all three, so the book must too.
+   Sunday-first, her exact colour code, cancellations still visible.
+   ================================================================ */
+function bookSwitcher(mode,date){
+  const b=(m,label,hash)=>`<button class="btn ${mode===m?'':'ghost'} mini" onclick="location.hash='${hash}'">${label}</button>`;
+  return `<div class="row noprint" style="gap:.35rem;margin-bottom:.6rem">
+    ${b('day','Day','today/'+date)}${b('week','Week','week/'+date)}${b('month','Month','month/'+date)}
+  </div>`;
+}
+/* every job on a date, cancellations INCLUDED (her calendar greys them, not hides them) */
+function allDayJobs(date){
+  const day=SCHED[date]||{}; const out=[];
+  TECHS.forEach(tech=>Object.keys(day[tech]||{}).forEach(tm=>{
+    const s=day[tech][tm]; if(s&&s.cid) out.push({tech,tm,s});
+  }));
+  return out.sort((a,b)=>tmVal(a.tm)-tmVal(b.tm)||TECHS.indexOf(a.tech)-TECHS.indexOf(b.tech));
+}
+const sundayOf=d=>addDays(d,-d.getDay());
+const dayCapacity=()=>Math.max(1,TECHS.length*(parseInt(SETTINGS.capacityPerTechPerDay,10)||10));
+
+function viewWeek(dateArg){
+  const date=(dateArg&&/^\d{4}-\d{2}-\d{2}$/.test(dateArg))?dateArg:TODAY_ISO;
+  const start=sundayOf(parseISO(date));
+  const days=[...Array(7)].map((_,i)=>iso(addDays(start,i)));
+  const prevW=iso(addDays(start,-7)), nextW=iso(addDays(start,7));
+  const cap=dayCapacity();
+  const weekJobs=days.reduce((n,d)=>n+allDayJobs(d).filter(x=>!x.s.cancelled).length,0);
+
+  const col=dISO=>{
+    const jobs=allDayJobs(dISO);
+    const live=jobs.filter(x=>!x.s.cancelled).length;
+    const dt=parseISO(dISO); const hol=holidayHit(dt);
+    const isToday=dISO===TODAY_ISO;
+    const load=Math.round(live/cap*100);
+    /* which areas this day touches — the geographic-coherence read */
+    const areas=[...new Set(jobs.filter(x=>!x.s.cancelled)
+      .map(x=>propAt(byIdSafe(x.s.cid),x.s.pid).area).filter(Boolean))];
+    return `<div class="wkcol${isToday?' istoday':''}">
+      <div class="wkhead" onclick="location.hash='today/${dISO}'" title="Open this day">
+        <div class="wkdow">${DOW_SHORT[dt.getDay()]}</div>
+        <div class="wknum">${dt.getDate()}</div>
+        <div class="wkcount">${live?`${live} of ${cap}`:'—'}</div>
+        ${live?`<div class="wkbar"><i style="width:${Math.min(100,load)}%;background:${load>=90?'var(--warn)':load>=60?'var(--gold)':'#46a758'}"></i></div>`:''}
+        ${hol?`<div class="wkhol">${hol}</div>`:''}
+        ${areas.length?`<div class="wkareas">${areas.slice(0,4).map(a=>`<span class="dot" style="background:${areaOf(a).dot}" title="${escapeHtml(areaOf(a).name)}"></span>`).join("")}${areas.length>4?'<span class="muted" style="font-size:.6rem">+</span>':''}</div>`:''}
+      </div>
+      <div class="wkbody">
+        ${jobs.length?jobs.map(({tech,tm,s})=>{
+          const c=byIdSafe(s.cid), jp=propAt(c,s.pid);
+          const cc=calColor({area:jp.area,big:s.big,cancelled:s.cancelled});
+          const tbm=s.pay&&s.pay.method==="To Be Mailed";
+          const mark=s.st.ret?"✓":tbm?"TBM":s.st.w?"W":s.st.x?"X":"";
+          return `<div class="wkjob${s.cancelled?' struck':''}" style="background:${cc.v}"
+              onclick="openJob('${dISO}','${tech}','${tm}')" title="${escapeHtml(c.name)} — ${escapeHtml(slotDesc(s))}">
+            <span class="wktime">${tm}</span>
+            <span class="wkname">${s.rained?'🌧':''}${escapeHtml(c.name)}</span>
+            <span class="wkarea">${jp.area||''}</span>
+            ${mark?`<span class="wkmark">${mark}</span>`:''}
+            <span class="wktech">${escapeHtml(tech.slice(0,1))}</span>
+            <span class="colname">${cc.label}</span>
+          </div>`;}).join(""):'<div class="wkempty">—</div>'}
+      </div>
+    </div>`;
+  };
+
+  main.innerHTML="";
+  main.appendChild(el(`<div>
+    <h2 class="screen-title">The week — ${fmtDayShort(days[0])} to ${fmtDayShort(days[6])}</h2>
+    <p class="sub">Where the trucks are going. ${weekJobs} job${weekJobs===1?'':'s'} booked. The dots under each day are the areas it touches — a day of one colour is a tight day.</p>
+    ${bookSwitcher('week',date)}
+    <div class="daynav noprint">
+      <button class="btn ghost mini" onclick="location.hash='week/${prevW}'">‹ Previous week</button>
+      <button class="btn ghost mini" onclick="location.hash='week/${nextW}'">Next week ›</button>
+      ${days.includes(TODAY_ISO)?'':`<button class="btn ghost mini" onclick="location.hash='week'">This week</button>`}
+      <span style="flex:1"></span>
+      <button class="btn ghost mini" onclick="window.print()">🖨 Print the week</button>
+    </div>
+    <div class="weekgrid">${days.map(col).join("")}</div>
+    <div class="legend">
+      <strong style="color:var(--ink)">Calendar colours:</strong>
+      <span><i class="swatch" style="background:var(--cal-salmon)"></i>Right in area</span>
+      <span><i class="swatch" style="background:var(--cal-lgreen)"></i>Silverton</span>
+      <span><i class="swatch" style="background:var(--cal-dgreen)"></i>Out of area</span>
+      <span><i class="swatch" style="background:var(--cal-blue)"></i>Bigger job</span>
+      <span><i class="swatch" style="background:var(--cal-gray)"></i>Cancelled</span>
+      <span style="flex:1"></span><span>Letter = which tech</span>
+    </div>
+  </div>`));
+}
+
+function viewMonth(dateArg){
+  const date=(dateArg&&/^\d{4}-\d{2}-\d{2}$/.test(dateArg))?dateArg:TODAY_ISO;
+  const anchor=parseISO(date);
+  const y=anchor.getFullYear(), m=anchor.getMonth();
+  const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  const gridStart=sundayOf(first);
+  const weeks=Math.ceil((last.getDate()+first.getDay())/7);
+  const cells=[...Array(weeks*7)].map((_,i)=>iso(addDays(gridStart,i)));
+  const prevM=iso(new Date(y,m-1,1)), nextM=iso(new Date(y,m+1,1));
+  const cap=dayCapacity();
+  let monthJobs=0, monthMoney=0;
+  cells.forEach(d=>{ if(parseISO(d).getMonth()!==m) return;
+    allDayJobs(d).filter(x=>!x.s.cancelled).forEach(x=>{monthJobs++; monthMoney+=slotTotal(x.s);}); });
+  /* how many folders are due to be CALLED this month — the other half of her month */
+  const dueThisMonth=propsDue(m+1).length;
+
+  const cell=dISO=>{
+    const dt=parseISO(dISO); const inMonth=dt.getMonth()===m;
+    const jobs=allDayJobs(dISO); const live=jobs.filter(x=>!x.s.cancelled);
+    const hol=holidayHit(dt);
+    const load=Math.round(live.length/cap*100);
+    const isToday=dISO===TODAY_ISO;
+    return `<div class="mocell${inMonth?'':' outside'}${isToday?' istoday':''}" onclick="location.hash='today/${dISO}'">
+      <div class="morow">
+        <span class="monum">${dt.getDate()}</span>
+        ${live.length?`<span class="mocount${load>=90?' full':''}">${live.length}</span>`:''}
+      </div>
+      ${hol?`<div class="mohol">${hol}</div>`:''}
+      <div class="mobars">
+        ${jobs.slice(0,5).map(({s})=>{
+          const c=byIdSafe(s.cid), jp=propAt(c,s.pid);
+          const cc=calColor({area:jp.area,big:s.big,cancelled:s.cancelled});
+          return `<i style="background:${cc.v}" title="${escapeHtml(c.name)}"></i>`;}).join("")}
+        ${jobs.length>5?`<span class="momore">+${jobs.length-5}</span>`:''}
+      </div>
+    </div>`;
+  };
+
+  main.innerHTML="";
+  main.appendChild(el(`<div>
+    <h2 class="screen-title">${["January","February","March","April","May","June","July","August","September","October","November","December"][m]} ${y}</h2>
+    <p class="sub">${monthJobs} job${monthJobs===1?'':'s'} booked${monthMoney?` · ${money(monthMoney)} of work`:''} · ${dueThisMonth} folder${dueThisMonth===1?'':'s'} due to be called this month. Tap any day to open the book.</p>
+    ${bookSwitcher('month',date)}
+    <div class="daynav noprint">
+      <button class="btn ghost mini" onclick="location.hash='month/${prevM}'">‹ ${MONTHS[(m+11)%12]}</button>
+      <button class="btn ghost mini" onclick="location.hash='month/${nextM}'">${MONTHS[(m+1)%12]} ›</button>
+      ${(y===THIS_YEAR&&m===THIS_MONTH-1)?'':`<button class="btn ghost mini" onclick="location.hash='month'">This month</button>`}
+      <span style="flex:1"></span>
+      <button class="btn ghost mini" onclick="window.print()">🖨 Print the month</button>
+    </div>
+    <div class="monthgrid">
+      ${DOW_SHORT.map(d=>`<div class="modow">${d}</div>`).join("")}
+      ${cells.map(cell).join("")}
+    </div>
+    <div class="legend">
+      <strong style="color:var(--ink)">Calendar colours:</strong>
+      <span><i class="swatch" style="background:var(--cal-salmon)"></i>Right in area</span>
+      <span><i class="swatch" style="background:var(--cal-lgreen)"></i>Silverton</span>
+      <span><i class="swatch" style="background:var(--cal-dgreen)"></i>Out of area</span>
+      <span><i class="swatch" style="background:var(--cal-blue)"></i>Bigger job</span>
+      <span><i class="swatch" style="background:var(--cal-gray)"></i>Cancelled</span>
+      <span style="flex:1"></span><span>A red count means the day is full</span>
+    </div>
+  </div>`));
+}
 
 function openJob(date,tech,tm){
   const slot=SCHED[date][tech][tm]; const c=byIdSafe(slot.cid);
@@ -946,7 +1209,7 @@ function openJobActions(date,tech,tm){
 function cancelJob(date,tech,tm){
   const s=SCHED[date][tech][tm], c=byIdSafe(s.cid);
   s.cancelled=true; s.st={x:s.st.x,w:false,ret:false};
-  if(!c.missing) c.log.push({d:fmtToday(),t:'call',txt:`Cancelled — ${fmtDayShort(date)} ${tm}:00 (${slotDesc(s)})`});
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Cancelled — ${fmtDayShort(date)} ${tm}:00 (${slotDesc(s)})`});
   persist(); closeModal(); toast(`${c.name} cancelled — crossed out on ${fmtDayShort(date)}`); router();
 }
 function uncancelJob(date,tech,tm){
@@ -956,14 +1219,14 @@ function uncancelJob(date,tech,tm){
 function markRainedOut(date,tech,tm){
   const s=SCHED[date][tech][tm], c=byIdSafe(s.cid);
   s.rained=TODAY_ISO; s.note=`Rained out ${fmtDayShort(TODAY_ISO)} — ${tech} will return`;
-  if(!c.missing) c.log.push({d:fmtToday(),t:'call',txt:`Rained out — ${tech} keeping the sheet to fit in`});
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Rained out — ${tech} keeping the sheet to fit in`});
   persist(); closeModal();
   toast(`Rained out — ${tech} has the sheet, watch it doesn't sit`); router();
 }
 function markNotHome(date,tech,tm){
   const s=SCHED[date][tech][tm], c=byIdSafe(s.cid);
   s.cancelled=true; s.notHome=TODAY_ISO;
-  if(!c.missing){ c.log.push({d:fmtToday(),t:'call',txt:`Nobody home — ${fmtDayShort(date)} ${tm}:00`}); unmarkCalled(callKey(s.cid,s.pid)); }
+  if(!c.missing){ c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Nobody home — ${fmtDayShort(date)} ${tm}:00`}); unmarkCalled(callKey(s.cid,s.pid)); }
   persist(); closeModal(); toast(`${c.name}: nobody home — back in the calling list`); router();
 }
 let RESCHED=null;
@@ -1013,7 +1276,7 @@ function doReschedule(){
   if(wasAM!==nowAM && moved.sheet) moved.needsRewrite=true;
   delete SCHED[from.date][from.tech][from.tm];
   techDay[tm]=moved;
-  if(!c.missing) c.log.push({d:fmtToday(),t:'call',
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'call',
     txt:`Moved — ${fmtDayShort(from.date)} ${from.tm}:00 → ${fmtDayShort(R.date)} ${tm}:00 (${R.tech})`});
   persist(); closeModal(); RESCHED=null;
   toast(wasAM!==nowAM
@@ -1121,7 +1384,7 @@ function saveBooking(){
   markCalled(callKey(c.id,b.pid));
   if(c.recall) delete c.recall;                          // out of the recall box — they booked
   const bp=propAt(c,b.pid);
-  c.log.push({d:fmtToday(),t:'job',txt:`Booked — ${lines.map(l=>l.service).join(" + ")}, ${fmtDayShort(b.date)} at ${tm}:00 (${b.tech})${!bp.primary?` — ${bp.addr}`:''}`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'job',txt:`Booked — ${lines.map(l=>l.service).join(" + ")}, ${fmtDayShort(b.date)} at ${tm}:00 (${b.tech})${!bp.primary?` — ${bp.addr}`:''}`});
   if(b.leadId){ const l=LEADS.find(x=>x.id===b.leadId); if(l){ l.scheduled=true; l.note=`On the calendar — ${fmtDayShort(b.date)}, ${b.tech}`; } }
   persist(); closeModal(); BOOK_CTX=null; updateBadges();
   toast(`${c.name} — in the book, ${fmtDayShort(b.date)} at ${tm}:00 with ${b.tech}`);
@@ -1135,7 +1398,7 @@ function bookLead(id){ const l=LEADS.find(x=>x.id===id); if(!l)return;
 function skipCall(id){
   const c=byId(id);
   c.recall={attempts:(c.recall?c.recall.attempts:0)+1, last:TODAY_ISO};
-  c.log.push({d:fmtToday(),t:'call',txt:`Left message (attempt ${c.recall.attempts} of 3)`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Left message (attempt ${c.recall.attempts} of 3)`});
   persist();
   toast(`${c.name} → the recall box (attempt ${c.recall.attempts} of 3)`);
   viewCalls();
@@ -1163,7 +1426,7 @@ function setInactive(id,reason){
   c.inactive=reason; delete c.recall;
   const why={moved:'moved',passed:'passed away',declined:'declined this year',
     unreachable:'unreachable',notacustomer:'not a customer / duplicate'}[reason]||reason;
-  c.log.push({d:fmtToday(),t:'call',txt:`Folder set aside (${why})`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Folder set aside (${why})`});
   if(reason==='moved') LEADS.unshift({id:Math.max(100,...LEADS.map(l=>l.id))+1, cid:c.id, type:"Estimate",
     desc:"House sold — new owner of a home with service history", amount:0, status:"Sent", sentISO:TODAY_ISO,
     note:"The thread doesn't have to end — a new homeowner may want the coverage continued."});
@@ -1315,7 +1578,7 @@ function saveLogNote(cid,idx){
   const t=(document.getElementById('ln_kind')||{}).value||'call';
   if(!txt){ toast('Write the note first'); return; }
   const d=parseISO(isoV);
-  const entry={d:`${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`, iso:isoV, t, txt, manual:true};
+  const entry={who:auditWho(), d:`${d.getMonth()+1}/${d.getDate()}/${String(d.getFullYear()).slice(2)}`, iso:isoV, t, txt, manual:true};
   if(idx!=null&&c.log[idx]) c.log[idx]=Object.assign({},c.log[idx],entry);
   else c.log.push(entry);
   sortLog(c); persist(); closeModal();
@@ -1399,11 +1662,11 @@ function savePropertyEdits(cid,pid){
     warrantyExp:(warr>1900&&warr<2200)?warr:null};
   if(pid==null){
     addProperty(c,patch);
-    c.log.push({d:fmtToday(),t:'call',txt:`Second address added — ${addr}${patch.label?` (${patch.label})`:''}`});
+    c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Second address added — ${addr}${patch.label?` (${patch.label})`:''}`});
     toast(`${addr} added to ${c.name}'s folder`);
   } else {
     propWrite(c,pid,patch);
-    c.log.push({d:fmtToday(),t:'call',txt:`Address updated — ${addr}`});
+    c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Address updated — ${addr}`});
     toast('Address saved');
   }
   persist(); closeModal(); location.hash='cust/'+cid; router();
@@ -1415,7 +1678,7 @@ function removeProperty(cid,pid){
   if(used){ toast("That address has jobs in the book — it can't be removed"); return; }
   const p=propAt(c,pid);
   c.props=(c.props||[]).filter(x=>String(x.pid)!==String(pid));
-  c.log.push({d:fmtToday(),t:'call',txt:`Address removed — ${p.addr}`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Address removed — ${p.addr}`});
   persist(); closeModal(); toast('Address removed'); location.hash='cust/'+cid; router();
 }
 
@@ -1494,7 +1757,7 @@ function saveCustomerEdits(id){
   if(star!==!!c.star||ft!==(c.ft||"")||(warr||0)!==(c.warrantyExp||0)) changes.push('termite history');
   c.star=star; c.ft=ft;
   if(warr>1900&&warr<2200) c.warrantyExp=warr; else delete c.warrantyExp;
-  if(changes.length) c.log.push({d:fmtToday(),t:'call',txt:`Folder updated — ${changes.join(', ')}`});
+  if(changes.length) c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Folder updated — ${changes.join(', ')}`});
   persist(); closeModal();
   toast(changes.length?`${c.name}'s folder updated`:`No changes`);
   location.hash='cust/'+c.id; router();
@@ -1542,7 +1805,7 @@ function deleteCustomer(id){
 function reactivateCustomer(id){
   const c=byId(id); if(!c)return;
   delete c.inactive; delete c.recall;
-  c.log.push({d:fmtToday(),t:'call',txt:`Folder brought back into the ${c.month?MONTHS[c.month-1]:'month'} box`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Folder brought back into the ${c.month?MONTHS[c.month-1]:'month'} box`});
   persist(); closeModal();
   toast(`${c.name} is back in the rotation`);
   location.hash='cust/'+c.id; router();
@@ -1587,6 +1850,7 @@ function viewCustomer(id){
   sortLog(c);
   const tl=c.log.map((l,i)=>`<div class="tl-item ${l.t}">
       <span class="tl-date">${escapeHtml(l.d)}</span> — ${escapeHtml(l.txt)}
+      ${l.who?`<span class="tl-who">${escapeHtml(l.who)}</span>`:''}
       ${l.manual?`<button class="tl-edit" onclick="openLogNoteModal(${c.id},${i})" title="Edit this note">✎</button>`:''}
     </div>`).join("");
   const pays=findPayments(c.id);
@@ -2261,7 +2525,7 @@ function corkBoard(){
 function resendTicket(date,tech,tm){
   const s=SCHED[date][tech][tm]; const c=byId(s.cid);
   s.resent=TODAY_ISO;
-  c.log.push({d:fmtToday(),t:'money',txt:`Render sheet re-sent (owes ${money(slotWithTax(s))})`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Render sheet re-sent (owes ${money(slotWithTax(s))})`});
   persist();
   toast(`Noted on ${c.name}'s folder — here's the sheet to print and mail`);
   // dunning IS re-mailing the sheet — so end with the sheet, ready to print
@@ -2364,6 +2628,8 @@ function holidayHit(date){
   if(m===7){ const j4=new Date(y,6,4); const dow=j4.getDay();
     let obs=4; if(dow===6)obs=3; else if(dow===0)obs=5;
     if(d===obs) return "July 4th (observed)"; }
+  // Thanksgiving = 4th Thursday of November (the brief lists it among the four observed)
+  if(m===11 && d===nthWeekday(y,11,4,4).getDate()) return "Thanksgiving";
   return null;
 }
 /* a bundled extra may run every OTHER year (the brief: dryer vent cleaning) */
@@ -2502,7 +2768,7 @@ function addToProgram(cid){
   if(c.base==null)c.base=SETTINGS.preschedBase;
   if(!c.extras)c.extras={};
   c.slot=`${NTH_LABEL[c.nth]} ${WD_NAME[c.wd]}`;
-  c.log.push({d:fmtToday(),t:'call',txt:`Put on the pre-scheduled program (${c.slot})`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`Put on the pre-scheduled program (${c.slot})`});
   persist(); closeModal(); toast(`${c.name} is on the program`);
   openPreschedEditor(cid);
 }
@@ -2519,7 +2785,7 @@ function doRemoveFromProgram(cid){
   const c=byId(cid); if(!c)return;
   delete c.preSched; delete c.nth; delete c.wd; delete c.extras; delete c.overrides; delete c.slot; delete c.augPullEarly;
   if(!c.month)c.month=THIS_MONTH;
-  c.log.push({d:fmtToday(),t:'call',txt:'Taken off the pre-scheduled program'});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:'Taken off the pre-scheduled program'});
   persist(); closeModal(); toast(`${c.name} taken off the program`);
   location.hash='preschedule'; router();
 }
@@ -2781,7 +3047,7 @@ function saveFixedCheck(date,tech,tm){
   const old=s.pay.checkNo;
   if(nv===old){ closeModal(); return; }
   s.pay.checkNo=nv; s.pay.method='check #'+nv;
-  if(!c.missing) c.log.push({d:fmtToday(),t:'money',txt:`Check number corrected — #${old} → #${nv}`});
+  if(!c.missing) c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Check number corrected — #${old} → #${nv}`});
   persist(); closeModal();
   toast(`${c.name}: check number is now #${nv}`);
   router();
@@ -2810,7 +3076,7 @@ function savePayment(date,tech,tm){
   if(c.isNew && collected) delete c.isNew;   // first money in — no longer "new" on later sheets
   if(!s.logged) logServiceDone(s,c,tm);
   else if(collected && !c.missing)           // the job line exists — record the money finally landing
-    c.log.push({d:fmtToday(),t:'money',txt:`Payment received — ${label} (${money(slotWithTax(s))})`});
+    c.log.push({who:auditWho(),d:fmtToday(),t:'money',txt:`Payment received — ${label} (${money(slotWithTax(s))})`});
   persist(); closeModal();
   toast(collected ? `${c.name}: recorded ${label}`
     : mailed ? `${c.name}: marked To Be Mailed — stays on the cork board`
@@ -2823,7 +3089,7 @@ function logServiceDone(s,c,tm){
   if(!c||c.missing||s.logged) return;
   const svc=slotLines(s,c.area).map(l=>l.service).join(" + ");
   const how=s.pay?(s.pay.run?s.pay.method:s.pay.method+" — not collected yet"):"unpaid";
-  c.log.push({d:fmtToday(),t:'job',txt:`${tm}:00 ${svc} ${money(slotTotal(s))} — ${how}`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'job',txt:`${tm}:00 ${svc} ${money(slotTotal(s))} — ${how}`});
   s.logged=true;
 }
 /* find every recorded payment for a customer, across all days (so you can
@@ -2865,7 +3131,7 @@ function reversePayment(date,tech,tm,reason){
   if(refunded) s.refunded=true;      // money went back on purpose — they do NOT owe again
   if(s.st) s.st.ret=false;
   const when=fmtToday();
-  PAYMENT_LOG.unshift({when,cid:c.id,name:c.name,amount:slotTotal(s),service:slotDesc(s),reason});
+  PAYMENT_LOG.unshift({who:auditWho(),when,cid:c.id,name:c.name,amount:slotTotal(s),service:slotDesc(s),reason});
   // the job is now done-but-unpaid → it returns to the cork board automatically
   if(owesAgain){
     c.log.push({d:when,t:'money',txt:`Payment reversed — ${reason} — owes ${money(slotWithTax(s))} again`});
@@ -3044,7 +3310,7 @@ function saveQuote(){
   } else {
     const nid=Math.max(100,...LEADS.map(l=>l.id))+1;
     LEADS.unshift({id:nid, cid:c.id, type, desc, amount:amt, status:"Sent", sentISO:TODAY_ISO, note});
-    c.log.push({d:fmtToday(),t:'quote',txt:`${type} quoted ${money(amt)} — ${desc}`});
+    c.log.push({who:auditWho(),d:fmtToday(),t:'quote',txt:`${type} quoted ${money(amt)} — ${desc}`});
     toast(`Quote added for ${c.name}`);
   }
   QUOTE_EDIT=null; persist(); closeModal(); updateBadges(); location.hash='leads'; router();
@@ -3058,8 +3324,8 @@ function setLeadStatus(id,status){
   const l=LEADS.find(x=>x.id===id); if(!l)return; const c=byId(l.cid);
   l.status=status;
   if(status==="Thinking"){ l.sentISO=TODAY_ISO; l.note="Followed up "+fmtToday()+" — still deciding."; }
-  if(status==="Won"){ c.log.push({d:fmtToday(),t:'quote',txt:`${l.type} SOLD — ${money(l.amount)} (${l.desc})`}); }
-  if(status==="Lost"){ c.log.push({d:fmtToday(),t:'call',txt:`${l.type} lost — ${l.desc}`}); }
+  if(status==="Won"){ c.log.push({who:auditWho(),d:fmtToday(),t:'quote',txt:`${l.type} SOLD — ${money(l.amount)} (${l.desc})`}); }
+  if(status==="Lost"){ c.log.push({who:auditWho(),d:fmtToday(),t:'call',txt:`${l.type} lost — ${l.desc}`}); }
   persist(); updateBadges();
   toast(`${c.name}: ${l.type.toLowerCase()} → ${status}`);
   viewLeads();
@@ -3098,7 +3364,7 @@ function recordRetreat(id,pid){
   const term=parseInt((document.getElementById('rt_term')||{}).value,10)||3;
   const ft=`FT" ${String(y).slice(2)} ${term} yr${term>1?'s':''}`;
   propWrite(c,p.pid,{star:true, ft, warrantyExp:y+term});
-  c.log.push({d:fmtToday(),t:'job',txt:`Full treatment — new ${term}-year warranty through ${y+term} (${ft})${!p.primary?` — ${p.addr}`:''}`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'job',txt:`Full treatment — new ${term}-year warranty through ${y+term} (${ft})${!p.primary?` — ${p.addr}`:''}`});
   persist(); closeModal();
   toast(`${c.name}${!p.primary?` (${p.label||p.addr})`:''}: warranty now runs through ${y+term}`);
   router();
@@ -3368,7 +3634,7 @@ function obsToLead(tech,tm){
   s.obs=txt;
   const nid=Math.max(100,...LEADS.map(l=>l.id))+1;
   LEADS.unshift({id:nid, cid:c.id, type:"Estimate", desc:txt, amount:0, status:"Sent", sentISO:TODAY_ISO, note:`Field observation from ${tech} — needs Bryan's price`});
-  c.log.push({d:fmtToday(),t:'quote',txt:`Field lead (${tech}): ${txt}`});
+  c.log.push({who:auditWho(),d:fmtToday(),t:'quote',txt:`Field lead (${tech}): ${txt}`});
   persist(); updateBadges(); closeModal();
   toast('Sent to the office as a lead'); location.hash='leads';
 }
@@ -3451,7 +3717,7 @@ function viewBusiness(){
       ${PAYMENT_LOG.length?`<div class="muted" style="font-size:.8rem;margin-bottom:.4rem">Every payment that was un-done, and why. Nothing here is ever erased.</div>
         ${PAYMENT_LOG.slice(0,12).map(p=>`<div class="queue-item" style="cursor:default;flex-wrap:wrap">
           <div style="flex:1;min-width:9rem"><b>${escapeHtml(p.name)}</b> <span class="muted" style="font-size:.8rem">· ${escapeHtml(p.service||'')}</span>
-            <div class="muted" style="font-size:.78rem">${escapeHtml(p.when)} — ${escapeHtml(p.reason)}</div></div>
+            <div class="muted" style="font-size:.78rem">${escapeHtml(p.when)} — ${escapeHtml(p.reason)}${p.who?` · by ${escapeHtml(p.who)}`:''}</div></div>
           <b>${money(p.amount)}</b></div>`).join("")}
         ${PAYMENT_LOG.length>12?`<div class="muted" style="font-size:.78rem;margin-top:.3rem">…and ${PAYMENT_LOG.length-12} older.</div>`:''}`
       :'<div class="muted" style="font-size:.85rem">No payment has needed correcting. Bounced checks, chargebacks and refunds would be listed here.</div>'}
@@ -3656,7 +3922,7 @@ function applyImport(){
 
 function exportBackup(){
   const data=JSON.stringify({exported:new Date().toISOString(), CUST, SCHED, LEADS,
-    templates:TEMPLATES, settings:SETTINGS, called:CALLED, presched:PRESCHED_SENT, plog:PAYMENT_LOG});
+    templates:TEMPLATES, settings:SETTINGS, user:CURRENT_USER, called:CALLED, presched:PRESCHED_SENT, plog:PAYMENT_LOG});
   const blob=new Blob([data],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
@@ -3764,6 +4030,24 @@ function setTech(i,field,val){
   SETTINGS.techs[i][field]=val; applySettings(); persist();
 }
 function addTech(){ SETTINGS.techs.push({name:"New tech",lic:""}); applySettings(); persist(); viewSettings(); }
+function setUser(i,field,val){
+  if(!SETTINGS.users||!SETTINGS.users[i])return;
+  val=sanitizeField(val);
+  if(field==='name'){
+    if(!val){ toast('A person needs a name'); viewSettings(); return; }
+    const old=SETTINGS.users[i].name;
+    if(val!==old && SETTINGS.users.some((u,j)=>j!==i&&u.name===val)){ toast('There is already someone called '+val); viewSettings(); return; }
+    if(CURRENT_USER===old) CURRENT_USER=val;    // keep the signed-in name pointing at the same person
+  }
+  SETTINGS.users[i][field]=val; persist(); updateWhoLabel(); viewSettings();
+}
+function addUser(){ (SETTINGS.users=SETTINGS.users||[]).push({name:"New person",role:"office"}); persist(); viewSettings(); }
+function removeUser(i){
+  const u=(SETTINGS.users||[])[i]; if(!u)return;
+  if(SETTINGS.users.length<=1){ toast('There has to be at least one person'); return; }
+  if(u.name===CURRENT_USER){ toast("That's who you're using it as — switch first"); return; }
+  SETTINGS.users.splice(i,1); persist(); viewSettings();
+}
 function removeTech(i){
   const t=SETTINGS.techs[i]; if(!t)return;
   const has=(()=>{for(const d in SCHED) if(SCHED[d][t.name]&&Object.keys(SCHED[d][t.name]).length) return true; return false;})();
@@ -3808,6 +4092,26 @@ function viewSettings(){
         ${fld('NJ contractor #','company.contractor')}
         ${fld('Business licence #','company.business')}
       </div>
+    </div>
+
+    <div class="card pad" style="margin-bottom:1rem">
+      <div style="font-weight:700;margin-bottom:.3rem">People who use this</div>
+      <div class="muted" style="font-size:.82rem;margin-bottom:.5rem">Everything anyone changes is noted under their name. Right now you pick who you are up top; once this is hosted, each person signs in and the same record keeps working.</div>
+      ${(SETTINGS.users||[]).map((u,i)=>`<div class="row" style="gap:.5rem;flex-wrap:nowrap;margin-bottom:.4rem">
+        <input class="search" style="margin:0;flex:1" value="${v(u.name)}" onchange="setUser(${i},'name',this.value)">
+        <select class="search" style="margin:0;width:9rem" onchange="setUser(${i},'role',this.value)">
+          ${Object.keys(ROLES).map(rk=>`<option value="${rk}" ${u.role===rk?'selected':''}>${ROLES[rk]}</option>`).join("")}
+        </select>
+        <button class="btn ghost mini" onclick="removeUser(${i})">✕</button>
+      </div>`).join("")}
+      <button class="btn ghost mini" onclick="addUser()">＋ Add a person</button>
+      <div class="muted" style="font-size:.76rem;margin-top:.5rem"><b>Office</b> runs the book and the money. <b>Owner</b> adds the settings. <b>Field</b> sees their own day, not the whole customer list.</div>
+      <div style="font-weight:700;font-size:.72rem;letter-spacing:.5px;color:var(--ink-soft);margin:.9rem 0 .35rem">PUT THE BOOK AWAY WHEN IT'S LEFT SITTING</div>
+      <div class="row" style="gap:.5rem;flex-wrap:nowrap;align-items:center">
+        <input class="search" style="margin:0;width:6rem" inputmode="numeric" value="${v(SETTINGS.lockMinutes)}" onchange="setSetting('lockMinutes',this.value,true);resetLockTimer()">
+        <span class="muted" style="font-size:.85rem">minutes of sitting untouched (0 turns it off)</span>
+      </div>
+      <div class="muted" style="font-size:.76rem;margin-top:.3rem">This hides the book on a tablet left in a truck. It isn't a sign-in — the device's own passcode is the real lock, and every iPad should have one.</div>
     </div>
 
     <div class="card pad" style="margin-bottom:1rem">
@@ -3947,7 +4251,8 @@ function routeTo(){
   const h=(location.hash||"#home").slice(1);
   const dec=x=>{ if(x==null)return x; try{return decodeURIComponent(x);}catch(e){return x;} };
   const [route,arg,arg2,arg3,arg4]=h.split("/").map(dec);
-  const activeMap={cust:"customers",preletter:"preschedule",preletters:"preschedule",warrantyletter:"warranties",wdi:"wdilist"};
+  const activeMap={cust:"customers",preletter:"preschedule",preletters:"preschedule",
+  warrantyletter:"warranties",wdi:"wdilist",week:"today",month:"today",daysheets:"today"};
   const canonical=activeMap[route]||route;
   closeMore();
   document.querySelectorAll("nav.tabs button[data-route]").forEach(b=>
@@ -3959,6 +4264,8 @@ function routeTo(){
   window.scrollTo(0,0);
   if(route==="home")return viewDashboard();
   if(route==="today")return viewToday(arg);
+  if(route==="week")return viewWeek(arg);
+  if(route==="month")return viewMonth(arg);
   if(route==="field")return viewField(arg);
   if(route==="calls")return viewCalls();
   if(route==="mailing")return viewMailing(arg);
@@ -3990,6 +4297,32 @@ window.addEventListener("hashchange",router);
   inp.addEventListener("focus",e=>{ if(e.target.value) runGlobalSearch(e.target.value); });
   inp.addEventListener("blur",()=>setTimeout(()=>{const b=document.getElementById("gresults");if(b)b.classList.remove("show");},150));
 })();
+/* ---- screen lock ----
+   Honest about what this is: it hides the book on a device left sitting (an iPad
+   in a truck, a laptop on the kitchen table). It is NOT a sign-in — real
+   accounts arrive with hosting. The device's own passcode is the real lock. */
+let LOCK_TIMER=null;
+function lockApp(){
+  const el=document.getElementById('lockscreen'); if(el) el.classList.add('show');
+  closeModal(); closeMore();
+}
+function unlockApp(){
+  const el=document.getElementById('lockscreen'); if(el) el.classList.remove('show');
+  resetLockTimer();
+}
+function resetLockTimer(){
+  clearTimeout(LOCK_TIMER);
+  const mins=parseFloat(SETTINGS.lockMinutes);
+  if(!mins||mins<=0) return;                 // 0 turns it off
+  LOCK_TIMER=setTimeout(lockApp, mins*60000);
+}
+["click","keydown","touchstart","mousemove"].forEach(ev=>
+  document.addEventListener(ev,()=>{
+    const el=document.getElementById('lockscreen');
+    if(el&&el.classList.contains('show')) return;   // don't extend while locked
+    resetLockTimer();
+  },{passive:true}));
+
 /* a laptop or iPad left open overnight must not keep showing yesterday */
 document.addEventListener("visibilitychange",()=>{
   if(document.visibilityState!=="visible")return;
@@ -3999,6 +4332,8 @@ document.addEventListener("visibilitychange",()=>{
 });
 router();
 updateBadges();
+updateWhoLabel();
+resetLockTimer();
 </script>
 </body>
 </html>
