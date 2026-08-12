@@ -592,6 +592,8 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
     }
     if (/check_number_required/.test(m)) return new Error("A check needs the number printed on it.");
     if (/treatment record/i.test(m)) return new Error(m);
+    if (/record is filed/i.test(m))
+      return new Error("This record is filed — the visit ended. The office has to open the sheet for corrections first.");
     if (/already signed or paid|sheet is signed|overwriting a signature/i.test(m))
       return new Error("This sheet is signed or paid. The office has to open it for corrections first.");
     if (/failed to fetch/i.test(m)) return new Error("Couldn’t reach the database. Check the connection.");
@@ -1888,6 +1890,8 @@ function addServiceModal(j) {
   }
 
 function recordModal(j) {
+     
+    var canWrite = sheetIsOpen(j) || !!((sheetOf(j.id) || {}).unlocked_at);
     var tr = trOf(j.id);
     var pests = S.opts["pest"] || [], areasL = S.opts["treatment-area"] || [];
     var chosen = tr ? { p: tr.target_pests || [], a: tr.application_locations || [] } : { p: [], a: [] };
@@ -1949,21 +1953,25 @@ if (!sup.applicator_no) {
           (sheetIsOpen(j) ? "." : " — this sheet is finished, so it stays on the file " +
            "with a reason against it.") + "</p>"
         : "") +
-      '<label for="prod">' + (already.length ? "Add another product" : "Product used") +
-      "</label><select id=\"prod\" class=\"f\">" +
-      '<option value="">— none applied —</option>' +
-      S.products.map(function (p) {
-        return '<option value="' + p.id + '">' + esc(p.name) +
-          (p.epa_number ? " (EPA " + esc(p.epa_number) + ")" : "") + "</option>";
-      }).join("") + "</select>" +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
-      '<div><label for="pct">Rate / %</label>' +
-      '<input id="pct" class="f" inputmode="decimal" placeholder="0.06"></div>' +
-      '<div><label for="amtu">How much</label>' +
-      '<input id="amtu" class="f" placeholder="90 gal"></div></div>' +
-      '<div class="row"><button class="primary" id="trGo" type="button">' +
-      (tr ? "Update the record" : "File the record") + "</button>" +
-      '<button class="act" id="trNo" type="button">Back</button></div>');
+      (canWrite
+        ? '<label for="prod">' + (already.length ? "Add another product" : "Product used") +
+          "</label><select id=\"prod\" class=\"f\">" +
+          '<option value="">— none applied —</option>' +
+          S.products.map(function (p) {
+            return '<option value="' + p.id + '">' + esc(p.name) +
+              (p.epa_number ? " (EPA " + esc(p.epa_number) + ")" : "") + "</option>";
+          }).join("") + "</select>" +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
+          '<div><label for="pct">Rate / %</label>' +
+          '<input id="pct" class="f" inputmode="decimal" placeholder="0.06"></div>' +
+          '<div><label for="amtu">How much</label>' +
+          '<input id="amtu" class="f" placeholder="90 gal"></div></div>' +
+          '<div class="row"><button class="primary" id="trGo" type="button">' +
+          (tr ? "Update the record" : "File the record") + "</button>" +
+          '<button class="act" id="trNo" type="button">Back</button></div>'
+        : '<p class="note">This record is filed — the visit ended. The office opens ' +
+          "the sheet for corrections, and the change gets written on the folder.</p>" +
+          '<div class="row"><button class="act" id="trNo" type="button">Back</button></div>'));
 
     var togg = function (sel, attr) {
       $("modal").querySelectorAll("[" + attr + "]").forEach(function (el) {
@@ -1980,11 +1988,12 @@ if (!sup.applicator_no) {
         var row = already.filter(function (r) { return r.id === el.getAttribute("data-voidchem"); })[0];
         if (!row) return;
         if (sheetIsOpen(j)) untickChem(row, el, function () { recordModal(j); });
-        else voidChemModal(row, j, function () { recordModal(j); });
+        else if (canWrite) voidChemModal(row, j, function () { recordModal(j); });
+        else toast("This record is filed — the office opens the sheet for corrections first.");
       });
     });
     $("trNo").addEventListener("click", function () { jobModal(j.id); });
-    $("trGo").addEventListener("click", async function () {
+    if ($("trGo")) $("trGo").addEventListener("click", async function () {
       this.disabled = true;
       var filed = false;
       try {
@@ -2212,8 +2221,11 @@ var chkBox = function (on) {
     var sup = personOf(t.works_under) || t, co = S.settings || {};
 
 var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
-    var locked = !!((sh.signed_on || paidish) && !sh.unlocked_at);
-    var live = !locked;
+    var reopened = !!sh.unlocked_at;
+    var recordLocked = !!((sh.signed_on || j.status === "complete") && !reopened);
+    var linesLocked = !!((sh.signed_on || (paidish && j.status === "complete")) && !reopened);
+    var locked = recordLocked || linesLocked;
+    var live = !recordLocked;
     var compact = localStorage.getItem("ut_sheet_compact") === "1";
     document.body.classList.toggle("compact", compact);
 
@@ -2229,8 +2241,9 @@ var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
     function box(kind, val, label) {
       var v = isOn(kind, val);
        
-      return '<div class="box' + (live ? "" : " dead") + '"' +
-        (live ? ' data-tick="' + kind + '" data-val="' + esc(val) +
+      var on = kind === "svc" ? !linesLocked : live;
+      return '<div class="box' + (on ? "" : " dead") + '"' +
+        (on ? ' data-tick="' + kind + '" data-val="' + esc(val) +
                 '" role="checkbox" aria-checked="' + (v ? "true" : "false") + '" tabindex="0"'
               : ' data-shut="1"') +
         ">" + chkBox(v) + "<span>" + (label || esc(val)) + "</span></div>";
@@ -2271,7 +2284,9 @@ var h = '<div class="acts noprint" style="margin-bottom:.8rem">' +
     if (locked)
       h += '<div class="msg warn noprint"><b>This sheet is closed for changes.</b><br>' +
         (sh.signed_on ? "Signed on " + esc(sh.signed_on) + ". " : "") +
-        (paidish ? "Payment has been recorded against it. " : "") +
+        (!sh.signed_on && j.status === "complete"
+          ? "The job is complete, so the record is filed. " : "") +
+        (paidish && linesLocked ? "Payment has been recorded against it. " : "") +
         "It still prints, and a note can still be added. " +
         (isOffice()
           ? "To correct anything else it has to be opened first, and that gets written on " +
@@ -6530,7 +6545,8 @@ function payModal(invoiceId) {
       '<p class="note">Type less if they paid part. Once recorded it cannot be ' +
       "changed — only the office can reverse it. " +
       (jobDone
-        ? "Recording money also closes the sheet, so finish the record first."
+        ? "The job is complete, so the record is already filed; recording money " +
+          "also locks the charges."
         : "The work isn’t done yet, so this is a deposit — the sheet stays " +
           "open for the technician until the job is complete.") + "</p>" +
       '<div class="row"><button class="primary" id="payGo" type="button">Record it</button>' +
