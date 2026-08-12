@@ -8,7 +8,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none';
   script-src 'self' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob:;
+  img-src 'self' data: blob: https://lhochuvilhezyzxaxfof.supabase.co;
   font-src 'self';
   connect-src 'self' https://lhochuvilhezyzxaxfof.supabase.co https://geo.nj.gov https://maps.nj.gov https://services2.arcgis.com;
   manifest-src 'self';
@@ -131,6 +131,8 @@
   .veil{position:fixed;inset:0;background:rgba(15,19,17,.55);display:none;align-items:center;
     justify-content:center;padding:1rem;z-index:50}
   .veil.show{display:flex}
+   
+  .lockveil{z-index:60;background:rgba(15,19,17,.94)}
   .modal{background:var(--card);border-radius:8px;max-width:30rem;width:100%;padding:1.15rem 1.2rem;
     max-height:90vh;overflow:auto}
   .modal h3{font-family:ui-serif,Georgia,serif;font-size:1.08rem;margin:0 0 .25rem}
@@ -555,6 +557,8 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
 <main id="app" style="display:none"></main>
 <div id="labelPrint"></div>
 <div class="veil" id="veil"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
+
+<div class="veil lockveil" id="lockveil"><div class="modal" id="lockbox" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast"></div>
 
 <script src="supabase-2.45.4.js"></script>
@@ -574,7 +578,20 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     return;
   }
    
-  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  var linkErr = "";
+  (function () {
+    var frag = String(location.hash || "").replace(/^#/, "");
+    if (!/(^|&)error(=|_)/.test(frag)) return;
+    try {
+      var p = new URLSearchParams(frag);
+      linkErr = p.get("error_description") || p.get("error") || "That link did not work.";
+    } catch (e) { linkErr = "That link did not work."; }
+     
+    try { history.replaceState(history.state, "", location.pathname + location.search); }
+    catch (e) { location.hash = ""; }
+  })();
+
+var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
 
@@ -646,6 +663,8 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
                 })() };
    
   var WRITING = false;
+   
+  var WRITEQ = Promise.resolve();
    
   var live_    = function () { return S.me && S.me.active !== false; };
   var isOffice = function () { return live_() && (S.me.role === "admin" || S.me.role === "office"); };
@@ -726,16 +745,32 @@ var IDLE_MS = 20 * 60 * 1000;
   function lockNow() {
     if (screenLocked || !S.me) return;
     screenLocked = true;
-    $("veil").classList.add("show");
-    $("modal").innerHTML = "<h3>Locked</h3>" +
+     
+    try { localStorage.setItem("ut_locked", "1"); } catch (e) {}
+     
+    $("lockveil").classList.add("show");
+    document.body.style.overflow = "hidden";
+    $("lockbox").innerHTML = "<h3>Locked</h3>" +
       '<p class="note">Nobody has touched this for twenty minutes, so it has been ' +
-      "put behind the password. Nothing has been lost.</p>" +
+      "put behind the password. Nothing has been lost — whatever was open is still " +
+      "open behind this.</p>" +
       '<p class="note">Signed in as <b>' + esc(S.me.name) + "</b></p>" +
       '<label for="lkPw">Your password</label>' +
       '<input id="lkPw" class="f" type="password" autocomplete="current-password">' +
       '<div id="lkMsg"></div>' +
       '<div class="row"><button class="primary" id="lkGo" type="button">Unlock</button>' +
+       
+      '<button class="act" id="lkLink" type="button">Email me a link</button>' +
       '<button class="act" id="lkOut" type="button">Sign out</button></div>';
+    var unlock = function () {
+      screenLocked = false;
+      try { localStorage.removeItem("ut_locked"); } catch (e) {}
+      $("lockbox").innerHTML = "";
+      $("lockveil").classList.remove("show");
+       
+      if (!$("veil").classList.contains("show")) document.body.style.overflow = "";
+      touchIdle();
+    };
     var go = async function () {
       var pw = $("lkPw").value;
       if (!pw) return;
@@ -748,14 +783,27 @@ var IDLE_MS = 20 * 60 * 1000;
         $("lkGo").disabled = false; $("lkPw").value = ""; $("lkPw").focus();
         return;
       }
-      screenLocked = false;
       $("lkMsg").innerHTML = "";
-      closeModal();
-      touchIdle();
+      unlock();
     };
     $("lkGo").addEventListener("click", go);
     $("lkPw").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
+    $("lkLink").addEventListener("click", async function () {
+      this.disabled = true;
+      $("lkMsg").innerHTML = '<div class="msg">Sending…</div>';
+      var r = await sb.auth.signInWithOtp({
+        email: S.me.email || "",
+        options: { shouldCreateUser: false, emailRedirectTo: location.href.split("#")[0] }
+      });
+      $("lkMsg").innerHTML = r.error
+        ? '<div class="msg bad">' + esc(r.error.message) + "</div>"
+        : '<div class="msg">A link is on its way to ' + esc(S.me.email || "your address") +
+          ". Following it reloads this page, so finish anything half-written first " +
+          "if you can.</div>";
+      this.disabled = false;
+    });
     $("lkOut").addEventListener("click", async function () {
+      try { localStorage.removeItem("ut_locked"); } catch (e) {}
       await sb.auth.signOut(); location.reload();
     });
     $("lkPw").focus();
@@ -825,7 +873,14 @@ async function sendMagicLink() {
     } catch (e) { $("gateMsg").innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>"; }
     finally { b.disabled = false; }
   }
-  sb.auth.getSession().then(function (r) { if (r.data && r.data.session) start(); });
+  sb.auth.getSession().then(function (r) {
+    if (r.data && r.data.session) return start();
+     
+    if (linkErr)
+      $("gateMsg").innerHTML = '<div class="msg bad"><b>That sign-in link has expired ' +
+        "or has already been used.</b><br>" + esc(linkErr) +
+        " Ask for a fresh one below.</div>";
+  });
 
   async function start() {
     gate.style.display = "none"; bar.style.display = ""; app.style.display = "";
@@ -836,6 +891,10 @@ async function sendMagicLink() {
       route.tech = inField() ? S.me.id : (S.people.filter(function (p) { return p.is_technician && p.active; })[0] || {}).id;
       renderNav(); render();
       touchIdle();
+       
+      var wasLocked = "";
+      try { wasLocked = localStorage.getItem("ut_locked") || ""; } catch (e) {}
+      if (wasLocked) lockNow();
     } catch (e) {
       app.innerHTML = '<div class="msg bad"><b>Couldn’t load the book.</b><br>' + esc(e.message) +
         '</div><div class="card"><div class="acts">' +
@@ -946,8 +1005,6 @@ async function reload(what) {
       S.invoices = await all(function () { return sb.from("invoices").select("*").order("id"); });
       S.balances = await all(function () { return sb.from("v_invoice_balances").select("*").order("invoice_id"); });
     }
-    if (isOffice() && (!what || what.indexOf("attention") >= 0))
-      S.attention = await many(sb.from("v_attention_live").select("*"));
      
     if (isOffice() && (!what || what.indexOf("calls") >= 0)) {
       S.calls = await all(function () {
@@ -1109,11 +1166,14 @@ function nextBox() {
   }
    
   function boxesDue() {
-    var onProgram = {}, booked = {}, callIx = {}, recallIx = {}, out = [];
+    var onProgram = {}, lastBooked = {}, callIx = {}, recallIx = {}, out = [];
     S.programs.forEach(function (p) { onProgram[p.customer_id] = 1; });
+     
     S.jobs.forEach(function (j) {
       if (!j.scheduled_date || j.status === "cancelled") return;
-      booked[j.property_id + "|" + j.scheduled_date.slice(0, 7)] = 1;
+      var mk = j.scheduled_date.slice(0, 7);
+      if (!lastBooked[j.property_id] || mk > lastBooked[j.property_id])
+        lastBooked[j.property_id] = mk;
     });
      
     S.calls.forEach(function (x) {
@@ -1126,9 +1186,14 @@ function nextBox() {
       if (!c || c.inactive_reason) return;
       if (onProgram[p.customer_id] && p.is_primary) return;
       var w = boxOf(p.month_box);
+      var mk = w.y + "-" + (w.m < 10 ? "0" + w.m : "" + w.m);
+       
+      var since = String(p.created_at || "").slice(0, 7);
+      if (since && mk < since) return;
       w.when = whenOf(w);
-      var key = p.id + "|" + w.y + "-" + (w.m < 10 ? "0" + w.m : "" + w.m);
-      if (booked[key]) return;
+      var key = p.id + "|" + mk;
+       
+      if (lastBooked[p.id] && lastBooked[p.id] >= mk) return;
       var call = callIx[key] || null;
        
       if (call && call.outcome === "declined") return;
@@ -1352,8 +1417,15 @@ var OUTCOMES = [
   ];
   var OUTCOME_SAID = { called: "spoke to them", booked: "wants a visit",
                        "no-answer": "no answer", declined: "declined" };
+   
+  function triesOf(b) {
+    if (!b.recall) return 0;
+    var g = new Date(Date.UTC(b.w.y, b.w.m - 3, 1)).toISOString().slice(0, 10);
+    return String(b.recall.last_try || "") >= g ? Number(b.recall.attempts) || 0 : 0;
+  }
+
   function callPill(b) {
-    var tries = b.recall ? Number(b.recall.attempts) : 0;
+    var tries = triesOf(b);
     if (!b.call && !tries) return "";
     var said = b.call ? (OUTCOME_SAID[b.call.outcome] || b.call.outcome) : "tried";
     var when = b.recall && b.recall.last_try ? b.recall.last_try
@@ -1365,7 +1437,7 @@ var OUTCOMES = [
   }
 
   function outcomeModal(b) {
-    var tries = b.recall ? Number(b.recall.attempts) : 0;
+    var tries = triesOf(b);
     openModal("<h3>" + esc(b.c.name) + " · " + esc(mLabel(b.w)) + "</h3>" +
       '<p class="note">' + esc(b.p.address) + "</p>" +
       (tries >= 3
@@ -1413,7 +1485,7 @@ async function saveOutcome(b, outcome, note) {
       called_at: new Date().toISOString(), called_by: S.me.id
     }, { onConflict: "property_id,year,month" }).select();
     if (up.error) throw explain(up.error);
-    var tries = b.recall ? Number(b.recall.attempts) : 0;
+    var tries = triesOf(b);
      
     if (outcome === "no-answer") {
       tries = tries + 1;
@@ -1423,6 +1495,14 @@ async function saveOutcome(b, outcome, note) {
         note: note || (b.recall ? b.recall.note : null)
       }, { onConflict: "property_id" }).select();
       if (rc.error) throw explain(rc.error);
+    } else if (b.recall && Number(b.recall.attempts) > 0) {
+       
+      tries = 0;
+      var rz = await sb.from("recalls").upsert({
+        property_id: b.p.id, attempts: 0, last_try: todayISO(),
+        note: note || b.recall.note
+      }, { onConflict: "property_id" }).select();
+      if (rz.error) throw explain(rz.error);
     }
      
     if (note) {
@@ -2078,11 +2158,13 @@ h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size
         (tr ? "Treatment record ✓" : "Fill the treatment record") + "</button>" : "") +
       '<button class="act' + (sh && sh.signed_on ? "" : " go") + '" data-act="sign">' +
         (sh && sh.signed_on ? "Signed ✓" : "Get a signature") + "</button>" +
-      (b && Number(b.balance) > 0.004
-        ? '<button class="act go" data-act="pay">Take payment</button>'
-        : b && b.voided_at ? '<span class="pill warn">voided — never owed</span>'
-        : b && b.charge_withdrawn ? '<span class="pill warn">charge withdrawn</span>'
-        : '<span class="pill ok">nothing owed</span>') +
+       
+      (b && (b.voided_at || b.charge_withdrawn)
+        ? '<span class="pill warn">' +
+          (b.voided_at ? "voided — never owed" : "charge withdrawn") + "</span>"
+        : b && Number(b.balance) > 0.004
+          ? '<button class="act go" data-act="pay">Take payment</button>'
+          : '<span class="pill ok">nothing owed</span>') +
        
       (isOffice() && b && !b.voided_at && !b.charge_withdrawn
         ? '<button class="act" data-act="notowed">Not asking for it…</button>'
@@ -2277,7 +2359,11 @@ async function moveJob(j, patch, btn, inList) {
           ? (patch.slots >= 10 ? "All day now" : plural(patch.slots, "slot") + " now")
           : "end_date" in patch
             ? (patch.end_date ? "Runs to " + fmtDate(patch.end_date) : "One day now")
-            : "Moved to the " + windowName(patch.scheduled_window).toLowerCase());
+            : "duration_hours" in patch
+               
+              ? (patch.duration_hours == null
+                  ? "Taken off" : "About " + hoursText(patch.duration_hours) + " now")
+              : "Moved to the " + windowName(patch.scheduled_window).toLowerCase());
        
       if (inList) render();
       else {
@@ -3374,8 +3460,8 @@ $("plBack").addEventListener("click", function () { go("sheet", jobId); });
       if (await savePlan(this)) renderPlan(jobId);
     });
     $("plPrt").addEventListener("click", async function () {
-       
-      if (planDirty() && !(await savePlan(null))) return;
+
+if ((!w || planDirty()) && !(await savePlan(null))) return;
       renderPlan(jobId);
       setTimeout(function () { window.print(); }, 60);
     });
@@ -5561,7 +5647,16 @@ document.body.classList.add("hassheetbar");
         (isAdmin() ? "Put it in under Settings before this goes out."
                    : "An admin can put it in under Settings.") + "</div>";
 
-h += '<div class="sheet"><div class="hdr">' +
+h += '<div class="sheet">' +
+      (ev.voided_at
+        ? '<div style="border:2px solid #000;padding:.25rem .4rem;margin:0 0 .4rem;' +
+          'text-align:center;font-weight:800;letter-spacing:.08em">VOID — NOT A CONTRACT</div>' +
+          '<div style="font-size:.62rem;text-align:center;margin:-.25rem 0 .45rem">Voided ' +
+          esc(new Date(ev.voided_at).toLocaleDateString()) +
+          (personOf(ev.voided_by) ? " by " + esc(personOf(ev.voided_by).name) : "") +
+          (ev.void_reason ? " — " + esc(ev.void_reason) : "") + "</div>"
+        : "") +
+      '<div class="hdr">' +
       '<div><div class="co">' + esc(co.company_short || "UNITED") + "</div>" +
       '<div style="font-size:.62rem">' + esc(co.company_name || "") + "</div>" +
       '<div style="font-size:.62rem">' +
@@ -5626,9 +5721,13 @@ h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1.6fr 
       "</div>" +
       '<div><div class="rs-band">Payment summary</div>' +
       '<div class="money" style="margin:.4rem 0 0;max-width:none">' +
-      "<div>Subtotal</div><div>" + money(sub) + "</div>" +
-      "<div>Tax (" + esc(pct) + "%)</div><div>" + money(r2(tot - sub)) + "</div>" +
-      '<div class="tot">Grand Total</div><div class="tot">' + money(tot) + "</div></div>" +
+      '<div>Subtotal</div><div id="evSub">' + money(sub) + "</div>" +
+      "<div>Tax (" + esc(pct) + '%)</div><div id="evTax">' + money(r2(tot - sub)) + "</div>" +
+      '<div class="tot">Grand Total</div><div class="tot" id="evTot">' + money(tot) + "</div></div>" +
+      (ev.voided_at
+        ? '<div style="font-size:.6rem;margin-top:.25rem">These figures are from a ' +
+          "VOIDED form and are not owed.</div>"
+        : "") +
       (ev.signed_on
         ? '<div style="font-size:.58rem;text-align:center;margin-top:.2rem">Signed ' +
           esc(ev.signed_on) + " — fixed at the rate it was signed at.</div>"
@@ -5684,16 +5783,25 @@ h += '<div class="rs-sec"><div style="display:flex;justify-content:space-between
       "<div>NJ CONTRACTOR #" + esc(co.nj_contractor || "") + "</div>" +
       "<div>BUSINESS # " + esc(co.business_licence || "") + "</div></div>" +
       '<div style="text-align:center;min-width:12rem">' +
-      (ev.signed_on
+      (ev.signed_on && !ev.voided_at
         ? sigSVG(ev.signature, 200) +
           '<div style="font-size:.58rem">Customer Signature · ' + esc(ev.signed_on) + "</div>"
-        : '<div class="sigline"></div><div style="font-size:.58rem">Customer Signature</div>') +
+        : ev.signed_on
+           
+          ? '<div class="sigline"></div><div style="font-size:.58rem">Signature on the ' +
+            "voided original, " + esc(ev.signed_on) + "</div>"
+          : '<div class="sigline"></div><div style="font-size:.58rem">Customer Signature</div>') +
       "</div></div></div>";
 
     h += '<div class="foot"><span>' + esc(co.company_name || "") + "</span>" +
       "<span>" + esc(co.phone || "") + "</span></div></div>";
 
-if (!ev.voided_at)
+if (ev.signed_on)
+      h += '<div class="msg noprint" style="margin-top:.8rem">' +
+        (q ? "The estimate behind it is <b>" + esc(q.status) + "</b> at " + money(q.amount) + "."
+           : "Sold on the contract — it never went on the estimates list, and it does " +
+             "not go on one now.") + "</div>";
+    else if (live)
       h += '<div class="msg noprint" style="margin-top:.8rem">' +
         (q
           ? "On the estimates list at " + money(q.amount) + " — <b>" + esc(q.status) + "</b>." +
@@ -5708,8 +5816,11 @@ if (!ev.voided_at)
     app.innerHTML = h;
 
 $("evBack").addEventListener("click", function () { go("customers"); });
-    $("evPrt").addEventListener("click", function () {
+    $("evPrt").addEventListener("click", async function () {
        
+      var a = document.activeElement;
+      if (a && a !== this && a.blur) a.blur();
+      await WRITEQ;
       renderEval(id);
       setTimeout(function () { window.print(); }, 60);
     });
@@ -5737,7 +5848,10 @@ $("evBack").addEventListener("click", function () { go("customers"); });
       });
     });
 
-evalField("evDate", function (v) { return { form_date: v || null }; });
+evalField("evDate", function (v) {
+      if (!v) throw new Error("The form needs a date — pick one rather than leaving it blank.");
+      return { form_date: v };
+    });
     evalField("evStart", function (v) { return { start_date: v || null }; });
     evalField("evFinish", function (v) { return { finish_date: v || null }; });
     evalField("evWarr", function (v) {
@@ -5746,7 +5860,7 @@ evalField("evDate", function (v) { return { form_date: v || null }; });
     });
     app.querySelectorAll("[data-ebill]").forEach(function (el) {
       el.addEventListener("change", function () {
-        evalWrite(null, function () {
+        evalQuiet(el, function () {
           var b = {}, cur = (evalOf(id) || {}).billing || {};
           Object.keys(cur).forEach(function (k) { b[k] = cur[k]; });
           b[el.getAttribute("data-ebill")] = el.value.trim();
@@ -5756,7 +5870,7 @@ evalField("evDate", function (v) { return { form_date: v || null }; });
     });
     app.querySelectorAll("[data-ecmt]").forEach(function (el) {
       el.addEventListener("change", function () {
-        evalWrite(null, function () {
+        evalQuiet(el, function () {
           return patchRow(el.getAttribute("data-ecmt"), { comment: el.value.trim() });
         });
       });
@@ -5764,7 +5878,7 @@ evalField("evDate", function (v) { return { form_date: v || null }; });
     app.querySelectorAll("[data-eprice]").forEach(function (el) {
       el.addEventListener("change", function () {
         var name = el.getAttribute("data-eprice"), typed = el.value;
-        evalWrite(null, function () {
+        evalQuiet(el, function () {
           var n = readMoney(typed);
           if (n == null) throw new Error("“" + typed + "” isn’t a price — type it like 1850.");
           return setPrice(name, Math.max(0, n));
@@ -5825,11 +5939,36 @@ async function saveEval(patch) {
       S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
       await reload(["attention"]);
     }
+     
+    function evalQuiet(el, work) {
+      if (WRITING) { toast("One at a time — still saving the last one."); return; }
+      WRITING = true;
+      if (el) el.disabled = true;
+      return (WRITEQ = Promise.resolve().then(work)
+        .then(readEvals)
+        .then(function () {
+          WRITING = false;
+          if (el) el.disabled = false;
+          var e2 = evalOf(id);
+          if (e2 && $("evSub")) {
+            var sub2 = Number(e2.subtotal) || 0, tot2 = Number(e2.total) || 0;
+            $("evSub").textContent = money(sub2);
+            if ($("evTax")) $("evTax").textContent = money(r2(tot2 - sub2));
+            if ($("evTot")) $("evTot").textContent = money(tot2);
+          }
+          toast("Saved");
+        })
+        .catch(function (e) {
+          WRITING = false;
+          if (el) el.disabled = false;
+          toast(e.message);
+        }));
+    }
     function evalField(elId, toPatch) {
       var el = $(elId); if (!el) return;
       el.addEventListener("change", function () {
         var v = el.value.trim();
-        evalWrite(null, function () { return saveEval(toPatch(v)); });
+        evalQuiet(el, function () { return saveEval(toPatch(v)); });
       });
     }
      
@@ -5839,19 +5978,24 @@ async function saveEval(patch) {
       var boxes = app.querySelectorAll("[data-emode],[data-esvc],[data-erow]");
       boxes.forEach(function (b) { b.style.opacity = ".45"; b.style.pointerEvents = "none"; });
       if (el) el.style.opacity = ".9";
-      return Promise.resolve().then(work)
+       
+      return (WRITEQ = Promise.resolve().then(work)
         .then(readEvals)
         .then(function () { WRITING = false; renderEval(id); })
         .catch(function (e) {
           WRITING = false;
           boxes.forEach(function (b) { b.style.opacity = ""; b.style.pointerEvents = ""; });
           toast(e.message);
-        });
+        }));
     }
   }
 
 async function raiseEvalQuote(ev) {
     if (!ev || ev.quote_id) return;
+     
+    if (ev.signed_on || ev.voided_at)
+      throw new Error("This form is signed — the work is sold, so it does not go on " +
+        "the estimates list.");
     var amt = Number(ev.subtotal) || 0;
     if (!amt) throw new Error("Give the work a price first.");
     var r = await sb.from("quotes").insert({
@@ -6766,7 +6910,9 @@ var EXPORT_TABLES = [
     "invoices", "invoice_adjustments", "payments", "payment_reversals",
     "months_closed", "quotes", "warranties",
     "programs", "program_extras", "program_overrides", "program_letters",
-    "notes", "reminders_sent", "closed_days", "activity_log"
+    "notes", "reminders_sent", "closed_days", "activity_log",
+     
+    "customer_template_overrides", "tax_rate_history", "attention_actions"
   ];
 
   async function exportBook(btn) {
@@ -6797,7 +6943,8 @@ var EXPORT_TABLES = [
       var blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" });
       var a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = "united-termite-book-" + todayISO() + ".json";
+       
+      a.download = "united-termite-backup-" + todayISO() + ".json";
       document.body.appendChild(a);
       a.click();
       setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
@@ -7142,7 +7289,7 @@ var ids = {};
       pays.forEach(function (p) { if (p.job_id) ids[p.job_id] = 1; });
       if (revs.length) {
         revPays = await many(sb.from("payments")
-          .select("id,customer_id,job_id,method,check_number,amount_collected,collected_at")
+          .select("id,invoice_id,customer_id,job_id,method,check_number,amount_collected,collected_at")
           .in("id", revs.map(function (x) { return x.payment_id; })));
         revPays.forEach(function (p) { if (p.job_id) ids[p.job_id] = 1; });
       }
@@ -7656,11 +7803,12 @@ async function houseHistory(customerId, mount) {
       box.innerHTML = '<table class="lst"><tr><th>When</th><th>What</th><th>Who</th>' +
         (isOffice() ? '<th class="r">Charged</th>' : "") + "</tr>" +
         rows.map(function (r) {
-          var when = r.completed_date || r.scheduled_date;
+           
+          var when = r.service_date;
           return "<tr><td>" + esc(when ? fmtDate(when) : "not dated") +
-            (r.completed_date ? "" : ' <span class="pill">booked</span>') + "</td>" +
-            "<td>" + esc(r.what || "") + "</td>" +
-            "<td>" + esc(r.who || "\u2014") + "</td>" +
+            (r.status === "complete" ? "" : ' <span class="pill">booked</span>') + "</td>" +
+            "<td>" + esc(r.summary || r.job_type || "") + "</td>" +
+            "<td>" + esc(r.technician || "\u2014") + "</td>" +
             (isOffice()
               ? '<td class="r">' + (r.total == null ? "\u2014" : money(r.total)) + "</td>"
               : "") + "</tr>";
@@ -8210,6 +8358,15 @@ function undoReversalModal(rv, p) {
       this.disabled = true;
       try {
          
+        if (p && p.invoice_id) {
+          var bl = await many(sb.from("v_invoice_balances").select("*")
+            .eq("invoice_id", p.invoice_id));
+          var b0 = bl[0];
+          if (b0 && b0.voided_at)
+            throw new Error("That invoice has been voided, so this money would have " +
+              "nothing behind it. Take the void off first, or leave the reversal as it is.");
+        }
+         
         var r = await sb.from("payment_reversals")
           .update({ undone_at: new Date().toISOString(), undone_by: S.me.id })
           .eq("id", rv.id).is("undone_at", null).select();
@@ -8593,10 +8750,13 @@ function openModal(html) {
     }, 30);
   }
   function closeModal() {
+     
+    if (screenLocked) return;
     $("veil").classList.remove("show"); $("modal").innerHTML = ""; document.body.style.overflow = "";
   }
    
   $("veil").addEventListener("click", function (e) {
+    if (screenLocked) return;
     if (e.target !== $("veil")) return;
     if ($("modal").querySelector("canvas.sig,[data-p],[data-a],[data-snapkind],#snapRe")) {
       toast("Use Back or Cancel — tapping the edge won’t throw this away.");
@@ -8605,13 +8765,23 @@ function openModal(html) {
     closeModal();
   });
   document.addEventListener("keydown", function (e) {
+    if (screenLocked) return;
     if (e.key === "Escape" && $("veil").classList.contains("show")) closeModal();
   });
+   
+  $("lockveil").addEventListener("click", function (e) { e.stopPropagation(); });
 
 function payModal(invoiceId) {
     var inv = S.invoices.filter(function (i) { return i.id === invoiceId; })[0];
     var b = inv ? S.balances.filter(function (x) { return x.invoice_id === inv.id; })[0] : null;
     if (!inv || !b) { toast("Couldn’t find that invoice — reload."); return; }
+     
+    if (b.voided_at || b.charge_withdrawn) {
+      toast(b.voided_at
+        ? "That invoice is voided — nothing was ever owed."
+        : "The office is not asking for this money. Reload if that looks wrong.");
+      return;
+    }
     var c = custById(inv.customer_id);
     var jb = inv.job_id ? jobById(inv.job_id) : null;
     var jobDone = !jb || jb.status === "complete";
