@@ -1,0 +1,13 @@
+# NEVER commit real business or customer data.
+# Backups exported from the app contain the real customer list.
+*.json
+united-termite-backup-*
+*.csv
+*.mmd
+
+# Internal project notes — not for a public repo.
+*Master Brief*
+*Questions*
+*Build Plan*
+*Readiness*
+*Interview*
