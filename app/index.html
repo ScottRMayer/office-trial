@@ -4,6 +4,24 @@
 <title>United Termite — Office</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
+
+<meta http-equiv="Content-Security-Policy" content="default-src 'none';
+  script-src 'self' 'unsafe-inline';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  font-src 'self';
+  connect-src 'self' https://lhochuvilhezyzxaxfof.supabase.co https://geo.nj.gov https://maps.nj.gov https://services2.arcgis.com;
+  manifest-src 'self';
+  form-action 'none';
+  base-uri 'none';
+  object-src 'none'">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="United">
+<meta name="theme-color" content="#ffffff">
 <style>
   :root{
     --ink:#1b211e; --ink-soft:#5c6862; --paper:#f4f6f3; --card:#fff;
@@ -119,6 +137,15 @@
   .modal .note{font-size:.84rem;color:var(--ink-soft);margin:0 0 .85rem}
   .modal .row{display:flex;gap:.5rem;margin-top:.85rem}
   .modal .row button{flex:1}
+
+.sheetbar{position:fixed;left:0;right:0;bottom:0;z-index:55;display:flex;gap:.5rem;
+    justify-content:center;flex-wrap:wrap;padding:.55rem .8rem;background:var(--card);
+    border-top:1px solid var(--rule);box-shadow:0 -2px 10px rgba(0,0,0,.07)}
+  .sheetbar button{flex:0 1 auto}
+  body.hassheetbar{padding-bottom:4.2rem}
+   
+  @media (max-width:560px){ body.hassheetbar{padding-bottom:6.4rem} }
+  @media print{ .sheetbar{display:none!important} body.hassheetbar{padding-bottom:0} }
 
   .toast{position:fixed;left:50%;bottom:1.1rem;transform:translateX(-50%);background:var(--ink);
     color:var(--card);padding:.6rem 1rem;border-radius:6px;font-size:.86rem;opacity:0;
@@ -341,6 +368,43 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .locked{background:#fff6e5;border:1px solid #d9a93a;color:#4a3a10;font-size:.68rem;
     padding:.3rem .45rem;border-radius:3px;margin:.3rem 0}
    
+  .evalwrap{overflow-x:auto}
+  table.evaltable{width:100%;min-width:26rem;border-collapse:collapse;font-size:.7rem}
+  table.evaltable th{background:#f0f0f0;border:1px solid #bbb;padding:.15rem .2rem;
+    font-size:.54rem;letter-spacing:.05em;text-transform:uppercase;text-align:center}
+  table.evaltable td{border:1px solid #ccc;padding:.05rem .25rem}
+  .evalrow{font-size:.68rem}
+  .evalcell{text-align:center;width:3.4rem;height:2.75rem;cursor:pointer}
+  .evalcell:active{background:#dce8e0}
+   
+  .hicnotice{font-size:.6rem;line-height:1.45;margin-top:.45rem;border:1px solid #333;
+    padding:.3rem .4rem;text-align:justify}
+  @media print{
+    .evalwrap{overflow:visible}
+    .evalcell{height:auto}
+    table.evaltable{font-size:.62rem}
+  }
+
+.plan{font-size:.8rem;line-height:1.5}
+  .plan .plic{text-align:right;font-size:.66rem;letter-spacing:.06em;font-weight:700}
+  .plan .pttl{text-align:center;font-weight:700;letter-spacing:.16em;font-size:.88rem;
+    margin:.7rem 0 1rem}
+  .plan .pfld{display:grid;grid-template-columns:9.5rem 1fr;gap:.15rem .7rem;
+    align-items:end;margin-bottom:.5rem}
+  .plan .plbl{font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;color:#333}
+  .plan .pline{border-bottom:1px solid #333;min-height:1.2rem;padding:0 .2rem}
+  .plan .pcity{display:grid;grid-template-columns:1fr 4.5rem 6.5rem;gap:.7rem}
+  .plan p{margin:.6rem 0}
+  .plan .pcaps{font-weight:700}
+  .plan .psml{font-size:.7rem;line-height:1.45}
+  .plan .pblank{display:inline-block;border-bottom:1px solid #333;min-width:5.5rem;
+    text-align:center;padding:0 .35rem}
+  .plan .psigs{display:grid;grid-template-columns:1fr 9rem;gap:.2rem 1.2rem;
+    margin:1.2rem 0 .8rem}
+  @media (max-width:560px){
+    .plan .pfld{grid-template-columns:1fr} .plan .psigs{grid-template-columns:1fr}
+  }
+   
   .snaps{display:flex;gap:.5rem;flex-wrap:wrap;margin:.3rem 0}
   .snap{position:relative;width:8rem}
   .snap img{width:8rem;height:6rem;object-fit:cover;border:1px solid var(--rule);
@@ -407,6 +471,25 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     .letter{border:none;margin:0;max-width:none}
   }
 
+#labelPrint{display:none}
+  body.labels #labelPrint{display:block}
+  .lsheet{width:8.5in;padding:.5in .1875in 0;margin:0 auto;background:#fff;color:#000;
+    font-family:ui-sans-serif,Arial,Helvetica,sans-serif;line-height:1.2}
+  .lsheet + .lsheet{page-break-before:always}
+  .lgrid{display:grid;grid-template-columns:repeat(3,2.625in);column-gap:.125in;
+    grid-auto-rows:1in}
+  .lcell{height:1in;overflow:hidden;padding:.15in .18in;font-size:10pt;line-height:1.2}
+  .lcell .lnm{font-weight:700}
+
+  @media print{
+     
+    body.labels #app{display:none!important}
+    .lsheet{margin:0}
+     
+    @page labels{size:8.5in 11in;margin:0}
+    body.labels{page:labels}
+  }
+
   @media print{
     header,nav,.noprint,.toast,.veil{display:none!important}
     body{background:#fff} main{padding:0;max-width:none}
@@ -420,6 +503,9 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
      
     body.compact .matpick{display:none}
     body:not(.compact) .matused{display:none}
+     
+    .plan{border:none;padding:.4in .5in;page-break-inside:avoid}
+    .plan .pline,.plan .pblank{border-bottom-color:#000}
     @page{margin:.35in .3in}
 
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -444,6 +530,12 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     <label for="pw">Password</label>
     <input id="pw" class="f" type="password" autocomplete="current-password">
     <button id="signin" class="primary" type="button">Sign in</button>
+    
+    <div class="acts" style="margin-top:.7rem">
+      <button class="act" id="magic" type="button">Email me a link instead</button>
+    </div>
+    <p class="note" style="margin:.6rem 0 0">No password to remember — we send a
+      link that signs you in on this device. It lasts an hour and can be used once.</p>
   </div>
 </div>
 
@@ -461,10 +553,11 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
 </header>
 
 <main id="app" style="display:none"></main>
+<div id="labelPrint"></div>
 <div class="veil" id="veil"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="supabase-2.45.4.js"></script>
 <script>
 (function () {
   "use strict";
@@ -474,12 +567,15 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
   var gate = $("gate"), bar = $("bar"), app = $("app");
 
   if (!window.supabase || !window.supabase.createClient) {
+     
     $("gateMsg").innerHTML = '<div class="msg bad"><b>Couldn’t load.</b><br>' +
-      "This needs the internet the first time it opens. Check the connection and reload.</div>";
+      "supabase-2.45.4.js did not load — it belongs in the same folder as this " +
+      "page. If you are opening a copy on your own machine, copy that file too.</div>";
     return;
   }
+   
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
   });
 
 function money(n) {
@@ -515,6 +611,17 @@ function money(n) {
     if (s === "") return null;
     return /^\d*\.?\d+$/.test(s) ? parseFloat(s) : null;
   }
+   
+  function readDiscount(v, subtotal) {
+    var s = String(v == null ? "" : v).replace(/[$,\s]/g, "");
+    var pct = /%/.test(s);
+    if (pct) s = s.replace(/%/g, "");
+    if (!/^\d*\.?\d+$/.test(s)) return null;
+    var n = parseFloat(s);
+    if (!pct) return { amount: r2(n), pct: null };
+     
+    return { amount: Math.round((Number(subtotal) || 0) * n) / 100, pct: n };
+  }
   function toast(m) {
     var t = $("toast"); t.textContent = m; t.classList.add("show");
     clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove("show"); }, 2800);
@@ -524,8 +631,9 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
             optRows: [], catalog: [], services: [], priceEx: [], chems: [], programs: [],
             crew: [],
             customers: [], properties: [], jobs: [], lines: [], sheets: [], treatments: [],
-            invoices: [], balances: [], quotes: [], warranties: [], attention: [],
-            progLetters: [], progExtras: [], closedDays: [], loadedAt: null };
+            invoices: [], balances: [], quotes: [], evals: [], warranties: [], attention: [],
+            progLetters: [], progExtras: [], closedDays: [], calls: [], recalls: [],
+            loadedAt: null };
   var route = { name: "dashboard", arg: null, date: todayISO(), tech: null,
                 span: localStorage.getItem("ut_span") || "day",
                  
@@ -591,19 +699,114 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
       return new Error("That is already on the record — nothing was written twice.");
     }
     if (/check_number_required/.test(m)) return new Error("A check needs the number printed on it.");
+     
+    if (/null value in column "tax_rate"/.test(m))
+      return new Error("The crawl-space form can’t work out its tax yet — the latest SQL " +
+        "hasn’t been run.");
     if (/treatment record/i.test(m)) return new Error(m);
     if (/record is filed/i.test(m))
       return new Error("This record is filed — the visit ended. The office has to open the sheet for corrections first.");
     if (/already signed or paid|sheet is signed|overwriting a signature/i.test(m))
       return new Error("This sheet is signed or paid. The office has to open it for corrections first.");
+     
+    if (/falls in a closed month/.test(m))
+      return new Error(m
+        .replace(/^Invoice Adjustments/, "That discount")
+        .replace(/^Job Lines/, "That charge")
+        .replace(/^Payment Reversals/, "That correction")
+        .replace(/^Payments/, "That payment") +
+        (isAdmin() ? "" : " Only an admin can reopen a month."));
     if (/failed to fetch/i.test(m)) return new Error("Couldn’t reach the database. Check the connection.");
     return new Error(m);
   }
 
+var IDLE_MS = 20 * 60 * 1000;
+  var idleAt = 0, idleTimer = null, screenLocked = false;
+
+  function lockNow() {
+    if (screenLocked || !S.me) return;
+    screenLocked = true;
+    $("veil").classList.add("show");
+    $("modal").innerHTML = "<h3>Locked</h3>" +
+      '<p class="note">Nobody has touched this for twenty minutes, so it has been ' +
+      "put behind the password. Nothing has been lost.</p>" +
+      '<p class="note">Signed in as <b>' + esc(S.me.name) + "</b></p>" +
+      '<label for="lkPw">Your password</label>' +
+      '<input id="lkPw" class="f" type="password" autocomplete="current-password">' +
+      '<div id="lkMsg"></div>' +
+      '<div class="row"><button class="primary" id="lkGo" type="button">Unlock</button>' +
+      '<button class="act" id="lkOut" type="button">Sign out</button></div>';
+    var go = async function () {
+      var pw = $("lkPw").value;
+      if (!pw) return;
+      $("lkGo").disabled = true;
+      $("lkMsg").innerHTML = '<div class="msg">Checking…</div>';
+       
+      var r = await sb.auth.signInWithPassword({ email: S.me.email || "", password: pw });
+      if (r.error) {
+        $("lkMsg").innerHTML = '<div class="msg bad">That password does not match.</div>';
+        $("lkGo").disabled = false; $("lkPw").value = ""; $("lkPw").focus();
+        return;
+      }
+      screenLocked = false;
+      $("lkMsg").innerHTML = "";
+      closeModal();
+      touchIdle();
+    };
+    $("lkGo").addEventListener("click", go);
+    $("lkPw").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
+    $("lkOut").addEventListener("click", async function () {
+      await sb.auth.signOut(); location.reload();
+    });
+    $("lkPw").focus();
+  }
+
+  function touchIdle() {
+    idleAt = Date.now();
+    if (idleTimer) return;
+    idleTimer = setInterval(function () {
+      if (!S.me || screenLocked) return;
+      if (Date.now() - idleAt >= IDLE_MS) lockNow();
+    }, 30 * 1000);
+  }
+
+  ["pointerdown", "keydown", "touchstart", "focusin"].forEach(function (ev) {
+    document.addEventListener(ev, function () { if (!screenLocked) touchIdle(); }, true);
+  });
+   
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && S.me && !screenLocked &&
+        Date.now() - idleAt >= IDLE_MS) lockNow();
+  });
+
 $("signin").addEventListener("click", doSignIn);
+  $("magic").addEventListener("click", sendMagicLink);
   $("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") doSignIn(); });
   $("email").addEventListener("keydown", function (e) { if (e.key === "Enter") $("pw").focus(); });
   $("signout").addEventListener("click", async function () { await sb.auth.signOut(); location.reload(); });
+
+async function sendMagicLink() {
+    var b = $("magic"); b.disabled = true;
+    var email = $("email").value.trim();
+    if (!email) {
+      $("gateMsg").innerHTML = '<div class="msg bad">Type your email address first.</div>';
+      b.disabled = false; return;
+    }
+    $("gateMsg").innerHTML = '<div class="msg">Sending…</div>';
+    try {
+      var r = await sb.auth.signInWithOtp({
+        email: email,
+        options: { shouldCreateUser: false, emailRedirectTo: location.href.split("#")[0] }
+      });
+      if (r.error && !/signups not allowed|user not found/i.test(r.error.message))
+        throw new Error(r.error.message);
+      $("gateMsg").innerHTML = '<div class="msg"><b>Check your email.</b><br>' +
+        "If " + esc(email) + " is one of ours, a sign-in link is on its way. It " +
+        "lasts an hour. Open it on this device.</div>";
+    } catch (e) {
+      $("gateMsg").innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>";
+    } finally { b.disabled = false; }
+  }
 
   async function doSignIn() {
     var b = $("signin"); b.disabled = true;
@@ -632,6 +835,7 @@ $("signin").addEventListener("click", doSignIn);
       route.name = isOffice() ? "dashboard" : "field";
       route.tech = inField() ? S.me.id : (S.people.filter(function (p) { return p.is_technician && p.active; })[0] || {}).id;
       renderNav(); render();
+      touchIdle();
     } catch (e) {
       app.innerHTML = '<div class="msg bad"><b>Couldn’t load the book.</b><br>' + esc(e.message) +
         '</div><div class="card"><div class="acts">' +
@@ -690,7 +894,15 @@ $("signin").addEventListener("click", doSignIn);
       off ? many(sb.from("program_extras").select("*")) : [],
        
       soft(sb.from("closed_days").select("*"), "closed_days",
-           "closing a day the company is not working — run the latest SQL")
+           "closing a day the company is not working — run the latest SQL"),
+       
+      off ? all(function () {
+        return sb.from("calls").select("*")
+          .gte("year", new Date().getFullYear() - 1).order("id");
+      }) : [],
+      off ? all(function () { return sb.from("recalls").select("*").order("property_id"); }) : [],
+       
+      off ? many(sb.from("evaluations").select("*").order("form_date", { ascending: false })) : []
     ]);
     S.people = r[0]; S.areas = r[1]; S.settings = r[2][0] || null; S.menu = r[3];
     S.products = r[4];
@@ -702,6 +914,7 @@ $("signin").addEventListener("click", doSignIn);
     S.catalog = r[17]; S.priceEx = r[18]; S.programs = r[19]; S.chems = r[20];
     S.crew = r[21]; S.progLetters = r[22]; S.progExtras = r[23];
     S.closedDays = r[24];
+    S.calls = r[25]; S.recalls = r[26]; S.evals = r[27];
      
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
@@ -735,6 +948,18 @@ async function reload(what) {
     }
     if (isOffice() && (!what || what.indexOf("attention") >= 0))
       S.attention = await many(sb.from("v_attention_live").select("*"));
+     
+    if (isOffice() && (!what || what.indexOf("calls") >= 0)) {
+      S.calls = await all(function () {
+        return sb.from("calls").select("*")
+          .gte("year", new Date().getFullYear() - 1).order("id");
+      });
+      S.recalls = await all(function () { return sb.from("recalls").select("*").order("property_id"); });
+    }
+    if (isOffice() && (!what || what.indexOf("warranties") >= 0))
+      S.warranties = await many(sb.from("warranties").select("*"));
+    if (isOffice() && (!what || what.indexOf("attention") >= 0))
+      S.attention = await many(sb.from("v_attention_live").select("*"));
     S.loadedAt = new Date();
   }
 
@@ -756,6 +981,12 @@ var custById = function (id) { return S.customers.filter(function (c) { return c
       .sort(function (a, b) { return a.sort_order - b.sort_order; });
   };
   var sheetOf = function (id) { return S.sheets.filter(function (x) { return x.job_id === id; })[0] || null; };
+   
+  var planOf  = function (id) {
+    return S.warranties.filter(function (x) {
+      return x.origin_job_id === id && x.type === "termite";
+    })[0] || null;
+  };
   var trOf    = function (id) { return S.treatments.filter(function (t) { return t.job_id === id; })[0] || null; };
    
   var allChemsOf = function (trId) {
@@ -790,7 +1021,8 @@ function sheetIsOpen(j) {
 
 function renderNav() {
     var tabs = [];
-    if (isOffice()) tabs.push(["dashboard", "Dashboard"], ["schedule", "Schedule"],
+     
+    if (isOffice()) tabs.push(["dashboard", "Dashboard"], ["schedule", "Calendar"],
                               ["close", "Daily Close"], ["customers", "Customers"]);
     if (inField()) tabs.push(["field", isOffice() ? "My day" : "Today"]);
 
@@ -824,10 +1056,15 @@ function renderNav() {
       "<br>Everything else works. Run the SQL and reload.</div>";
   }
   function render() {
+     
+    if (route.name !== "sheet" && route.name !== "plan" && route.name !== "eval")
+      document.body.classList.remove("hassheetbar");
     if (route.name === "dashboard") return renderDashboard();
     if (route.name === "schedule") return renderSchedule();
     if (route.name === "field") return renderField();
     if (route.name === "sheet") return renderSheet(route.arg);
+    if (route.name === "plan") return renderPlan(route.arg);
+    if (route.name === "eval") return renderEval(route.arg);
     if (route.name === "customers") return renderCustomers();
     if (route.name === "lists") return renderLists();
     if (route.name === "import") return renderImport();
@@ -845,40 +1082,63 @@ var MONTHS = ["January","February","March","April","May","June","July","August",
                 "September","October","November","December"];
   var mLabel = function (w) { return MONTHS[w.m - 1] + (w.y !== new Date().getFullYear() ? " " + w.y : ""); };
    
+  function monthsAgo(w) {
+    var now = new Date();
+    return (now.getFullYear() - w.y) * 12 + (now.getMonth() + 1 - w.m);
+  }
+   
   function dueLabel(w) {
-    var now = new Date(), gap = (now.getFullYear() - w.y) * 12 + (now.getMonth() + 1 - w.m);
+    var gap = monthsAgo(w);
     if (gap > 0) return mLabel(w) + " — " + plural(gap, "month") + " ago";
     if (gap === 0) return mLabel(w) + " — this month";
     return mLabel(w) + " — next month";
   }
+  function whenOf(w) {
+    var g = monthsAgo(w);
+    return g > 0 ? "late" : (g === 0 ? "now" : "next");
+  }
 
-function boxWindow() {
-    var now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1, out = [], k;
-    for (k = 1; k < m; k++) out.push({ y: y, m: k, when: "late" });
-    out.push({ y: y, m: m, when: "now" });
-    out.push(m === 12 ? { y: y + 1, m: 1, when: "next" } : { y: y, m: m + 1, when: "next" });
-    return out;
+function nextBox() {
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1;
+    return m === 12 ? { y: y + 1, m: 1 } : { y: y, m: m + 1 };
+  }
+   
+  function boxOf(box) {
+    var n = nextBox();
+    return { y: Number(box) <= n.m ? n.y : n.y - 1, m: Number(box) };
   }
    
   function boxesDue() {
-    var onProgram = {}, booked = {}, out = [];
+    var onProgram = {}, booked = {}, callIx = {}, recallIx = {}, out = [];
     S.programs.forEach(function (p) { onProgram[p.customer_id] = 1; });
     S.jobs.forEach(function (j) {
       if (!j.scheduled_date || j.status === "cancelled") return;
       booked[j.property_id + "|" + j.scheduled_date.slice(0, 7)] = 1;
     });
-    boxWindow().forEach(function (w) {
-      var key = w.y + "-" + (w.m < 10 ? "0" + w.m : "" + w.m);
-      S.properties.forEach(function (p) {
-        if (Number(p.month_box) !== w.m) return;
-        var c = custById(p.customer_id);
-        if (!c || c.inactive_reason) return;
-        if (onProgram[p.customer_id] && p.is_primary) return;
-        if (booked[p.id + "|" + key]) return;
-        out.push({ p: p, c: c, w: w });
-      });
+     
+    S.calls.forEach(function (x) {
+      callIx[x.property_id + "|" + x.year + "-" + (x.month < 10 ? "0" + x.month : "" + x.month)] = x;
     });
-    return out;
+    S.recalls.forEach(function (x) { recallIx[x.property_id] = x; });
+    S.properties.forEach(function (p) {
+      if (!p.month_box) return;
+      var c = custById(p.customer_id);
+      if (!c || c.inactive_reason) return;
+      if (onProgram[p.customer_id] && p.is_primary) return;
+      var w = boxOf(p.month_box);
+      w.when = whenOf(w);
+      var key = p.id + "|" + w.y + "-" + (w.m < 10 ? "0" + w.m : "" + w.m);
+      if (booked[key]) return;
+      var call = callIx[key] || null;
+       
+      if (call && call.outcome === "declined") return;
+      out.push({ p: p, c: c, w: w, call: call, recall: recallIx[p.id] || null });
+    });
+     
+    return out.sort(function (a, b) {
+      return (a.w.y * 12 + a.w.m) - (b.w.y * 12 + b.w.m) ||
+        String(a.c.name).localeCompare(String(b.c.name));
+    });
   }
 
   function renderDashboard() {
@@ -887,15 +1147,18 @@ function boxWindow() {
     var risk = S.attention.filter(function (a) { return a.bucket === "potential"; });
     var sum = function (rows) { return rows.reduce(function (t, a) { return t + (Number(a.amount) || 0); }, 0); };
 
-    var win = boxWindow(), boxes = boxesDue();
+    var boxes = boxesDue();
     var late = boxes.filter(function (b) { return b.w.when === "late"; });
     var nowB = boxes.filter(function (b) { return b.w.when === "now"; });
     var nextB = boxes.filter(function (b) { return b.w.when === "next"; });
-    var nextW = win[win.length - 1];
-    var firstW = win[0];
+     
+    var nextW = nextBox();
+    var firstW = boxes.length ? boxes[0].w : nextW;
+    var span = mLabel(firstW) === mLabel(nextW)
+      ? mLabel(nextW) : mLabel(firstW) + " to " + mLabel(nextW);
 
     var h = missingBanner() + "<h1>Dashboard</h1>" +
-      '<p class="sub">' + esc(mLabel(firstW)) + " to " + esc(mLabel(nextW)) + "</p>";
+      '<p class="sub">' + esc(span) + "</p>";
 
     h += '<div class="buckets">' +
       '<div class="bucket owed"><div class="lbl">Money already owed</div><div class="amt">' +
@@ -906,7 +1169,7 @@ function boxWindow() {
       '<div class="bucket risk"><div class="lbl">Revenue at risk</div><div class="amt">' +
         money(sum(risk)) + '</div><div class="what">' +
         plural(risk.length, "quote or warranty", "quotes and warranties") +
-        " that could still be won or lost</div>" +
+        " that could still be accepted or refused</div>" +
         (risk.length ? '<button class="expand" type="button" data-jump="risk">Show me which ↓</button>' : "") +
       "</div>" +
        
@@ -926,10 +1189,13 @@ h += '<div class="card"><h2>Needs a person</h2>' +
       "</div>";
 
 h += '<div class="card" id="boxes"><h2>Who needs a call</h2>' +
-      '<p class="note">Due a visit, not on the calendar yet.</p>';
+      '<p class="note">Due a visit, not on the calendar yet.</p>' +
+       
+      '<div class="acts noprint" style="margin-bottom:.3rem">' +
+      '<button class="act" id="dashLabels" type="button">Postcard labels…</button></div>';
     if (!boxes.length) {
-      h += '<div class="empty">Everyone due between ' + esc(mLabel(firstW)) + " and " +
-        esc(mLabel(nextW)) + " is already on the calendar. Nobody to ring.</div>";
+      h += '<div class="empty">Everybody whose month has come round, up to ' +
+        esc(mLabel(nextW)) + ", is already on the calendar. Nobody to ring.</div>";
     } else {
       h += boxGroup("Overdue — their month has already gone by", late, "owed") +
         boxGroup("Due this month", nowB, "") +
@@ -1011,6 +1277,27 @@ var stale = S.jobs.filter(function (j) {
       });
     });
     if ($("dashBook")) $("dashBook").addEventListener("click", function () { bookModal({}); });
+    if ($("dashLabels")) $("dashLabels").addEventListener("click", function () { labelsModal(); });
+     
+    app.querySelectorAll("[data-noans]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var b = boxes.filter(function (x) { return x.p.id === btn.getAttribute("data-noans"); })[0];
+        if (!b) return;
+        btn.disabled = true;
+        try {
+          var n = await saveOutcome(b, "no-answer", "");
+          render();
+          toast(b.c.name + " — no answer" +
+                (n > 1 ? ", " + plural(n, "try", "tries") + " now" : "") + ".");
+        } catch (e) { toast(e.message); btn.disabled = false; }
+      });
+    });
+    app.querySelectorAll("[data-outcome]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var b = boxes.filter(function (x) { return x.p.id === btn.getAttribute("data-outcome"); })[0];
+        if (b) outcomeModal(b);
+      });
+    });
     if ($("dashLetters"))
       $("dashLetters").addEventListener("click", function () { go("letters"); });
   }
@@ -1036,6 +1323,7 @@ var stale = S.jobs.filter(function (j) {
               '<span class="nm">' + esc(b.c.name) + "</span>" +
               (b.p.is_primary ? "" : '<span class="pill">' + esc(b.p.label || "2nd address") + "</span>") +
               (b.p.had_full_treatment ? '<span class="pill">★ FT</span>' : "") +
+              callPill(b) +
               '<span class="amt">' + esc(dueLabel(b.w)) + "</span></div>" +
               '<div class="why">' + esc(b.p.address) +
               (ar ? " · " + esc(ar.name) : "") +
@@ -1045,13 +1333,106 @@ var stale = S.jobs.filter(function (j) {
                 ? '<a class="act go" href="tel:' + esc(String(b.c.phone).replace(/[^0-9+]/g, "")) +
                   '">Call ' + esc(b.c.phone) + "</a>"
                 : '<span class="pill warn">no phone on file</span>') +
-              '<button class="act" data-note="' + esc(b.c.id) + '" type="button">Add a note</button>' +
+              '<button class="act" data-noans="' + esc(b.p.id) + '" type="button">No answer</button>' +
+              '<button class="act" data-outcome="' + esc(b.p.id) +
+              '" type="button">How it went…</button>' +
               '<button class="act go" data-book="' + esc(b.c.id) + "|" + esc(b.p.id) +
               '" type="button">Book it</button>' +
             '<button class="act" data-cust="' + esc(b.c.id) + '" type="button">Open customer</button>' +
               "</div></div>";
           }).join("");
       }).join("") + "</div>";
+  }
+
+var OUTCOMES = [
+    ["no-answer", "No answer",                          "stays on the list, try counted"],
+    ["called",    "Spoke to them — nothing booked yet",  "stays on the list"],
+    ["booked",    "They want a visit",                  "opens the calendar"],
+    ["declined",  "They declined this year",            "off the list until next year"]
+  ];
+  var OUTCOME_SAID = { called: "spoke to them", booked: "wants a visit",
+                       "no-answer": "no answer", declined: "declined" };
+  function callPill(b) {
+    var tries = b.recall ? Number(b.recall.attempts) : 0;
+    if (!b.call && !tries) return "";
+    var said = b.call ? (OUTCOME_SAID[b.call.outcome] || b.call.outcome) : "tried";
+    var when = b.recall && b.recall.last_try ? b.recall.last_try
+             : (b.call && b.call.called_at ? String(b.call.called_at).slice(0, 10) : null);
+     
+    return '<span class="pill' + (tries >= 3 ? " warn" : "") + '">' + esc(said) +
+      (tries > 1 ? " · " + plural(tries, "try", "tries") : "") +
+      (when ? " · " + esc(fmtDate(when)) : "") + "</span>";
+  }
+
+  function outcomeModal(b) {
+    var tries = b.recall ? Number(b.recall.attempts) : 0;
+    openModal("<h3>" + esc(b.c.name) + " · " + esc(mLabel(b.w)) + "</h3>" +
+      '<p class="note">' + esc(b.p.address) + "</p>" +
+      (tries >= 3
+        ? '<div class="msg warn"><b>' + plural(tries, "try", "tries") +
+          " and nobody has answered.</b> Set the folder aside and they come off the " +
+          "calling list and out of the post until somebody clears it." +
+          '<div class="acts"><button class="act" id="ocGone" type="button">' +
+          "Set them aside as unreachable</button></div></div>"
+        : "") +
+      '<div class="picklist" style="max-height:none">' +
+      OUTCOMES.map(function (o) {
+        return '<button type="button" class="pickrow" data-oc="' + o[0] + '"><span>' +
+          esc(o[1]) + '</span><span class="pickamt">' + esc(o[2]) + "</span></button>";
+      }).join("") + "</div>" +
+      '<label for="ocNote">Anything worth keeping (optional)</label>' +
+      '<input id="ocNote" class="f" placeholder="ring after six · husband is ill">' +
+      '<div class="row"><button class="act" id="ocNo" type="button">Cancel</button></div>');
+    $("ocNo").addEventListener("click", closeModal);
+    if ($("ocGone"))
+      $("ocGone").addEventListener("click", function () { markInactive(b.c.id, "unreachable"); });
+    $("modal").querySelectorAll("[data-oc]").forEach(function (btn) {
+      btn.addEventListener("click", async function () {
+        var oc = btn.getAttribute("data-oc");
+        var all_ = $("modal").querySelectorAll("[data-oc]");
+        all_.forEach(function (x) { x.disabled = true; });
+        try {
+          await saveOutcome(b, oc, $("ocNote").value.trim());
+          closeModal();
+          toast(b.c.name + " — " + (OUTCOME_SAID[oc] || oc) + ", recorded.");
+           
+          if (oc === "booked") bookModal({ customer_id: b.c.id, property_id: b.p.id });
+          else render();
+        } catch (e) {
+          toast(e.message);
+          all_.forEach(function (x) { x.disabled = false; });
+        }
+      });
+    });
+  }
+
+async function saveOutcome(b, outcome, note) {
+    var up = await sb.from("calls").upsert({
+      property_id: b.p.id, year: b.w.y, month: b.w.m,
+      outcome: outcome, note: note || null,
+      called_at: new Date().toISOString(), called_by: S.me.id
+    }, { onConflict: "property_id,year,month" }).select();
+    if (up.error) throw explain(up.error);
+    var tries = b.recall ? Number(b.recall.attempts) : 0;
+     
+    if (outcome === "no-answer") {
+      tries = tries + 1;
+       
+      var rc = await sb.from("recalls").upsert({
+        property_id: b.p.id, attempts: tries, last_try: todayISO(),
+        note: note || (b.recall ? b.recall.note : null)
+      }, { onConflict: "property_id" }).select();
+      if (rc.error) throw explain(rc.error);
+    }
+     
+    if (note) {
+      await sb.from("notes").insert({
+        related_table: "customers", related_id: b.c.id, user_id: S.me.id,
+        kind: "call", text: note
+      });
+    }
+    await reload(["calls"]);
+    return tries;
   }
 
   function stamp() {
@@ -1071,6 +1452,7 @@ var stale = S.jobs.filter(function (j) {
     if (a.kind === "unpaid-completed") {
       acts.push('<button class="act go" data-pay="' + a.record_id + '">Record payment</button>');
       acts.push('<button class="act" data-remind="' + a.record_id + '">Send reminder</button>');
+      acts.push('<button class="act" data-notowed="' + a.record_id + '">Not asking for it…</button>');
       if (a.job_id) acts.push('<button class="act" data-sheet="' + a.job_id + '">The sheet</button>');
     }
     acts.push('<button class="act" data-note="' + a.customer_id + '">Add a note</button>');
@@ -1095,6 +1477,7 @@ var stale = S.jobs.filter(function (j) {
     on("[data-jump]", function (b) { var e = $(b.dataset.jump); if (e) e.scrollIntoView({ behavior: "smooth" }); });
     on("[data-pay]", function (b) { payModal(b.dataset.pay); });
     on("[data-remind]", function (b) { remind(b.dataset.remind, b); });
+    on("[data-notowed]", function (b) { notOwedModal(b.dataset.notowed); });
     on("[data-note]", function (b) { noteModal(b.dataset.note); });
     on("[data-quote]", function (b) { quoteModal(b.dataset.quote); });
     on("[data-snooze]", function (b) { snoozeModal(b.dataset.snooze); });
@@ -1132,7 +1515,8 @@ var WINDOWS = [["am", "Morning"], ["pm", "Afternoon"]];
   }
   function windowHours(w) {
     var s = S.settings || {};
-    return w === "am" ? [s.am_from || 8, s.am_to || 12] : [s.pm_from || 12, s.pm_to || 16];
+     
+    return w === "am" ? [s.am_from || 9, s.am_to || 13] : [s.pm_from || 12, s.pm_to || 17];
   }
   function windowName(w) { return w === "am" ? "Morning" : w === "pm" ? "Afternoon" : "No window set"; }
   function windowText(w) {
@@ -1145,6 +1529,16 @@ var WINDOWS = [["am", "Morning"], ["pm", "Afternoon"]];
   };
    
   var slotsOf = function (j) { return Math.max(1, Number(j.slots) || 1); };
+   
+  function hoursText(n) {
+    n = Number(n);
+    if (!n) return "";
+    if (n === 0.5) return "half an hour";
+    if (n === 1) return "an hour";
+    if (n === 1.5) return "an hour and a half";
+    if (n === Math.floor(n)) return n + " hours";
+    return n + " hours";
+  }
    
   function slotsInWindow(j, w) {
     var n = slotsOf(j), start = windowOf(j);
@@ -1543,7 +1937,8 @@ var waiting = isOffice()
             '<div class="why">' + esc(pr ? pr.address : "") +
             (pr && !pr.is_primary ? " — <b>" + esc(pr.label || "second address") + ", not their own house</b>" : "") +
             "</div>" +
-            '<div class="dates">' + esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) + "</div>" +
+            '<div class="dates">' + esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) +
+            (j.duration_hours != null ? " · about " + esc(hoursText(j.duration_hours)) : "") + "</div>" +
             (j.notes ? '<div class="dates">From the office: <b>' + esc(j.notes) + "</b></div>" : "") +
             "</div>";
         }).join("");
@@ -1566,7 +1961,7 @@ var waiting = isOffice()
 
 function jobModal(jobId) {
     var j = jobById(jobId); if (!j) { toast("That job has moved — reload."); return; }
-    var c = custById(j.customer_id), p = propOfJob(j), b = balOf(j.id);
+    var c = custById(j.customer_id), p = propOfJob(j), b = balOf(j.id), inv = invOf(j.id);
     var sh = sheetOf(j.id), tr = trOf(j.id);
     var ls = linesOf(j.id);
     var needsRecord = NEEDS_RECORD.indexOf(j.type) >= 0;
@@ -1587,6 +1982,8 @@ function jobModal(jobId) {
     h += '<div class="card" style="margin:.9rem 0 0;background:var(--brand-w);border:none">' +
       "<b>" + esc(ls.map(function (l) { return l.service_name; }).join(" + ") || j.type) + "</b>" +
       '<div class="dates">' + (b ? money(b.total) + " with tax" +
+         
+        (inv && Number(inv.discount) > 0 ? " · after " + money(inv.discount) + " off" : "") +
         (Number(b.collected) > 0 ? " · " + money(b.collected) + " in · " + money(b.balance) + " owed" : "") : "") +
       "</div></div>";
 
@@ -1630,6 +2027,18 @@ if (isOffice()) {
         "</div>";
        
       h += '<div class="acts" style="margin-top:.5rem">' +
+        '<span class="minilbl">About</span>' +
+        [0.5, 1, 1.5, 2, 3, 4].map(function (n) {
+          return Number(j.duration_hours) === n
+            ? '<span class="pill ok">' + hoursText(n) + "</span>"
+            : '<button class="act" data-hours="' + n + '" type="button">' + hoursText(n) + "</button>";
+        }).join("") +
+        (j.duration_hours != null
+          ? '<button class="act" data-hours="" type="button">Don\u2019t say</button>'
+          : '<span class="empty" style="font-size:.72rem">nobody has said</span>') +
+        "</div>";
+       
+      h += '<div class="acts" style="margin-top:.5rem">' +
         '<span class="minilbl">Runs</span>' +
         [1, 2, 3, 4, 5].map(function (n) {
           return runsDays(j) === n
@@ -1658,6 +2067,11 @@ if (isOffice()) {
           "</div>";
     }
 
+h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size:.86rem">' +
+      "What happened here before</summary>" +
+      '<div id="hxBox" style="margin-top:.5rem"><p class="empty">Reading the file\u2026</p></div>' +
+      "</details>";
+
     h += '<div class="acts" style="margin-top:.7rem">' +
       (S.menu.length ? '<button class="act" data-act="addsvc">＋ Add a service</button>' : "") +
       (needsRecord ? '<button class="act' + (tr ? "" : " go") + '" data-act="record">' +
@@ -1666,7 +2080,17 @@ if (isOffice()) {
         (sh && sh.signed_on ? "Signed ✓" : "Get a signature") + "</button>" +
       (b && Number(b.balance) > 0.004
         ? '<button class="act go" data-act="pay">Take payment</button>'
+        : b && b.voided_at ? '<span class="pill warn">voided — never owed</span>'
+        : b && b.charge_withdrawn ? '<span class="pill warn">charge withdrawn</span>'
         : '<span class="pill ok">nothing owed</span>') +
+       
+      (isOffice() && b && !b.voided_at && !b.charge_withdrawn
+        ? '<button class="act" data-act="notowed">Not asking for it…</button>'
+        : "") +
+       
+      (canDiscount(inv)
+        ? '<button class="act" data-act="disc">' + discountLabel(inv) + "</button>"
+        : "") +
       "</div>";
 
 if (tr) {
@@ -1696,6 +2120,7 @@ if (tr) {
          "</div>";
 
     openModal(h);
+    houseHistory(j.customer_id, "hxBox");
     var A = function (n) { return $("modal").querySelector('[data-act="' + n + '"]'); };
     A("close").addEventListener("click", closeModal);
     A("sheet").addEventListener("click", function () { closeModal(); go("sheet", j.id); });
@@ -1704,6 +2129,13 @@ if (tr) {
     if (A("record")) A("record").addEventListener("click", function () { recordModal(j); });
     if (A("pay")) A("pay").addEventListener("click", function () {
       var inv = invOf(j.id); if (inv) payModal(inv.id);
+    });
+    if (A("notowed")) A("notowed").addEventListener("click", function () {
+      var invNo = invOf(j.id);
+      if (invNo) notOwedModal(invNo.id, function () { jobModal(j.id); });
+    });
+    if (A("disc")) A("disc").addEventListener("click", function () {
+      discountModal(inv.id, function () { jobModal(j.id); });
     });
     if (A("complete")) A("complete").addEventListener("click", function () { completeJob(j, this); });
     if (A("rain")) A("rain").addEventListener("click", function () { rainOut(j, this); });
@@ -1716,6 +2148,12 @@ if (tr) {
     $("modal").querySelectorAll("[data-win]").forEach(function (b) {
       b.addEventListener("click", function () {
         moveJob(j, { scheduled_window: b.getAttribute("data-win") }, b);
+      });
+    });
+    $("modal").querySelectorAll("[data-hours]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var raw = b.getAttribute("data-hours");
+        moveJob(j, { duration_hours: raw === "" ? null : Number(raw) }, b);
       });
     });
     $("modal").querySelectorAll("[data-slots]").forEach(function (b) {
@@ -2274,12 +2712,19 @@ var svcList = S.services.slice().sort(function (x, y) {
     });
     var svcNames = withHistory(svcList.map(function (s) { return s.name; }), ticked.svc);
 
-var h = '<div class="acts noprint" style="margin-bottom:.8rem">' +
+document.body.classList.add("hassheetbar");
+    var h = '<div class="sheetbar noprint">' +
       '<button class="act" id="back" type="button">‹ Back</button>' +
       '<button class="act go" id="prt" type="button">🖨 Print</button>' +
       '<button class="act" id="cmp" type="button">' +
       (compact ? "Printing: just what was used" : "Printing: every box, like the pad") +
-      "</button></div>";
+      "</button>" +
+       
+      (isOffice()
+        ? '<button class="act" id="plan" type="button">' +
+          (planOf(jobId) ? "Service Plan ✓" : "Service Plan") + "</button>"
+        : "") +
+      "</div>";
 
     if (locked)
       h += '<div class="msg warn noprint"><b>This sheet is closed for changes.</b><br>' +
@@ -2447,6 +2892,12 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
       (b && Number(b.balance) > 0.004
         ? '<div class="tot">Still Owed</div><div class="tot">' + money(b.balance) + "</div>" : "") +
       "</div></div>" +
+       
+      (canDiscount(inv)
+        ? '<div class="acts noprint" style="justify-content:flex-end">' +
+          '<button class="act" id="discBtn" type="button">' + discountLabel(inv) +
+          "</button></div>"
+        : "") +
       '<div style="display:flex;justify-content:space-between;gap:1rem;margin-top:.4rem;font-size:.7rem">' +
       "<div>• <b>Payment due at time of service</b> •</div>" +
       "<div>Credit Cards Accepted &nbsp;<b>MC · VISA · DISCOVER</b></div></div>" +
@@ -2478,7 +2929,11 @@ wireSnaps(jobId);
       localStorage.setItem("ut_sheet_compact", compact ? "0" : "1");
       renderSheet(jobId);
     });
+    if ($("plan")) $("plan").addEventListener("click", function () { go("plan", jobId); });
     if ($("unlock")) $("unlock").addEventListener("click", function () { unlockModal(); });
+    if ($("discBtn")) $("discBtn").addEventListener("click", function () {
+      discountModal(inv.id, function () { closeModal(); renderSheet(jobId); });
+    });
 
     app.querySelectorAll("[data-tick]").forEach(function (el) {
       var fire = function () { tick(el.getAttribute("data-tick"), el.getAttribute("data-val"), el); };
@@ -2770,6 +3225,215 @@ function matFound(chemRows) {
     }
   }
 
+function renderPlan(jobId) {
+    var j = jobById(jobId);
+    if (!j) { app.innerHTML = '<div class="msg bad">That job isn’t here.</div>'; return; }
+    if (!isOffice()) {
+      app.innerHTML = '<div class="msg bad">The service plan is written in the office.</div>';
+      return;
+    }
+    var c = custById(j.customer_id) || {}, p = propOfJob(j) || {};
+    var co = S.settings || {}, inv = invOf(j.id), w = planOf(j.id);
+    var tr = trOf(j.id), chems = tr ? chemsOf(tr.id) : [];
+
+var pd = function (iso) {
+      if (!iso) return "";
+      return new Date(iso + "T12:00:00").toLocaleDateString(undefined,
+        { month: "long", day: "numeric", year: "numeric" });
+    };
+     
+    var bare = function (n) {
+      return n == null || n === "" ? "" : money(n).replace("$", "");
+    };
+     
+    var treatedOn = (tr && tr.date) || j.completed_date || j.scheduled_date || "";
+     
+    var one = chems.length === 1 ? chems[0] : null;
+
+    var fromShown  = w ? (w.start_date || "") : treatedOn;
+    var thruShown  = w ? (w.expiration_date || "") : "";
+    var sumShown   = w ? (w.contract_sum == null ? "" : bare(w.contract_sum))
+                       : (inv ? bare(inv.total) : "");
+     
+    var annShown   = w && Number(w.annual_amount) > 0 ? bare(w.annual_amount) : "";
+    var feeShown   = w && w.transfer_fee != null ? bare(w.transfer_fee) : "";
+    var graphShown = w ? (w.graph_date || "") : "";
+    var descShown  = w ? (w.property_description || "") : "";
+    var galShown   = w ? (w.gallons || "") : (one ? (one.amount || "") : "");
+    var pctShown   = w ? (w.concentration || "") : (one ? (one.percent || "") : "");
+
+    document.body.classList.add("hassheetbar");
+    var h = '<div class="sheetbar noprint">' +
+      '<button class="act" id="plBack" type="button">‹ Back to the sheet</button>' +
+      '<button class="act go" id="plPrt" type="button">🖨 Print</button></div>';
+
+var fld = function (id, lbl, ctl) {
+      return '<div><label for="' + id + '">' + lbl + "</label>" + ctl + "</div>";
+    };
+    var inp = function (id, val, hint, kind) {
+      return '<input id="' + id + '" class="f" type="' + (kind || "text") +
+        '" value="' + esc(val) + '"' + (hint ? ' placeholder="' + hint + '"' : "") + ">";
+    };
+    h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      '<div style="display:grid;gap:0 1rem;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr))">' +
+      fld("plFrom",  "Effective from",         inp("plFrom", fromShown, "", "date")) +
+      fld("plThru",  "Through",                inp("plThru", thruShown, "", "date")) +
+      fld("plSum",   "For the sum of",         inp("plSum", sumShown, "0.00")) +
+      fld("plAnn",   "Annual extension",       inp("plAnn", annShown, "per year")) +
+      fld("plFee",   "Transfer fee",           inp("plFee", feeShown, "0.00")) +
+      fld("plGraph", "Inspection graph dated", inp("plGraph", graphShown, "", "date")) +
+      fld("plGal",   "Treated with",           inp("plGal", galShown, "90 gal")) +
+      fld("plPct",   "At",                     inp("plPct", pctShown, "0.06")) +
+      "</div>" +
+      fld("plDesc", "Description of property",
+          inp("plDesc", descShown, "single family dwelling")) +
+       
+      (chems.length
+        ? '<div class="note"><b>On the record:</b> ' +
+          esc(chems.map(function (r) {
+            return r.product_name + (r.percent ? " " + r.percent + "%" : "") +
+                   (r.amount ? " " + r.amount : "");
+          }).join(" · ")) + "</div>"
+        : "") +
+      '<div class="row"><button class="primary" id="plSave" type="button">' +
+      (w ? "Save the plan" : "Record this plan") + "</button></div></div>";
+
+var pline = function (v) {
+      return '<div class="pline">' + (v ? esc(v) : "&nbsp;") + "</div>";
+    };
+    var pblank = function (v, wid) {
+      return '<span class="pblank"' + (wid ? ' style="min-width:' + wid + '"' : "") + ">" +
+        (v ? esc(v) : "&nbsp;") + "</span>";
+    };
+    h += '<div class="sheet plan">' +
+      '<div class="plic">LIC. #' + esc(co.business_licence || "") + "</div>" +
+      '<div style="text-align:center">' +
+      '<div class="co" style="font-size:2.1rem;letter-spacing:.05em">' +
+        esc(co.company_short || "UNITED") + "</div>" +
+      '<div style="font-size:.86rem;font-weight:600">' + esc(co.company_name || "") + "</div>" +
+      '<div style="font-size:.7rem">' +
+        esc(addrLine(co.street, co.city, co.state, co.zip)) +
+        (co.phone ? " • " + esc(co.phone) : "") + "</div></div>" +
+      '<div class="pttl">TERMITE SERVICE PLAN</div>';
+
+    h += '<div class="pfld"><div class="plbl">Purchaser</div>' +
+      pline((c.first_name ? c.first_name + " " : "") + (c.name || "")) + "</div>" +
+      '<div class="pfld"><div class="plbl">Property address</div>' +
+      pline(p.address || "") + "</div>" +
+      '<div class="pfld"><div class="plbl">City &nbsp; State &nbsp; Zip</div>' +
+      '<div class="pcity">' + pline(p.city || co.city || "") +
+      pline(co.state || "NJ") + pline(p.zip || "") + "</div></div>" +
+      '<div class="pfld"><div class="plbl">Description of property</div>' +
+      pline(descShown) + "</div>" +
+      '<div style="text-align:right;font-size:.6rem;color:#333;margin:-.35rem 0 .6rem">' +
+      "(See Graph)</div>";
+
+    h += "<p>Effective " + pblank(pd(fromShown), "9rem") + " through " +
+      pblank(pd(thruShown), "9rem") + ", for the sum of $" + pblank(sumShown, "6rem") +
+      " <b>United</b> shall service the identified premises against the attack of " +
+      "subterranean termites.</p>" +
+      "<p><b>United</b> will extend service annually for $" + pblank(annShown, "5rem") +
+      " per year payable on or before the end of the previous service period. " +
+      "<b>United</b> reserves the right to revise the annual extension charge. This " +
+      "annual service can be renewed for a period of three years (Warranty Period). " +
+      "This applies to Full Treatment only.</p>" +
+      "<p>Purchaser agrees to arrange for additional service and adjustment to the " +
+      "annual extension charge in the event of additions or alterations to the " +
+      "premises.</p>" +
+      "<p><b>United Termite and Pest Control</b> is not responsible in any way for " +
+      "any wood damage caused by either prior to or subsequent to termite or " +
+      "carpenter ant treatment.</p>" +
+      '<p class="psml">ANY ADDITIONAL PROVISIONS ATTACHED HERETO AND THE FORM ' +
+      "INDICATING EXISTING DAMAGE ARE PART OF THIS AGREEMENT. THE INSPECTION GRAPH " +
+      "DATED " + pblank(pd(graphShown), "8rem") + " IS A PART OF THIS AGREEMENT.</p>" +
+      '<p class="pcaps">YOU, THE BUYER, MAY CANCEL THIS TRANSACTION AT ANY TIME ' +
+      "PRIOR TO MIDNIGHT OF THE THIRD BUSINESS DAY AFTER THE DATE OF THIS " +
+      "TRANSACTION. IDENTIFIED PREMISES TREATED WITH GAL. " + pblank(galShown, "5rem") +
+      " " + pblank(pctShown, "4rem") + "%.</p>";
+
+h += '<div class="psigs">' +
+      '<div><div class="sigline"></div><div class="plbl">Purchaser</div></div>' +
+      '<div><div class="sigline"></div><div class="plbl">Date</div></div>' +
+      '<div><div class="sigline"></div><div class="plbl">United representative</div></div>' +
+      '<div><div class="sigline"></div><div class="plbl">Date</div></div></div>';
+
+    h += '<p class="psml">The inspection performed by the company has been made on ' +
+      "the basis of visible evidence readily accessible areas.</p>" +
+      '<p class="psml">The inspection is not a structural report and it is ' +
+      "recommended that the purchaser or any interested party should retain the " +
+      "services of a building / construction expert to render a written structural " +
+      "report.</p>" +
+      '<p class="psml">The plan is transferable to new owners upon written ' +
+      "notification of the approval of <b>United</b> and payment of a transfer fee " +
+      "of $" + pblank(feeShown, "5rem") + ".</p></div>";
+
+    app.innerHTML = h;
+
+$("plBack").addEventListener("click", function () { go("sheet", jobId); });
+    $("plSave").addEventListener("click", async function () {
+      if (await savePlan(this)) renderPlan(jobId);
+    });
+    $("plPrt").addEventListener("click", async function () {
+       
+      if (planDirty() && !(await savePlan(null))) return;
+      renderPlan(jobId);
+      setTimeout(function () { window.print(); }, 60);
+    });
+
+    function val(id) { return $(id).value.trim(); }
+    function planDirty() {
+       
+      if (!w) return !!(val("plFrom") && val("plThru"));
+      return val("plFrom") !== fromShown || val("plThru") !== thruShown ||
+             val("plSum") !== sumShown || val("plAnn") !== annShown ||
+             val("plFee") !== feeShown || val("plGraph") !== graphShown ||
+             val("plDesc") !== descShown || val("plGal") !== galShown ||
+             val("plPct") !== pctShown;
+    }
+    async function savePlan(btn) {
+      var from = val("plFrom"), thru = val("plThru");
+      if (!from) { toast("When does the plan start?"); return false; }
+      if (!thru) { toast("When does it run through? Nothing here works that out."); return false; }
+      if (thru <= from) { toast("The through date has to be after the start date."); return false; }
+      var sum = val("plSum"), ann = val("plAnn"), fee = val("plFee");
+      if (sum && readMoney(sum) == null) { toast("The sum doesn’t read as money."); return false; }
+      if (ann && readMoney(ann) == null) { toast("The annual extension doesn’t read as money."); return false; }
+      if (fee && readMoney(fee) == null) { toast("The transfer fee doesn’t read as money."); return false; }
+      var patch = {
+        start_date: from,
+        expiration_date: thru,
+        annual_amount: ann ? readMoney(ann) : 0,
+        contract_sum: sum ? readMoney(sum) : null,
+        transfer_fee: fee ? readMoney(fee) : null,
+        graph_date: val("plGraph") || null,
+        property_description: val("plDesc") || null,
+         
+        gallons: val("plGal") || null,
+        concentration: val("plPct") || null
+      };
+      if (btn) btn.disabled = true;
+      try {
+        var r;
+        if (w) r = await sb.from("warranties").update(patch).eq("id", w.id).select();
+        else {
+          patch.customer_id = j.customer_id;
+          patch.property_id = p.id || null;
+          patch.type = "termite";
+           
+          patch.origin_job_id = j.id;
+          patch.ft_code = p.ft_code || null;
+          r = await sb.from("warranties").insert(patch).select();
+        }
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That didn’t save. A service plan is the office’s to write.");
+        await reload(["warranties", "attention"]);
+        toast(w ? "Plan saved" : "Plan recorded");
+        return true;
+      } catch (e) { toast(e.message); if (btn) btn.disabled = false; return false; }
+    }
+  }
+
 function priceFromBook(svc, prop) {
     var ex = S.priceEx.filter(function (x) {
       return x.service_id === svc.id && x.area_code === (prop || {}).area_code;
@@ -2844,17 +3508,24 @@ function parseCSV(text) {
 var IMP_FIELDS = [
     ["name",        "Last name / how it is filed", true,  ["last", "name", "customer", "lastname"]],
     ["first_name",  "How they are addressed",      false, ["first", "salutation", "title", "firstname"]],
-    ["address",     "Service address",             false, ["address", "street", "service", "addr"]],
+     
+    ["street_no",   "Street number, if it has its own column", false, ["#", "streetno", "street no", "house no"]],
+     
+    ["address",     "Service address",             false, ["address", "street", "addr"]],
     ["city",        "Town",                        false, ["city", "town"]],
+    ["state",       "State",                       false, ["state", "st"]],
     ["zip",         "Zip",                         false, ["zip", "postal", "zipcode"]],
     ["phone",       "Phone",                       false, ["phone", "tel", "home", "mobile", "cell"]],
     ["email",       "Email",                       false, ["email", "e-mail"]],
     ["bill_to",     "Billing address, if different", false, ["bill", "mailing", "owner"]],
     ["bill_city",   "Billing town, if different",  false, ["billcity", "billtown", "ownercity", "mailcity"]],
     ["bill_zip",    "Billing zip, if different",   false, ["billzip", "ownerzip", "mailzip"]],
-    ["area_code",   "Community code",              false, ["area", "community", "code", "dev"]],
+    ["area_code",   "Community",                   false, ["area", "community", "code", "dev"]],
     ["month_box",   "Month box",                   false, ["month", "box", "mo"]],
-    ["ft_code",     "FT code",                     false, ["ft", "full treat", "termite"]],
+     
+    ["service",     "Service column — kept word for word", false, ["service", "svc"]],
+    ["ft_code",     "FT code, if it has its own column", false, ["ft", "full treat", "termite"]],
+    ["year_started","Year they became a customer", false, ["year", "since", "started"]],
     ["notes",       "Notes",                       false, ["note", "comment", "memo", "remark"]]
   ];
 
@@ -2867,6 +3538,54 @@ var IMP_FIELDS = [
       for (var j = 0; j < h.length; j++) if (h[j].indexOf(want[w2]) >= 0) return j;
     }
     return -1;
+  }
+
+var AREA_ALIASES = {
+    "HH": "HH", "HOLIDAY HEIGHTS": "HH",
+    "HCS": "HCS", "HC8": "HCS", "HOLIDAY CITY SOUTH": "HCS",
+    "HCW": "HCW", "HOLIDAY CITY WEST": "HCW",
+    "HCC": "HCC", "HOLIDAY CITY CAREFREE": "HCC", "CAREFREE": "HCC",
+    "HCB": "HCB", "HOLIDAY CITY BERKELEY": "HCB", "BERKELEY": "HCB",
+    "SRPN": "SRPN", "SILVER RIDGE PARK NORTH": "SRPN",
+    "SRPW": "SRPW", "SILVER RIDGE PARK WEST": "SRPW",
+    "SRPE": "SRPE", "SILVER RIDGE PARK EAST": "SRPE",
+    "WESTERLY": "Westerly", "SILVER RIDGE PARK WESTERLY": "Westerly",
+    "SIL": "Sil", "SILVERTON": "Sil",
+    "MAN": "Man", "MANCHESTER": "Man",
+    "BRICK": "Brick", "BRICKTOWN": "Brick",
+    "FR": "FR", "FORKED RIVER": "FR",
+    "TR": "TR", "TOMS RIVER": "TR"
+  };
+
+function areaKey(raw) {
+    return String(raw || "").toUpperCase().replace(/[^A-Z0-9 ]/g, " ")
+      .replace(/\s+/g, " ").trim();
+  }
+
+function normalizeArea(raw, codes, names) {
+    var k = areaKey(raw);
+    if (!k) return null;
+    var guess = AREA_ALIASES[k];
+    if (guess && codes[areaKey(guess)]) return codes[areaKey(guess)];
+    if (codes[k]) return codes[k];
+    if (names[k]) return names[k];
+    return null;
+  }
+
+function parseFtCode(svc) {
+    var m = /(^|[^A-Za-z])FT\s*["”'’]?\s*(\d{2})(?:\s*(\d+)\s*y(?:rs?|ears?)?)?/i
+      .exec(String(svc || ""));
+    if (!m) return null;
+    var term = m[3] ? parseInt(m[3], 10) : 0;
+    return 'FT" ' + m[2] + (term ? " " + term + " yr" + (term > 1 ? "s" : "") : "");
+  }
+
+function parseYear(raw) {
+    var s = String(raw || "").replace(/[^0-9]/g, "");
+    if (s.length !== 2 && s.length !== 4) return null;
+    var y = parseInt(s, 10);
+    if (s.length === 2) y = y > 50 ? 1900 + y : 2000 + y;
+    return y >= 1970 && y <= new Date().getFullYear() + 1 ? y : null;
   }
 
   function renderImport() {
@@ -2940,15 +3659,37 @@ if (IMP.report) {
         '<div class="bucket"><div class="lbl">Already here</div>' +
         '<div class="amt">' + r.dupe.length + "</div>" +
         '<div class="what">same name and address — skipped</div></div>' +
+        (r.skip.length
+          ? '<div class="bucket"><div class="lbl">Not customers</div>' +
+            '<div class="amt">' + r.skip.length + "</div>" +
+            '<div class="what">vendors and the placeholder — left out</div></div>'
+          : "") +
         (r.bad.length
           ? '<div class="bucket owed"><div class="lbl">Cannot be used</div>' +
             '<div class="amt">' + r.bad.length + "</div>" +
             '<div class="what">no name in the row</div></div>'
           : "") + "</div>" +
+         
+        (r.gap.length
+          ? '<div class="msg bad">' + r.gap.map(esc).join("<br>") + "</div>"
+          : "") +
         (r.warn.length
           ? '<div class="msg warn">' + r.warn.slice(0, 8).map(esc).join("<br>") +
             (r.warn.length > 8 ? "<br>… and " + (r.warn.length - 8) + " more" : "") + "</div>"
           : '<div class="msg good">Nothing looks odd.</div>') +
+        (r.skip.length
+          ? '<p class="note">Left out as not customers — read these, in case one is real:</p>' +
+            '<div class="picklist" style="max-height:8rem">' +
+            r.skip.slice(0, 20).map(function (s) {
+              return '<div class="pickrow" style="cursor:default"><span><b>' + esc(s.name) +
+                "</b> · line " + s.line + '</span><span class="pickamt">' + esc(s.why) +
+                "</span></div>";
+            }).join("") +
+            (r.skip.length > 20
+              ? '<div class="pickrow" style="cursor:default"><span>… and ' +
+                (r.skip.length - 20) + " more</span></div>"
+              : "") + "</div>"
+          : "") +
         '<p class="note">First few, as they would be filed:</p>' +
         '<div class="picklist" style="max-height:12rem">' +
         r.create.slice(0, 6).map(function (c) {
@@ -2956,6 +3697,8 @@ if (IMP.report) {
             esc(c.address || "no address") +
             (c.area_code ? " · " + esc(c.area_code) : "") +
             (c.month_box ? " · " + MONTHS[c.month_box - 1] : "") +
+            (c.ft_code ? " · ★ " + esc(c.ft_code) : "") +
+            (c.year_started ? " · since " + c.year_started : "") +
             '</span><span class="pickamt">' + esc(c.phone || "") + "</span></div>";
         }).join("") + "</div>" +
         (r.create.length
@@ -2995,6 +3738,11 @@ if (IMP.report) {
     IMP_FIELDS.forEach(function (f) { map[f[0]] = guessColumn(head, f[3]); });
      
     if (map.bill_to === map.address) map.bill_to = -1;
+     
+    if (map.service === map.address) map.service = -1;
+    if (map.street_no === map.address) map.street_no = -1;
+    if (map.state === map.name || map.state === map.first_name ||
+        map.state === map.address) map.state = -1;
     IMP = { head: head, rows: rows.slice(1), map: map, source: source, report: null };
     IMP.report = checkImport();
     renderImport();
@@ -3002,18 +3750,44 @@ if (IMP.report) {
   }
 
 function checkImport() {
-    var m = IMP.map, out = { create: [], dupe: [], bad: [], warn: [] };
+    var m = IMP.map, out = { create: [], dupe: [], bad: [], skip: [], gap: [], warn: [] };
     var pick = function (row, key) {
       var i = m[key];
       return i >= 0 && i < row.length ? String(row[i]).trim() : "";
     };
-    var codes = {}; S.areas.forEach(function (a) { codes[a.code.toLowerCase()] = a.code; });
+     
+    var codes = {}, names = {};
+    S.areas.forEach(function (a) {
+      codes[areaKey(a.code)] = a.code;
+      if (a.name) names[areaKey(a.name)] = a.code;
+    });
     var here = {};
     S.customers.forEach(function (c) {
       var addr = (propsOf(c.id)[0] || {}).address || c.address || "";
       here[(c.name + "|" + addr).toLowerCase().replace(/\s+/g, " ")] = 1;
     });
-    var seen = {}, badArea = {}, badMonth = 0;
+    var seen = {}, badArea = {}, badMonth = 0, badYear = 0;
+
+var NEEDED = [
+      ["address",      "No column is the service address, so every row is filed " +
+                       "under “(no street address yet)”."],
+      ["month_box",    "No column is the month box. Nobody lands on a calling month " +
+                       "— and the vendor rows cannot be found either, because the " +
+                       "“zzzz” they are sorted with is in that column."],
+      ["area_code",    "No column is the community. That is the calling order, the " +
+                       "folder-dot colour and the price exceptions, for all of them."],
+      ["service",      "No column is the SERVICE wording. The FT codes are read out " +
+                       "of it, so no folder gets its ★, and nothing keeps what the " +
+                       "list actually said."],
+      ["year_started", "No column is the year they became a customer."],
+      ["phone",        "No column is the phone number."],
+      ["city",         "No column is the town."],
+      ["zip",          "No column is the zip."]
+    ];
+    NEEDED.forEach(function (need) {
+      if (m[need[0]] < 0)
+        out.gap.push(need[1] + " Point it at one above if the file has it.");
+    });
 
 var ragged = [];
     IMP.rows.forEach(function (row, n) {
@@ -3028,17 +3802,33 @@ var ragged = [];
     IMP.rows.forEach(function (row, n) {
       var name = pick(row, "name");
       if (!name) { out.bad.push(n + 2); return; }
-      var addr = pick(row, "address");
+      var rawM = pick(row, "month_box");
+
+if (/z{2,}/i.test(rawM) || /^z{3,}/i.test(name)) {
+        out.skip.push({ line: n + 2, name: name,
+          why: "sorted to the bottom with “zzzz” — a vendor or a magazine" });
+        return;
+      }
+      if (name.toUpperCase() === "AAA") {
+        out.skip.push({ line: n + 2, name: name,
+          why: "the placeholder at the top of the list" });
+        return;
+      }
+
+var no = pick(row, "street_no"), addr = pick(row, "address");
+      if (no && (!addr || addr.toLowerCase().indexOf(no.toLowerCase() + " ") !== 0))
+        addr = addr ? no + " " + addr : no;
+
       var key = (name + "|" + addr).toLowerCase().replace(/\s+/g, " ");
       if (here[key]) { out.dupe.push(name); return; }
       if (seen[key]) { out.dupe.push(name); return; }
       seen[key] = 1;
 
       var rawArea = pick(row, "area_code");
-      var area = rawArea ? codes[rawArea.toLowerCase()] || null : null;
+      var area = normalizeArea(rawArea, codes, names);
       if (rawArea && !area) badArea[rawArea] = (badArea[rawArea] || 0) + 1;
 
-      var mb = null, rawM = pick(row, "month_box");
+      var mb = null;
       if (rawM) {
         var num = parseInt(rawM.replace(/[^0-9]/g, ""), 10);
         if (!num) {
@@ -3048,16 +3838,24 @@ var ragged = [];
         }
         if (num >= 1 && num <= 12) mb = num; else badMonth++;
       }
-      var ft = pick(row, "ft_code");
+
+var svc = pick(row, "service");
+      var ft = pick(row, "ft_code") || parseFtCode(svc);
+      var rawY = pick(row, "year_started"), yr = parseYear(rawY);
+      if (rawY && !yr) badYear++;
+
       out.create.push({
         name: name,
         first_name: pick(row, "first_name") || null,
         address: addr || null,
         city: pick(row, "city") || null,
+        state: pick(row, "state") || null,
         zip: pick(row, "zip") || null,
         phone: pick(row, "phone") || null,
         email: pick(row, "email") || null,
         notes: pick(row, "notes") || null,
+        legacy_service_text: svc || null,
+        year_started: yr,
         bill_to: pick(row, "bill_to") || null,
         bill_city: pick(row, "bill_city") || null,
         bill_zip: pick(row, "bill_zip") || null,
@@ -3069,12 +3867,16 @@ var ragged = [];
     });
 
     Object.keys(badArea).forEach(function (k) {
-      out.warn.push('No community with the code "' + k + '" — ' +
+      out.warn.push('Nothing matches the community "' + k + '" — ' +
         plural(badArea[k], "row") + " will come in without one. Add it under " +
         "Communities first if it should exist.");
     });
     if (badMonth) out.warn.push(plural(badMonth, "row") + " has a month box that is not " +
       "a month — it will come in without one.");
+    if (badYear) out.warn.push(plural(badYear, "row") + " has a year that is not a year " +
+      "— it comes in without one rather than with a made-up one.");
+    if (out.skip.length) out.warn.push(plural(out.skip.length, "row") + " is not a " +
+      "customer and will be left out. They are listed below — read them.");
     if (out.bad.length) out.warn.push(plural(out.bad.length, "row") +
       " has no name and will be left out (line " + out.bad.slice(0, 5).join(", ") +
       (out.bad.length > 5 ? "…" : "") + ").");
@@ -3093,9 +3895,12 @@ async function runImport(btn) {
       for (var start = 0; start < list.length; start += PAGE_N) {
         var batch = list.slice(start, start + PAGE_N);
         var ins = await sb.from("customers").insert(batch.map(function (c) {
+           
           return { name: c.name, first_name: c.first_name, address: c.address,
-                   city: c.city, zip: c.zip, phone: c.phone, email: c.email,
-                   notes: c.notes, created_by: S.me.id };
+                   city: c.city, state: c.state || "NJ", zip: c.zip,
+                   phone: c.phone, email: c.email, notes: c.notes,
+                   legacy_service_text: c.legacy_service_text,
+                   year_started: c.year_started, created_by: S.me.id };
         })).select();
         if (ins.error) throw explain(ins.error);
         var made = ins.data || [];
@@ -3147,7 +3952,8 @@ var patch = [];
         (failed.length
           ? " Some extras did not save: " + esc(failed.join("; ")) +
             " — the people are all here, check the Communities and month boxes."
-          : " Communities, month boxes and FT codes all came with them."));
+          : " Communities, month boxes, FT codes, the year they started and the " +
+            "SERVICE column’s own wording all came with them."));
       toast(plural(done, "customer") + " brought in");
       IMP = null;
     } catch (e) {
@@ -3283,7 +4089,17 @@ function youCard() {
       '<input id="pw2" class="f" type="password" autocomplete="new-password">' +
       '<div class="acts"><button class="act go" id="pwGo" type="button">Change it</button></div>' +
       '<p class="note">Eight characters or more. It changes straight away and you stay ' +
-      "signed in on this device.</p></div>";
+      "signed in on this device.</p>" +
+       
+      (isAdmin()
+        ? '<h2 style="margin-top:1.1rem">The book, as a file</h2>' +
+          '<p class="note">Everything you can see, in one file, for your own records. ' +
+          "It holds real customer information — keep it somewhere safe, and never " +
+          "put it in a shared folder or a repository.</p>" +
+          '<div class="acts"><button class="act" id="expGo" type="button">' +
+          "⬇ Export the book</button></div>"
+        : "") +
+      "</div>";
   }
 
 function areasCard() {
@@ -3394,11 +4210,15 @@ function workCard() {
           "<b>changing this does not touch a sheet already written</b>") +
       row("Appointments per technician per window", "slots_per_tech_per_window",
           st.slots_per_tech_per_window, "5", "a guide, not a limit") +
-      row("Morning starts", "am_from", st.am_from, "8") +
-      row("Morning ends", "am_to", st.am_to, "12") +
+      row("Morning starts", "am_from", st.am_from, "9") +
+      row("Morning ends", "am_to", st.am_to, "13",
+          "1pm. The windows overlap by an hour on purpose") +
       row("Afternoon starts", "pm_from", st.pm_from, "12") +
-      row("Afternoon ends", "pm_to", st.pm_to, "16") +
+      row("Afternoon ends", "pm_to", st.pm_to, "17", "5pm") +
       row("Follow up a quiet quote after", "followup_days", st.followup_days, "14", "days") +
+       
+      row("Pre-scheduled spray, each visit", "program_price", st.program_price, "65",
+          "the programme rate — <b>every schedule letter is priced from it</b>") +
       "</table>" +
       '<p class="note">Every invoice keeps the tax rate it was raised with, so a change ' +
       "here only affects work booked from now on.</p></div>";
@@ -3770,7 +4590,7 @@ var BOOK_ODD = [];
     closeModal();
     if (BOOK_ODD.length) {
        
-      toast(plural(BOOK_ODD.length, "bundled service") + " went in without a price and " +
+      toast(plural(BOOK_ODD.length, "extra") + " went in without a price and " +
         "was left off: " + BOOK_ODD.slice(0, 3).map(function (o) {
           return o.name + " " + fmtShort(o.when) + " (" + o.label + ")";
         }).join(", ") + (BOOK_ODD.length > 3 ? " and more" : "") +
@@ -3834,13 +4654,38 @@ var exList = [];
     vs.forEach(function (v) {
       (v.extras || []).forEach(function (lbl) { exList.push(lbl); });
     });
+    var exRows = [], exSum = 0, exKnown = true;
+    (function () {
+      var seen = {}, order = [];
+      vs.forEach(function (v) {
+        (v.extras || []).forEach(function (lbl) {
+          var e = S.progExtras.filter(function (x) {
+            return x.customer_id === r.customer_id && Number(x.month) === Number(v.month) &&
+                   x.label === lbl;
+          })[0];
+          if (!e || e.price == null) { exKnown = false; return; }
+          if (!seen[lbl]) { seen[lbl] = { label: lbl, n: 0, total: 0 }; order.push(lbl); }
+          seen[lbl].n += 1;
+          seen[lbl].total += Number(e.price);
+          exSum += Number(e.price);
+        });
+      });
+      exRows = order.map(function (k) { return seen[k]; });
+    })();
+    if (Math.abs(exSum - Number(r.extras_total || 0)) > 0.005) exKnown = false;
 
     var moneyTbl = '<div class="lmoney">' +
       "<div>" + plural(r.visits, "service") + " at " + money(r.per_visit) + "</div>" +
       '<div class="r">' + money(r.sprays_total) + "</div>" +
       (Number(r.extras_total) > 0
-        ? "<div>" + esc(exList.join(", ")) + "</div>" +
-          '<div class="r">' + money(r.extras_total) + "</div>"
+        ? (exKnown && exRows.length
+            ? exRows.map(function (x) {
+                return "<div>" + esc(x.label) +
+                  (x.n > 1 ? " \u00d7 " + x.n : "") + "</div>" +
+                  '<div class="r">' + money(x.total) + "</div>";
+              }).join("")
+            : "<div>" + esc(exList.join(", ")) + "</div>" +
+              '<div class="r">' + money(r.extras_total) + "</div>")
         : "") +
       "<div>Subtotal</div><div class=\"r\">" + money(r.subtotal) + "</div>" +
       "<div>NJ sales tax</div><div class=\"r\">" + money(r.tax) + "</div>" +
@@ -3922,19 +4767,148 @@ function addrLine(street, city, state, zip) {
     $("lpOne").addEventListener("click", function () { closeModal(); printLetters([r]); });
   }
 
-function printLetters(rows) {
-    if (!rows.length) { toast("Nothing is ready to print."); return; }
-    $("letterPrint").innerHTML = rows.map(letterHTML).join("");
-    document.body.classList.add("letters");
+function printBlock(holderId, cls, html) {
+    $(holderId).innerHTML = html;
+    document.body.classList.add(cls);
     var off = function () {
-      document.body.classList.remove("letters");
-      $("letterPrint").innerHTML = "";
+      document.body.classList.remove(cls);
+      $(holderId).innerHTML = "";
       window.removeEventListener("afterprint", off);
     };
     window.addEventListener("afterprint", off);
     window.print();
      
-    setTimeout(function () { if (document.body.classList.contains("letters")) off(); }, 2000);
+    setTimeout(function () { if (document.body.classList.contains(cls)) off(); }, 2000);
+  }
+  function printLetters(rows) {
+    if (!rows.length) { toast("Nothing is ready to print."); return; }
+    printBlock("letterPrint", "letters", rows.map(letterHTML).join(""));
+  }
+
+var LABELS_PER_SHEET = 30;               
+
+function labelYear(m) {
+    var now = new Date();
+    return Number(m) >= now.getMonth() + 1 ? now.getFullYear() : now.getFullYear() + 1;
+  }
+  var addrKey = function (s) {
+    return String(s == null ? "" : s).toLowerCase().replace(/[^a-z0-9]/g, "");
+  };
+   
+  function mailTo(c, p) {
+    if (c.address && addrKey(c.address) !== addrKey(p.address))
+      return { street: c.address, city: c.city, state: c.state, zip: c.zip };
+    return { street: p.address || c.address, city: p.city || c.city,
+             state: c.state, zip: p.zip || c.zip };
+  }
+
+  function labelRows(m) {
+    var onProgram = {}, out = [];
+    S.programs.forEach(function (p) { onProgram[p.customer_id] = 1; });
+    S.properties.forEach(function (p) {
+      if (Number(p.month_box) !== Number(m)) return;
+      var c = custById(p.customer_id);
+       
+      if (!c || c.inactive_reason) return;
+       
+      if (onProgram[p.customer_id] && p.is_primary) return;
+      out.push({ p: p, c: c, ar: areaOf(p.area_code), to: mailTo(c, p) });
+    });
+     
+    return out.sort(function (a, b) {
+      return ((a.ar ? Number(a.ar.route_order) : 999) - (b.ar ? Number(b.ar.route_order) : 999)) ||
+        String(a.p.area_code || "").localeCompare(String(b.p.area_code || "")) ||
+        String(a.p.address || "").localeCompare(String(b.p.address || ""));
+    });
+  }
+
+  function labelHTML(r) {
+     
+    return '<div class="lcell"><div class="lnm">' +
+      esc((r.c.first_name ? r.c.first_name + " " : "") + r.c.name) + "</div><div>" +
+      esc(r.to.street) + "</div><div>" +
+      esc(addrLine("", r.to.city, r.to.state || "NJ", r.to.zip)) + "</div></div>";
+  }
+   
+  function labelSheets(rows) {
+    var out = "", i;
+    for (i = 0; i < rows.length; i += LABELS_PER_SHEET) {
+      out += '<div class="lsheet"><div class="lgrid">' +
+        rows.slice(i, i + LABELS_PER_SHEET).map(labelHTML).join("") + "</div></div>";
+    }
+    return out;
+  }
+  function printLabels(rows) {
+    printBlock("labelPrint", "labels", labelSheets(rows));
+  }
+
+  function labelsModal() {
+    var pick = nextBox().m;
+    openModal("<h3>Postcard labels</h3>" +
+      '<p class="note">One label per address in the month box, in route order, ' +
+      "on Avery 5160 — three across, ten down.</p>" +
+      '<label for="lbMonth">Which month box</label>' +
+      '<select id="lbMonth" class="f">' +
+      MONTHS.map(function (mm, i) {
+        return '<option value="' + (i + 1) + '"' + (i + 1 === pick ? " selected" : "") +
+          ">" + esc(mm) + " " + labelYear(i + 1) + "</option>";
+      }).join("") + "</select>" +
+      '<div id="lbWhat" class="msg">Counting…</div>' +
+      '<p class="note">In the print dialog set <b>Margins</b> to <b>None</b> and ' +
+      "<b>Scale</b> to <b>100%</b>. The first time, print one sheet on plain paper " +
+      "and hold it against a sheet of labels.</p>" +
+      '<div class="row"><button class="primary" id="lbGo" type="button">Print them</button>' +
+      '<button class="act" id="lbNo" type="button">Cancel</button></div>');
+    $("lbNo").addEventListener("click", closeModal);
+
+    var say = async function () {
+      var m = Number($("lbMonth").value), yy = labelYear(m);
+      var rows = labelRows(m);
+      var ok = rows.filter(function (r) { return !!r.to.street; });
+      var noAddr = rows.filter(function (r) { return !r.to.street; });
+       
+      var q = await sb.from("reminders_sent").select("*")
+        .eq("related_table", "label_batch").eq("batch_year", yy).eq("batch_month", m)
+        .order("sent_at", { ascending: false }).limit(1);
+      var prev = (q.error ? [] : (q.data || []))[0] || null;
+      $("lbWhat").className = ok.length ? "msg" : "msg warn";
+      $("lbWhat").innerHTML = "<b>" +
+        (ok.length === 1 ? "1 label" : ok.length + " labels") + "</b> for " +
+        esc(MONTHS[m - 1]) + " " + yy + " — " +
+        (ok.length ? plural(Math.ceil(ok.length / LABELS_PER_SHEET), "sheet")
+                   : "nothing to print") +
+        (noAddr.length
+          ? "<br><b>" + plural(noAddr.length, "address", "addresses") +
+            " with nowhere to post to</b>: " +
+            esc(noAddr.map(function (r) { return r.c.name; }).join(", ")) +
+            " — put an address on the record and print again."
+          : "") +
+        (prev ? "<br>Last printed " + esc(fmtDate(String(prev.sent_at).slice(0, 10))) + "." : "");
+      $("lbGo").disabled = !ok.length;
+    };
+    $("lbMonth").addEventListener("change", say);
+    say();
+
+    $("lbGo").addEventListener("click", async function () {
+      var m = Number($("lbMonth").value), yy = labelYear(m);
+      var rows = labelRows(m).filter(function (r) { return !!r.to.street; });
+      if (!rows.length) { toast("Nothing to print for that month."); return; }
+      this.disabled = true;
+       
+      var warn = "";
+      var rs = await sb.from("reminders_sent").insert({
+        related_table: "label_batch", related_id: null, customer_id: null,
+        batch_year: yy, batch_month: m, channel: "printed", sent_by: S.me.id,
+        body_snapshot: "Postcard labels for " + MONTHS[m - 1] + " " + yy + " — " +
+          rows.length + (rows.length === 1 ? " address" : " addresses") +
+          ", route order, Avery 5160"
+      }).select();
+      if (rs.error) warn = " The batch wasn’t recorded: " + explain(rs.error).message;
+      closeModal();
+      printLabels(rows);
+      toast(rows.length + (rows.length === 1 ? " label" : " labels") + " for " +
+            MONTHS[m - 1] + " " + yy + "." + warn);
+    });
   }
 
 async function pickDateModal(v) {
@@ -4266,7 +5240,7 @@ function quoteOf(id) {
         esc(fmtDate(q.sent_date || String(q.created_at).slice(0, 10))) + "</td></tr>" +
       "<tr><td>Last spoken to</td><td class=\"r\">" +
         (q.last_contact_date ? esc(fmtDate(q.last_contact_date)) : "never") + "</td></tr>" +
-      "<tr><td>" + (sold ? "Sold" : "Quiet for") + "</td><td class=\"r\">" +
+      "<tr><td>" + (sold ? "Accepted" : "Quiet for") + "</td><td class=\"r\">" +
         plural(days, "day") + (sold ? " ago" : "") + "</td></tr>" +
       (q.next_followup_date
         ? "<tr><td>Try again</td><td class=\"r\">" + esc(fmtDate(q.next_followup_date)) + "</td></tr>"
@@ -4274,7 +5248,7 @@ function quoteOf(id) {
       "<tr><td>Where it stands</td><td class=\"r\"><b>" + esc(q.status) + "</b></td></tr>" +
       "</table>" +
       (sold && !q.job_id
-        ? '<div class="msg warn">Sold, and not in the book yet.</div>'
+        ? '<div class="msg warn">Accepted, and not in the book yet.</div>'
         : "") +
       (q.notes ? '<p class="note">' + esc(q.notes) + "</p>" : "") +
       '<div class="row">' +
@@ -4360,12 +5334,12 @@ function rangThemModal(q) {
   }
 
 function saidYesModal(q) {
-    openModal("<h3>Sold — " + money(q.amount) + "</h3>" +
+    openModal("<h3>Accepted — " + money(q.amount) + "</h3>" +
       '<p class="note">It stays on the dashboard until the work is in the book.</p>' +
       '<label for="yaAmt">The agreed price</label>' +
       '<input id="yaAmt" class="f r" inputmode="decimal" value="' + esc(q.amount) + '">' +
-      '<div class="row"><button class="primary" id="yaGo" type="button">Sold, book it now</button>' +
-      '<button class="act" id="yaLater" type="button">Sold, book it later</button>' +
+      '<div class="row"><button class="primary" id="yaGo" type="button">Accepted, book it now</button>' +
+      '<button class="act" id="yaLater" type="button">Accepted, book it later</button>' +
       '<button class="act" id="yaNo" type="button">Cancel</button></div>');
     $("yaNo").addEventListener("click", closeModal);
     var save = async function (thenBook, btn) {
@@ -4386,7 +5360,7 @@ function saidYesModal(q) {
                       note: (q.description ? q.description + " — " : "") +
                             "estimate " + money(amt) + " agreed" });
         } else {
-          toast("Sold. It stays on the dashboard until it is in the book.");
+          toast("Accepted. It stays on the dashboard until it is in the book.");
           render();
         }
       } catch (e) { toast(e.message); btn.disabled = false; }
@@ -4399,7 +5373,7 @@ var NO_REASONS = ["Too expensive", "Went with somebody else", "Not doing it now"
                     "Sold the house", "No longer answering"];
 
   function saidNoModal(q) {
-    openModal("<h3>Lost — " + money(q.amount) + "</h3>" +
+    openModal("<h3>Refused — " + money(q.amount) + "</h3>" +
       '<label>Why</label><div class="picklist">' +
       NO_REASONS.map(function (r) {
         return '<button type="button" class="pickrow" data-why="' + esc(r) + '"><span>' +
@@ -4420,17 +5394,17 @@ var NO_REASONS = ["Too expensive", "Went with somebody else", "Not doing it now"
       try {
         var r = await sb.from("quotes").update({
           status: "declined", last_contact_date: todayISO(), next_followup_date: null,
-          notes: (q.notes ? q.notes + "\n" : "") + fmtDate(todayISO()) + " — lost: " + why
+          notes: (q.notes ? q.notes + "\n" : "") + fmtDate(todayISO()) + " — refused: " + why
         }).eq("id", q.id).select();
         if (r.error) throw explain(r.error);
         await sb.from("notes").insert({
           related_table: "customers", related_id: q.customer_id, user_id: S.me.id,
-          kind: "call", text: "Estimate " + money(q.amount) + " lost — " + why
+          kind: "call", text: "Estimate " + money(q.amount) + " refused — " + why
         });
         await reload(["attention"]);
         S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
         closeModal();
-        toast("Recorded as lost.");
+        toast("Recorded as refused.");
         render();
       } catch (e) { toast(e.message); this.disabled = false; }
     });
@@ -4479,6 +5453,579 @@ function newQuoteModal(cid) {
         await reload(["attention"]);
         closeModal();
         toast("Estimate recorded — " + money(amt) + " for " + what);
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
+var EVAL_MODES = ["Contract", "Service", "Evaluation"];    
+   
+  var EVAL_SERVICES = [
+    ["Foundation Vents", "Crawl Space Clean Out", "Vapor Barrier", "Insulation Removal",
+     "Floor Insulation", "Pipe Insulation", "Side Wall Insulation", "Dehumidifier"],
+    ["Fungicide Treatment", "Termite Treatment", "General Pest Control Service", "Sanitizer",
+     "Deodorizer", "Rodent Treatment", "Dryer Vent", "Waterproofing"]
+  ];
+   
+  var EVAL_ROWS = ["Foundation Vents", "Floor Insulation", "Pipe Insulation",
+    "Side Wall Insulation", "Mold-Like Substance", "Termite Activity", "Animal Activity",
+    "Insect Activity", "Dryer Vent", "Air Leaks", "Vapor Barrier", "Damp Rot", "Moisture",
+    "Odor", "Water Seepage", "Dehumidifier",
+    "Outside Relative Humidity", "Outside Temperature", "Outside Dew Point",
+    "Inside Relative Humidity", "Inside Temperature", "Inside Dew Point",
+    "Wood Moisture Content"];
+  var EVAL_READINGS = EVAL_ROWS.slice(16);
+  var EVAL_STATES = [["S", "Satisfied"], ["U", "Unsatisfied"], ["NA", "N/A"]];
+
+  var evalOf  = function (id) { return S.evals.filter(function (e) { return e.id === id; })[0] || null; };
+  var evalsOf = function (cid) {
+    return S.evals.filter(function (e) { return e.customer_id === cid; })
+      .sort(function (a, b) { return String(b.form_date || "").localeCompare(String(a.form_date || "")); });
+  };
+   
+  async function readEvals() {
+    if (!isOffice()) return;
+    S.evals = await many(sb.from("evaluations").select("*").order("form_date", { ascending: false }));
+  }
+
+function cancelNotice() {
+    var co = S.settings || {};
+    var to = [co.company_name, addrLine(co.street, co.city, co.state, co.zip)]
+      .filter(function (x) { return x; }).join(", ");
+    return '<div class="hicnotice"><b>NOTICE TO THE BUYER — YOUR RIGHT TO CANCEL.</b> ' +
+      "You may cancel this contract at any time before midnight of the third business day " +
+      "after receiving a copy of it. To cancel, mail or deliver a signed, dated written " +
+      "notice stating that you are cancelling, addressed to " + esc(to) + ". If you cancel " +
+      "within that time, any payments made will be returned. " + esc(co.company_name || "") +
+      " is registered with the New Jersey Division of Consumer Affairs as a home improvement " +
+      "contractor, registration number " +
+      (co.nj_contractor ? "<b>" + esc(co.nj_contractor) + "</b>" : "____________") +
+      ". This contract sets out the total price above and the dates the work will start and " +
+      "finish. Any change must be agreed in writing by both of us.</div>";
+  }
+
+  function renderEval(id) {
+    var ev = evalOf(id);
+    if (!ev) { app.innerHTML = '<div class="msg bad">That form isn’t here.</div>'; return; }
+    var c = custById(ev.customer_id) || {};
+    var p = S.properties.filter(function (x) { return x.id === ev.property_id; })[0] ||
+            propsOf(ev.customer_id)[0] || {};
+    var co = S.settings || {};
+    var bill = ev.billing || {}, svcs = ev.services || {}, list = ev.checklist || {};
+    var contract = ev.mode === "Contract";
+    var q = ev.quote_id ? quoteOf(ev.quote_id) : null;
+     
+    var live = !ev.signed_on && !ev.voided_at;
+    var sub = Number(ev.subtotal) || 0, tot = Number(ev.total) || 0;
+    var pct = ((Number(ev.tax_rate) || 0) * 100).toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
+    var picked = Object.keys(svcs);
+    var noDates = contract && (!ev.start_date || !ev.finish_date);
+
+    function tickbox(attr, val, on, label) {
+      return '<div class="box' + (live ? "" : " dead") + '"' +
+        (live ? " " + attr + '="' + esc(val) + '" role="checkbox" aria-checked="' +
+                (on ? "true" : "false") + '" tabindex="0"' : ' data-shut="1"') +
+        ">" + chkBox(on) + "<span>" + (label || esc(val)) + "</span></div>";
+    }
+    function billRow(label, key, ph) {
+      return '<div class="rs-line" style="border:none"><span style="white-space:nowrap">' +
+        label + "</span>" + (live
+          ? '<input class="fline" data-ebill="' + key + '" style="flex:1" placeholder="' +
+            esc(ph || "") + '" value="' + esc(bill[key] || "") + '">'
+          : '<span class="fld" style="flex:1">' + esc(bill[key] || "") + "</span>") + "</div>";
+    }
+
+document.body.classList.add("hassheetbar");
+    var h = '<div class="sheetbar noprint">' +
+      '<button class="act" id="evBack" type="button">‹ Back</button>' +
+      '<button class="act go" id="evPrt" type="button">🖨 Print</button>' +
+      (live ? '<button class="act" id="evSign" type="button">Signature</button>' : "") +
+      (ev.voided_at ? "" : '<button class="act" id="evVoid" type="button">Void it</button>') +
+      "</div>";
+
+    if (ev.voided_at)
+      h += '<div class="msg bad noprint"><b>Voided.</b> ' + esc(ev.void_reason || "") +
+        " — " + esc(new Date(ev.voided_at).toLocaleString()) + ". It stays on the folder " +
+        "because a contract is never deleted. Start a fresh form for the right figures.</div>";
+    else if (ev.signed_on)
+      h += '<div class="msg noprint"><b>Signed on ' + esc(ev.signed_on) + ".</b> " +
+        "The grand total is fixed at the " + esc(pct) + "% it was signed at. " +
+        "A signed form is not reopened — if it is wrong, void it and do a fresh one.</div>";
+    else if (noDates)
+      h += '<div class="msg warn noprint"><b>A contract needs both dates.</b> ' +
+        "Fill in when the work starts and when it will be finished — in New Jersey a home " +
+        "improvement contract carries both, and the database will not take a signature " +
+        "without them.</div>";
+    if (contract && !co.nj_contractor)
+      h += '<div class="msg warn noprint">There is no <b>NJ contractor registration number</b> ' +
+        "in Settings, so it prints as a blank line on the contract that names it. " +
+        (isAdmin() ? "Put it in under Settings before this goes out."
+                   : "An admin can put it in under Settings.") + "</div>";
+
+h += '<div class="sheet"><div class="hdr">' +
+      '<div><div class="co">' + esc(co.company_short || "UNITED") + "</div>" +
+      '<div style="font-size:.62rem">' + esc(co.company_name || "") + "</div>" +
+      '<div style="font-size:.62rem">' +
+      esc(addrLine(co.street, co.city, co.state, co.zip)) + "</div></div>" +
+      '<div style="text-align:right"><div style="font-weight:700;font-size:.7rem">' +
+      "Mold, Moisture &amp; Pest Control</div>" +
+      '<div style="font-style:italic;font-size:.7rem">“Crawlspace Experts”</div>' +
+      "<b>" + esc(co.phone || "") + "</b>" +
+      '<div style="font-size:.62rem">' + esc(co.website || "") + "</div></div></div>";
+
+h += '<div class="rs-sec" style="border-top:none;margin-top:.2rem">' +
+      '<div style="display:flex;gap:.9rem;align-items:center;flex-wrap:wrap">' +
+      '<div style="font-size:.76rem">Date: ' +
+      (live ? '<input class="fline" id="evDate" type="date" style="width:9.5rem" value="' +
+              esc(ev.form_date || "") + '">'
+            : "<b>" + esc(ev.form_date || "") + "</b>") + "</div>" +
+      '<div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-left:auto">' +
+      EVAL_MODES.map(function (m) {
+        return tickbox("data-emode", m, ev.mode === m, "<b>" + esc(m) + "</b>");
+      }).join("") + "</div></div></div>";
+
+h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1fr 1fr;gap:0 .9rem">' +
+      '<div><div class="rs-band">Customer information</div>' +
+      '<div style="font-size:.76rem;line-height:1.65">' +
+        "<div>Name: <b>" + esc((c.first_name ? c.first_name + " " : "") + (c.name || "")) + "</b></div>" +
+        "<div>Address: <b>" + esc(p.address || "") + "</b></div>" +
+        "<div>City: <b>" + esc(p.city || co.city || "") + "</b> &nbsp; State: " +
+        esc(co.state || "NJ") + " &nbsp; Zip: " + esc(p.zip || "") + "</div>" +
+        "<div>Home Phone: " + esc(c.phone || "") + "</div>" +
+        (c.email ? "<div>Email: " + esc(c.email) + "</div>" : "") +
+      "</div></div>" +
+      '<div><div class="rs-band">Billing information</div>' +
+      '<div class="noprint" style="font-size:.6rem;color:#777;margin-bottom:.1rem">' +
+      "Leave it empty when the bill goes to the customer above.</div>" +
+      billRow("Name:", "name") + billRow("Address:", "address") +
+      billRow("City:", "city") + billRow("Zip:", "zip") +
+      billRow("Phone:", "phone") + billRow("Email:", "email") +
+      "</div></div></div>";
+
+h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1.6fr 1fr;gap:0 .9rem">' +
+      '<div><div class="rs-band">Recommended services</div>' +
+      '<div class="fcols" style="grid-template-columns:1fr 1fr">' +
+      EVAL_SERVICES.map(function (col) {
+        return "<div>" + col.map(function (sv) {
+          return tickbox("data-esvc", sv, svcs[sv] !== undefined);
+        }).join("") + "</div>";
+      }).join("") + "</div>" +
+      (picked.length
+        ? '<div style="margin-top:.35rem;border-top:1px solid #ccc;padding-top:.25rem">' +
+          (live
+            ? '<div class="noprint" style="font-size:.63rem;color:#777">Type each price. ' +
+              "Untick above to take one off.</div>"
+            : "") +
+          picked.map(function (k) {
+            return '<div class="rs-line"><span>' + esc(k) + "</span>" + (live
+              ? '<input class="fcell" data-eprice="' + esc(k) + '" inputmode="decimal" ' +
+                'style="width:6rem;text-align:right" value="' + esc(svcs[k]) + '">'
+              : '<span class="num">' + money(svcs[k]) + "</span>") + "</div>";
+          }).join("") + "</div>"
+        : '<div class="noprint" style="font-size:.63rem;color:#777;margin-top:.3rem">' +
+          "Tick what you are recommending — each one comes down here for its price.</div>") +
+      "</div>" +
+      '<div><div class="rs-band">Payment summary</div>' +
+      '<div class="money" style="margin:.4rem 0 0;max-width:none">' +
+      "<div>Subtotal</div><div>" + money(sub) + "</div>" +
+      "<div>Tax (" + esc(pct) + "%)</div><div>" + money(r2(tot - sub)) + "</div>" +
+      '<div class="tot">Grand Total</div><div class="tot">' + money(tot) + "</div></div>" +
+      (ev.signed_on
+        ? '<div style="font-size:.58rem;text-align:center;margin-top:.2rem">Signed ' +
+          esc(ev.signed_on) + " — fixed at the rate it was signed at.</div>"
+        : '<div class="noprint" style="font-size:.58rem;color:#777;text-align:center;margin-top:.2rem">' +
+          "Tax at " + esc(pct) + "%, the rate this form was started on.</div>") +
+      '<div style="text-align:center;font-size:.68rem;margin-top:.35rem;font-weight:700">' +
+      "• Credit Cards Accepted •</div></div></div>" +
+      '<div style="margin-top:.45rem;font-size:.76rem;text-align:center">' +
+      (live
+        ? '<input class="fline" id="evWarr" inputmode="numeric" style="width:3rem;display:inline-block;' +
+          'text-align:center" value="' + esc(ev.warranty_years == null ? "" : ev.warranty_years) + '">'
+        : "<b>" + esc(ev.warranty_years == null ? "____" : ev.warranty_years) + "</b>") +
+      " Year warranty on Vapor Barrier / Mold Remediation</div></div>";
+
+if (contract)
+      h += '<div class="rs-sec"><div class="rs-band">The work and the dates</div>' +
+        '<div class="fcols three">' +
+        '<div><div class="lbl2">Work to start</div>' +
+        (live ? '<input class="fline" id="evStart" type="date" value="' + esc(ev.start_date || "") + '">'
+              : '<div class="fld"><b>' + esc(ev.start_date || "") + "</b></div>") + "</div>" +
+        '<div><div class="lbl2">Work to be finished</div>' +
+        (live ? '<input class="fline" id="evFinish" type="date" value="' + esc(ev.finish_date || "") + '">'
+              : '<div class="fld"><b>' + esc(ev.finish_date || "") + "</b></div>") + "</div>" +
+        '<div><div class="lbl2">Date of this contract</div>' +
+        '<div class="fld"><b>' + esc(ev.form_date || "") + "</b></div></div></div>" +
+        cancelNotice() + "</div>";
+
+h += '<div class="rs-sec"><div class="rs-band">Crawl space evaluation</div>' +
+      '<div class="evalwrap"><table class="evaltable"><tr><th style="text-align:left">Item</th>' +
+      EVAL_STATES.map(function (s) { return "<th>" + s[1] + "</th>"; }).join("") +
+      '<th style="text-align:left">Comments</th></tr>' +
+      EVAL_ROWS.map(function (row) {
+        var rr = list[row] || {};
+        var reading = EVAL_READINGS.indexOf(row) >= 0;
+        return '<tr><td class="evalrow">' + esc(row) + "</td>" +
+          EVAL_STATES.map(function (s) {
+            return '<td class="evalcell"' +
+              (live ? ' data-erow="' + esc(row) + '" data-est="' + s[0] +
+                      '" role="checkbox" aria-checked="' + (rr.state === s[0] ? "true" : "false") +
+                      '" tabindex="0" aria-label="' + esc(row) + " " + s[1] + '"' : "") +
+              ">" + chkBox(rr.state === s[0]) + "</td>";
+          }).join("") +
+          "<td>" + (live
+            ? '<input class="fline" data-ecmt="' + esc(row) + '" placeholder="' +
+              (reading ? "reading" : "") + '" value="' + esc(rr.comment || "") + '">'
+            : '<span class="fld">' + esc(rr.comment || "") + "</span>") + "</td></tr>";
+      }).join("") + "</table></div></div>";
+
+h += '<div class="rs-sec"><div style="display:flex;justify-content:space-between;' +
+      'gap:1rem;align-items:flex-end;flex-wrap:wrap">' +
+      '<div style="font-size:.58rem;color:#555;line-height:1.5">' +
+      "<div>DEP APPLICATOR #" + esc(co.dep_applicator || "") + "</div>" +
+      "<div>NJ CONTRACTOR #" + esc(co.nj_contractor || "") + "</div>" +
+      "<div>BUSINESS # " + esc(co.business_licence || "") + "</div></div>" +
+      '<div style="text-align:center;min-width:12rem">' +
+      (ev.signed_on
+        ? sigSVG(ev.signature, 200) +
+          '<div style="font-size:.58rem">Customer Signature · ' + esc(ev.signed_on) + "</div>"
+        : '<div class="sigline"></div><div style="font-size:.58rem">Customer Signature</div>') +
+      "</div></div></div>";
+
+    h += '<div class="foot"><span>' + esc(co.company_name || "") + "</span>" +
+      "<span>" + esc(co.phone || "") + "</span></div></div>";
+
+if (!ev.voided_at)
+      h += '<div class="msg noprint" style="margin-top:.8rem">' +
+        (q
+          ? "On the estimates list at " + money(q.amount) + " — <b>" + esc(q.status) + "</b>." +
+            (q.status === "accepted" && !q.job_id ? " Not in the book yet." : "")
+          : ev.quote_id
+            ? "The estimate this was tied to has been voided."
+            : sub > 0
+              ? "This is not on the estimates list, so nothing will chase it. " +
+                '<button class="act" id="evQuote" type="button">Put it on the estimates list</button>'
+              : "It goes on the estimates list once it has a price.") + "</div>";
+
+    app.innerHTML = h;
+
+$("evBack").addEventListener("click", function () { go("customers"); });
+    $("evPrt").addEventListener("click", function () {
+       
+      renderEval(id);
+      setTimeout(function () { window.print(); }, 60);
+    });
+    if ($("evSign")) $("evSign").addEventListener("click", function () { signEvalModal(evalOf(id)); });
+    if ($("evVoid")) $("evVoid").addEventListener("click", function () { voidEvalModal(evalOf(id)); });
+    if ($("evQuote")) $("evQuote").addEventListener("click", function () {
+      evalWrite(this, function () { return raiseEvalQuote(evalOf(id)); });
+    });
+
+    app.querySelectorAll("[data-emode],[data-esvc],[data-erow]").forEach(function (el) {
+      var fire = function () {
+        if (el.hasAttribute("data-emode")) return evalWrite(el, function () {
+          return saveEval({ mode: el.getAttribute("data-emode") });
+        });
+        if (el.hasAttribute("data-esvc")) return evalWrite(el, function () {
+          return toggleService(el.getAttribute("data-esvc"));
+        });
+        return evalWrite(el, function () {
+          return tickRow(el.getAttribute("data-erow"), el.getAttribute("data-est"));
+        });
+      };
+      el.addEventListener("click", fire);
+      el.addEventListener("keydown", function (e) {
+        if (e.key === " " || e.key === "Enter") { e.preventDefault(); fire(); }
+      });
+    });
+
+evalField("evDate", function (v) { return { form_date: v || null }; });
+    evalField("evStart", function (v) { return { start_date: v || null }; });
+    evalField("evFinish", function (v) { return { finish_date: v || null }; });
+    evalField("evWarr", function (v) {
+      var n = parseInt(String(v).replace(/[^0-9]/g, ""), 10);
+      return { warranty_years: isNaN(n) ? null : n };
+    });
+    app.querySelectorAll("[data-ebill]").forEach(function (el) {
+      el.addEventListener("change", function () {
+        evalWrite(null, function () {
+          var b = {}, cur = (evalOf(id) || {}).billing || {};
+          Object.keys(cur).forEach(function (k) { b[k] = cur[k]; });
+          b[el.getAttribute("data-ebill")] = el.value.trim();
+          return saveEval({ billing: b });
+        });
+      });
+    });
+    app.querySelectorAll("[data-ecmt]").forEach(function (el) {
+      el.addEventListener("change", function () {
+        evalWrite(null, function () {
+          return patchRow(el.getAttribute("data-ecmt"), { comment: el.value.trim() });
+        });
+      });
+    });
+    app.querySelectorAll("[data-eprice]").forEach(function (el) {
+      el.addEventListener("change", function () {
+        var name = el.getAttribute("data-eprice"), typed = el.value;
+        evalWrite(null, function () {
+          var n = readMoney(typed);
+          if (n == null) throw new Error("“" + typed + "” isn’t a price — type it like 1850.");
+          return setPrice(name, Math.max(0, n));
+        });
+      });
+    });
+
+async function saveEval(patch) {
+      var r = await sb.from("evaluations").update(patch).eq("id", ev.id).select();
+      if (r.error) throw explain(r.error);
+      if (!(r.data || []).length)
+        throw new Error("That didn’t save. A signed form is closed for good — void it and " +
+          "start a fresh one.");
+      return r.data[0];
+    }
+     
+    function nowRow() { return evalOf(ev.id) || ev; }
+    function copyOf(o) {
+      var out = {}; Object.keys(o || {}).forEach(function (k) { out[k] = o[k]; }); return out;
+    }
+    async function toggleService(name) {
+      var cur = copyOf(nowRow().services);
+      if (cur[name] !== undefined) delete cur[name]; else cur[name] = 0;
+      var row = await saveEval({ services: cur });
+      toast(cur[name] === undefined ? name + " taken off" : name + " added — type its price");
+      return syncQuote(row);
+    }
+    async function setPrice(name, n) {
+      var cur = copyOf(nowRow().services);
+      if (cur[name] === undefined) return;
+      cur[name] = n;
+      var row = await saveEval({ services: cur });
+      toast(name + " — " + money(n));
+      return syncQuote(row);
+    }
+    async function patchRow(name, patch) {
+      var cur = copyOf(nowRow().checklist);
+      var was = copyOf(cur[name]);
+      Object.keys(patch).forEach(function (k) { was[k] = patch[k]; });
+      cur[name] = was;
+      await saveEval({ checklist: cur });
+    }
+    function tickRow(name, state) {
+      var cur = (nowRow().checklist || {})[name] || {};
+       
+      return patchRow(name, { state: cur.state === state ? "" : state });
+    }
+     
+    async function syncQuote(row) {
+      if (!row.quote_id) return;
+      var was = quoteOf(row.quote_id);
+      var amt = Number(row.subtotal) || 0;
+      if (was && Math.abs(Number(was.amount) - amt) < 0.005) return;
+      var r = await sb.from("quotes").update({
+        amount: amt, description: Object.keys(row.services || {}).join(", ") || null
+      }).eq("id", row.quote_id).select();
+      if (r.error) throw explain(r.error);
+      S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
+      await reload(["attention"]);
+    }
+    function evalField(elId, toPatch) {
+      var el = $(elId); if (!el) return;
+      el.addEventListener("change", function () {
+        var v = el.value.trim();
+        evalWrite(null, function () { return saveEval(toPatch(v)); });
+      });
+    }
+     
+    function evalWrite(el, work) {
+      if (WRITING) { toast("One at a time — still saving the last one."); return; }
+      WRITING = true;
+      var boxes = app.querySelectorAll("[data-emode],[data-esvc],[data-erow]");
+      boxes.forEach(function (b) { b.style.opacity = ".45"; b.style.pointerEvents = "none"; });
+      if (el) el.style.opacity = ".9";
+      return Promise.resolve().then(work)
+        .then(readEvals)
+        .then(function () { WRITING = false; renderEval(id); })
+        .catch(function (e) {
+          WRITING = false;
+          boxes.forEach(function (b) { b.style.opacity = ""; b.style.pointerEvents = ""; });
+          toast(e.message);
+        });
+    }
+  }
+
+async function raiseEvalQuote(ev) {
+    if (!ev || ev.quote_id) return;
+    var amt = Number(ev.subtotal) || 0;
+    if (!amt) throw new Error("Give the work a price first.");
+    var r = await sb.from("quotes").insert({
+      customer_id: ev.customer_id, property_id: ev.property_id || null,
+      amount: amt, description: Object.keys(ev.services || {}).join(", ") || "Crawl space work",
+      sent_date: ev.form_date || todayISO(), status: "open", created_by: S.me.id
+    }).select();
+    if (r.error) throw explain(r.error);
+    var q = (r.data || [])[0];
+    var u = await sb.from("evaluations").update({ quote_id: q.id }).eq("id", ev.id).select();
+    if (u.error) throw explain(u.error);
+    S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
+    await reload(["attention"]);
+    toast("On the estimates list — " + money(amt));
+  }
+
+function newEvalModal(cid) {
+    var c = custById(cid); if (!c) return;
+    var ps = propsOf(cid);
+    var open = S.quotes.filter(function (q) {
+      return q.customer_id === cid && (q.status === "open" || q.status === "quiet");
+    });
+    openModal("<h3>Crawl space form for " + esc(c.name) + "</h3>" +
+      '<p class="note">What is down there, what it needs and the price. Ticking ' +
+      "<b>Contract</b> on the form turns the same sheet into the home-improvement " +
+      "contract — that is what makes the work sold.</p>" +
+      (ps.length > 1
+        ? '<label for="neProp">Which address</label><select id="neProp" class="f">' +
+          ps.map(function (p) {
+            return '<option value="' + p.id + '"' + (p.is_primary ? " selected" : "") + ">" +
+              esc(p.address) + "</option>";
+          }).join("") + "</select>"
+        : "") +
+      (open.length
+        ? '<label for="neQuote">Is it for an estimate already on the list?</label>' +
+          '<select id="neQuote" class="f"><option value="">No — this is the first of it</option>' +
+          open.map(function (q) {
+            return '<option value="' + q.id + '">' + money(q.amount) + " · " +
+              esc(q.description || "no description") + "</option>";
+          }).join("") + "</select>"
+        : "") +
+      '<p class="note">A form is voided with a reason, never deleted — it is the contract.</p>' +
+      '<div class="row"><button class="primary" id="neGo" type="button">Start the form</button>' +
+      '<button class="act" id="neNo" type="button">Cancel</button></div>');
+    $("neNo").addEventListener("click", closeModal);
+    $("neGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+         
+        var r = await sb.from("evaluations").insert({
+          customer_id: cid,
+          property_id: ($("neProp") ? $("neProp").value : (ps[0] || {}).id) || null,
+          quote_id: ($("neQuote") && $("neQuote").value) || null,
+          created_by: S.me.id
+        }).select();
+        if (r.error) throw explain(r.error);
+        var row = (r.data || [])[0];
+        await readEvals();
+        closeModal();
+        go("eval", row.id);
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
+function signEvalModal(ev) {
+    if (!ev || ev.signed_on || ev.voided_at) return;
+    var c = custById(ev.customer_id) || {};
+     
+    if (ev.mode === "Contract" && (!ev.start_date || !ev.finish_date)) {
+      var want = [];
+      if (!ev.start_date) want.push("a start date");
+      if (!ev.finish_date) want.push("a finish date");
+      openModal("<h3>The contract needs " + want.join(" and ") + "</h3>" +
+        '<p class="note">A New Jersey home improvement contract says when the work starts and ' +
+        "when it will be finished. Fill both in on the form, then take the signature.</p>" +
+        '<div class="row"><button class="primary" id="scNo" type="button">Back to the form</button></div>');
+      $("scNo").addEventListener("click", closeModal);
+      return;
+    }
+    var isContract = ev.mode === "Contract";
+    openModal("<h3>" + esc(c.name || "Customer") + "’s signature</h3>" +
+      '<p class="note">It prints on the form. <b>Signing closes it for good</b> — there is no ' +
+      "reopening a contract: a signed one that is wrong is voided and done again.</p>" +
+      (isContract
+        ? '<div class="msg">They are signing a home improvement contract for <b>' +
+          money(ev.total) + "</b>, work starting " + esc(ev.start_date) + " and finished by " +
+          esc(ev.finish_date) + ". Their three-day right to cancel is printed on it — " +
+          "<b>they keep a copy</b>, and the three days run from when they get it.</div>"
+        : "") +
+      (!(Number(ev.total) > 0)
+        ? '<div class="msg warn">There is no price on this form yet, so it would be signed ' +
+          "at " + money(0) + ".</div>"
+        : "") +
+      '<canvas class="sig" id="sig" width="600" height="200"></canvas>' +
+      '<div class="acts" style="margin-top:.5rem"><button class="act" id="seClr" type="button">Clear</button></div>' +
+      '<div class="row"><button class="primary" id="seGo" type="button">Save the signature</button>' +
+      '<button class="act" id="seNo" type="button">Back</button></div>');
+    initSig("sig");
+    $("seClr").addEventListener("click", function () { SIG.strokes = []; drawSig(); });
+    $("seNo").addEventListener("click", closeModal);
+    $("seGo").addEventListener("click", async function () {
+      if (!SIG.strokes.filter(function (s) { return s.length >= 4; }).length) {
+        toast("Have them sign in the box first."); return;
+      }
+      this.disabled = true;
+      var saved = false;
+      try {
+        var r = await sb.from("evaluations").update({
+          signature: { w: SIG.cv.width, h: SIG.cv.height,
+                       strokes: SIG.strokes.filter(function (s) { return s.length >= 4; }) },
+          signed_on: todayISO()
+        }).eq("id", ev.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("The database refused the signature. Reload and look at the form again.");
+         
+        saved = true;
+         
+        var chase = "";
+        if (isContract && ev.quote_id) {
+          var qr = await sb.from("quotes").update({
+            status: "accepted", last_contact_date: todayISO(), next_followup_date: null
+          }).eq("id", ev.quote_id).select();
+          if (qr.error || !(qr.data || []).length)
+            chase = " — mark the estimate accepted yourself, that part did not take";
+          else S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
+        }
+        await readEvals();
+        await reload(["attention"]);
+        closeModal();
+        toast((isContract ? "Signed — the contract stands at " + money(ev.total) : "Signed") + chase);
+        renderEval(ev.id);
+      } catch (e) {
+        if (saved) {
+          toast("The signature IS saved — the screen just couldn’t refresh.");
+          closeModal();
+          return;
+        }
+        toast(e.message); this.disabled = false;
+      }
+    });
+  }
+
+function voidEvalModal(ev) {
+    if (!ev || ev.voided_at) return;
+    openModal("<h3>Void this " + esc(String(ev.mode || "form").toLowerCase()) + "?</h3>" +
+      '<p class="note">It stays on the folder, struck through, with your name and the reason ' +
+      "on it. That is the only way one comes off — nobody can delete a contract, an admin " +
+      "included. To correct a signed one, void it and start a fresh form.</p>" +
+      (ev.quote_id
+        ? '<div class="msg">The estimate it is tied to is left as it is — decide that on the ' +
+          "estimate itself.</div>"
+        : "") +
+      '<label for="vdWhy">Why</label>' +
+      '<input id="vdWhy" class="f" placeholder="priced wrong · they changed their mind">' +
+      '<div class="row"><button class="primary" id="vdGo" type="button">Void it</button>' +
+      '<button class="act" id="vdNo" type="button">Leave it</button></div>');
+    $("vdWhy").focus();
+    $("vdNo").addEventListener("click", closeModal);
+    $("vdGo").addEventListener("click", async function () {
+      var why = $("vdWhy").value.trim();
+      if (!why) { toast("Say why — a voided contract with no reason explains nothing."); return; }
+      this.disabled = true;
+      try {
+        var r = await sb.from("evaluations").update({
+          voided_at: new Date().toISOString(), voided_by: S.me.id, void_reason: why
+        }).eq("id", ev.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That didn’t save — reload and try again.");
+        await readEvals();
+        closeModal();
+        toast("Voided");
+        renderEval(ev.id);
       } catch (e) { toast(e.message); this.disabled = false; }
     });
   }
@@ -5210,6 +6757,61 @@ h += '<div class="card"><h2>Materials</h2>' +
     return n ? n + (n === 1 ? " sheet" : " sheets") : "not yet";
   };
 
+var EXPORT_TABLES = [
+    "settings", "profiles", "areas", "service_catalog", "price_exceptions",
+    "pesticide_products", "form_options", "templates",
+    "customers", "properties", "calls", "recalls",
+    "jobs", "job_lines", "job_crew", "job_sheets", "job_photos",
+    "treatment_records", "treatment_chemicals", "wdi_reports", "evaluations",
+    "invoices", "invoice_adjustments", "payments", "payment_reversals",
+    "months_closed", "quotes", "warranties",
+    "programs", "program_extras", "program_overrides", "program_letters",
+    "notes", "reminders_sent", "closed_days", "activity_log"
+  ];
+
+  async function exportBook(btn) {
+    btn.disabled = true;
+    var was = btn.textContent;
+    var out = { exported_at: new Date().toISOString(), exported_by: S.me.name,
+                app_version: "hosted", tables: {}, refused: {} };
+    try {
+      for (var i = 0; i < EXPORT_TABLES.length; i++) {
+        var t = EXPORT_TABLES[i];
+        btn.textContent = "Reading " + t + "… (" + (i + 1) + " of " + EXPORT_TABLES.length + ")";
+         
+        var rows = [], from = 0, bad = null;
+        for (;;) {
+          var r = await sb.from(t).select("*").range(from, from + 999);
+          if (r.error) { bad = r.error.message || String(r.error.code); break; }
+          var got = r.data || [];
+          rows = rows.concat(got);
+          if (got.length < 1000) break;
+          from += 1000;
+        }
+        if (bad) out.refused[t] = bad; else out.tables[t] = rows;
+      }
+      var counted = Object.keys(out.tables).reduce(function (n, k) {
+        return n + out.tables[k].length;
+      }, 0);
+      out.row_count = counted;
+      var blob = new Blob([JSON.stringify(out, null, 1)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "united-termite-book-" + todayISO() + ".json";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+      var missed = Object.keys(out.refused);
+      toast(plural(counted, "row") + " downloaded" +
+            (missed.length ? " — " + plural(missed.length, "table") + " refused, named in the file" : "") +
+            ". Keep it somewhere safe.");
+    } catch (e) {
+      toast(e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = was;
+    }
+  }
+
 var SET_TARGETS = [
     ["data-svc",  "service_catalog",     "id"],
     ["data-prod", "pesticide_products",  "id"],
@@ -5219,7 +6821,7 @@ var SET_TARGETS = [
   ];
   var NUMERIC = ["price", "sort_order", "route_order", "tax_rate",
                  "slots_per_tech_per_window", "am_from", "am_to", "pm_from", "pm_to",
-                 "followup_days", "years_in_business"];
+                 "followup_days", "years_in_business", "program_price"];
 
   function wireLists() {
     app.querySelectorAll("[data-jump]").forEach(function (b) {
@@ -5241,6 +6843,7 @@ var SET_TARGETS = [
         $("pw1").value = ""; $("pw2").value = "";
         toast("Password changed");
       });
+    if ($("expGo")) $("expGo").addEventListener("click", function () { exportBook(this); });
      
     if ($("addArea"))
       $("addArea").addEventListener("click", function () { newAreaModal(); });
@@ -5740,14 +7343,24 @@ if (excluded.length)
         "taken against them.</p>" +
         excluded.map(function (x) {
           var b = balBy[x.j.id];
-          return '<div class="item"><div class="top"><span class="nm">' +
-            esc(who(x.j.customer_id)) + "</span>" +
-            '<span class="pill warn">' + (x.inv.voided_at ? "voided" : "charge withdrawn") + "</span>" +
+          var vd = !!x.inv.voided_at;
+          var got = b ? Number(b.collected) || 0 : 0;
+          var by = personOf(vd ? x.inv.voided_by : x.inv.charge_withdrawn_by);
+          var why = vd ? x.inv.void_reason : x.inv.charge_withdrawn_reason;
+          return '<div class="item' + (vd && got > 0.004 ? " owed" : "") + '">' +
+            '<div class="top"><span class="nm">' + esc(who(x.j.customer_id)) + "</span>" +
+            '<span class="pill warn">' + (vd ? "voided — never owed" : "charge withdrawn") +
+            "</span>" +
             '<span class="amt">' + money(x.inv.total) + "</span></div>" +
             '<div class="why">' + esc(svc(x.j.id)) +
-            (x.inv.void_reason ? " · " + esc(x.inv.void_reason) : "") +
-            (b && Number(b.collected) > 0
-              ? " · <b>" + money(b.collected) + " was collected against it</b>" : "") +
+            (why ? " · " + esc(why) : "") +
+            (by ? " · " + esc(by.name) : "") +
+            (got > 0.004
+              ? (vd
+                  ? " · <b>" + money(got) + " was collected against an invoice that was never " +
+                    "owed</b> — give it back or move it onto the right sheet"
+                  : " · " + money(got) + " was collected and kept")
+              : "") +
             "</div></div>";
         }).join("") + "</div>";
 
@@ -5857,6 +7470,8 @@ var flagged = counted.filter(function (x) { return x.bal && Number(x.bal.balance
             '<div class="acts">' +
               '<button class="act go" data-pay="' + x.inv.id + '" type="button">Record payment</button>' +
               '<button class="act" data-sheet="' + x.j.id + '" type="button">Open the sheet</button>' +
+              '<button class="act" data-notowed="' + x.inv.id +
+                '" type="button">Not asking for it…</button>' +
               (c && c.phone
                 ? '<a class="act" href="tel:' + esc(String(c.phone).replace(/[^0-9+]/g, "")) +
                   '">Call ' + esc(c.phone) + "</a>" : "") +
@@ -5892,6 +7507,29 @@ h += '<div class="card"><h2>Money in (' + inDrawer.length + ")</h2>" +
               "</div></div>";
           }).join("")
         : '<div class="empty">Nothing collected this day.</div>') + "</div>";
+
+if (revs.length)
+      h += '<div class="card"><h2>Given back on this day — ' +
+        money(r2(revs.reduce(function (t, x) { return t + Number(x.amount || 0); }, 0))) +
+        "</h2>" +
+        '<p class="note">Each of these takes money back off what was collected. Undo one only ' +
+        "if it should never have been entered.</p>" +
+        revInfo.map(function (x) {
+          var pp = x.p, said = personOf(x.r.created_by);
+          return '<div class="item"><div class="top">' +
+            '<span class="nm">' + esc(pp ? who(pp.customer_id) : "customer not loaded") + "</span>" +
+            '<span class="pill warn">' + esc(revLabel(x.r.kind)) + "</span>" +
+            '<span class="amt">−' + money(x.r.amount) + "</span></div>" +
+            '<div class="dates">' +
+            (pp
+              ? "against " + money(pp.amount_collected) + " by " + esc(pp.method) +
+                " taken " + esc(fmtDate(String(pp.collected_at).slice(0, 10)))
+              : "the payment behind it is not readable from here") +
+            (said ? " · recorded by " + esc(said.name) : "") + "</div>" +
+            '<div class="why">' + esc(x.r.reason) + "</div>" +
+            '<div class="acts noprint"><button class="act" data-undo="' + x.r.id +
+            '" type="button">Entered by mistake…</button></div></div>';
+        }).join("") + "</div>";
 
 if (openToday.length)
       h += '<div class="card"><h2>On this day’s book, not marked done (' + openToday.length + ")</h2>" +
@@ -5952,6 +7590,16 @@ if ($("cmonth")) $("cmonth").addEventListener("click", function () {
         if (p) issueModal(p, D);
       });
     });
+    app.querySelectorAll("[data-notowed]").forEach(function (b) {
+      b.addEventListener("click", function () { notOwedModal(b.getAttribute("data-notowed")); });
+    });
+    app.querySelectorAll("[data-undo]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var rv = revs.filter(function (x) { return x.id === b.getAttribute("data-undo"); })[0];
+        if (!rv) { toast("That reversal has moved — reload."); return; }
+        undoReversalModal(rv, revPays.filter(function (x) { return x.id === rv.payment_id; })[0] || null);
+      });
+    });
 
 function bankRow(label, rows, total, detail) {
       return '<div class="brow"><div>' + esc(label) +
@@ -5993,6 +7641,33 @@ function bankRow(label, rows, total, detail) {
         '<button class="act go" data-move="' + j.id + '" type="button">Move it</button>' +
         '<button class="act" data-job="' + j.id + '" type="button">Open it</button>' +
         "</div></div>";
+    }
+  }
+
+async function houseHistory(customerId, mount) {
+    var box = $(mount);
+    if (!box) return;
+    try {
+      var rows = await many(sb.rpc("service_history", { p_customer: customerId }));
+      if (!rows.length) {
+        box.innerHTML = '<p class="empty">Nothing on file at this address yet.</p>';
+        return;
+      }
+      box.innerHTML = '<table class="lst"><tr><th>When</th><th>What</th><th>Who</th>' +
+        (isOffice() ? '<th class="r">Charged</th>' : "") + "</tr>" +
+        rows.map(function (r) {
+          var when = r.completed_date || r.scheduled_date;
+          return "<tr><td>" + esc(when ? fmtDate(when) : "not dated") +
+            (r.completed_date ? "" : ' <span class="pill">booked</span>') + "</td>" +
+            "<td>" + esc(r.what || "") + "</td>" +
+            "<td>" + esc(r.who || "\u2014") + "</td>" +
+            (isOffice()
+              ? '<td class="r">' + (r.total == null ? "\u2014" : money(r.total)) + "</td>"
+              : "") + "</tr>";
+        }).join("") + "</table>";
+    } catch (e) {
+       
+      box.innerHTML = '<p class="empty">Couldn\u2019t load the history \u2014 ' + esc(e.message) + "</p>";
     }
   }
 
@@ -6084,6 +7759,18 @@ var REV_KINDS = [
     ["refund", "We gave money back"],
     ["accidental", "It was recorded by mistake"]
   ];
+  var revLabel = function (k) {
+    var m = REV_KINDS.filter(function (x) { return x[0] === k; })[0];
+    return m ? m[1] : k;
+  };
+
+function closedMonthMsg(e) {
+    var m = /closed month \(([^)]+)\)/.exec((e && e.message) || "");
+    if (!m) return null;
+    return m[1] + " is closed, so this cannot be changed. " +
+      (isAdmin() ? "Reopen it on the month screen first — the reopening is recorded."
+                 : "An admin has to reopen the month first.");
+  }
   function issueModal(p, D) {
     var c = custById(p.customer_id);
     openModal("<h3>Payment issue — " + esc(c ? c.name : "") + "</h3>" +
@@ -6105,9 +7792,27 @@ var REV_KINDS = [
       "<b>today</b>, not the day it was taken.</p>" +
       '<label for="rr">Why</label>' +
       '<input id="rr" class="f" placeholder="e.g. returned NSF by the bank">' +
+       
+      '<div id="rvWd" hidden><label class="box" style="margin:.2rem 0 .5rem">' +
+      '<span class="chk on" id="rvWdChk">✓</span>' +
+      "<span>…and we are not asking for it again</span></label>" +
+      '<p class="note" style="margin:-.3rem 0 .75rem">Ticked, the charge is withdrawn: the ' +
+      "work stays on their record and the money does not go back onto what they owe. " +
+      "Unticked, what they owe goes back up by that much and it shows as money owed.</p></div>" +
       '<div class="row"><button class="primary" id="rvGo" type="button">Record it</button>' +
       '<button class="act" id="rvNo" type="button">Cancel</button></div>');
     $("rvNo").addEventListener("click", closeModal);
+    var rvWdShow = function () { $("rvWd").hidden = $("rk").value !== "refund"; };
+    $("rk").addEventListener("change", rvWdShow);
+    rvWdShow();
+    $("rvWd").addEventListener("click", function (e) {
+      var t = e.target.closest("#rvWdChk");
+      if (!t) return;
+      e.preventDefault();
+      var on = !t.classList.contains("on");
+      t.classList.toggle("on", on);
+      t.textContent = on ? "✓" : "";
+    });
     $("rvGo").addEventListener("click", async function () {
       this.disabled = true;
       var done = false;
@@ -6115,7 +7820,8 @@ var REV_KINDS = [
          
         var amt = readMoney($("ra").value);
         var kind = $("rk").value;
-        var kindLabel = (REV_KINDS.filter(function (k) { return k[0] === kind; })[0] || [kind, kind])[1];
+        var kindLabel = revLabel(kind);
+        var wd = kind === "refund" && !!$("rvWdChk") && $("rvWdChk").classList.contains("on");
         var reason = $("rr").value.trim();
         var on = $("rd").value || todayISO();
         if (amt == null || amt <= 0) throw new Error("How much came back?");
@@ -6130,14 +7836,393 @@ var REV_KINDS = [
         if (!(r.data || []).length)
           throw new Error("That didn’t save. If the month is closed, it has to be reopened first.");
         done = true;
+         
+        var wdFail = null;
+        if (kind === "refund" && wd) {
+          var iu = await sb.from("invoices").update({
+            charge_withdrawn: true, charge_withdrawn_at: new Date().toISOString(),
+            charge_withdrawn_by: S.me.id, charge_withdrawn_reason: reason
+          }).eq("id", p.invoice_id).eq("charge_withdrawn", false).select();
+          if (iu.error)
+            wdFail = closedMonthMsg(iu.error) ||
+              (/charge_withdrawn_/.test(iu.error.message || "")
+                ? "withdrawing a charge needs the latest bit of SQL run first."
+                : explain(iu.error).message);
+          else if (!(iu.data || []).length)
+            wdFail = "the invoice did not move — it may be voided or withdrawn already.";
+        }
         await reload(["money", "attention"]);
         closeModal();
-        toast(money(amt) + " — " + kindLabel.toLowerCase() +
-          ". It is back on what the job owes.");
+        toast(wdFail
+          ? money(amt) + " refunded, but the charge is NOT withdrawn: " + wdFail +
+            " Do it on the job."
+          : money(amt) + " — " + kindLabel.toLowerCase() +
+            (kind === "refund" && wd
+              ? ". The charge is withdrawn, so it does not go back on what they owe."
+              : ". It is back on what the job owes."));
         render();
       } catch (e) {
         if (done) { closeModal(); toast("Recorded — the screen couldn’t refresh. Reload to see it."); return; }
         toast(e.message);
+        this.disabled = false;
+      }
+    });
+  }
+
+function canDiscount(inv) {
+    return isOffice() && !!inv && !inv.voided_at && !inv.charge_withdrawn &&
+           Number(inv.subtotal) > 0;
+  }
+   
+  function discountLabel(inv) {
+    return Number(inv.discount) > 0
+      ? "Discount: " + money(inv.discount) + " off"
+      : "Discount…";
+  }
+
+var DISCOUNT_REASONS = ["Goodwill", "They complained", "Coupon",
+                          "Priced too high", "The owner agreed it"];
+
+  async function discountModal(invoiceId, back) {
+    back = back || function () { closeModal(); render(); };
+    var inv = S.invoices.filter(function (i) { return i.id === invoiceId; })[0];
+    if (!inv) { toast("Couldn’t find that invoice — reload."); return; }
+    var bal = S.balances.filter(function (x) { return x.invoice_id === inv.id; })[0] || null;
+    var c = custById(inv.customer_id);
+    var sub = Number(inv.subtotal) || 0;
+    var rate = Number(inv.tax_rate) || 0;
+    var collected = Number(bal ? bal.collected : 0) || 0;
+
+var rows;
+    try {
+      rows = await many(sb.from("invoice_adjustments").select("*")
+        .eq("invoice_id", inv.id).is("removed_at", null).order("created_at"));
+    } catch (e) { toast(e.message); return; }
+    var already = r2(rows.reduce(function (t, a) { return t + (Number(a.amount) || 0); }, 0));
+    var room = r2(sub - already);
+    var hint = "A figure like 45.50, or a percentage like 10% — 10% of " +
+               money(sub) + " is " + money(Math.round(sub * 10) / 100) + ".";
+
+    openModal("<h3>Take money off — " + esc(c ? c.name : "") + "</h3>" +
+      '<p class="note">Service fee <b>' + money(sub) + "</b> before tax" +
+      (already > 0 ? " · " + money(already) + " already off" : "") +
+      (collected > 0 ? " · " + money(collected) + " already in" : "") + "</p>" +
+      (room > 0.004
+        ? '<label for="dcAmt">How much comes off</label>' +
+          '<input id="dcAmt" class="f" inputmode="decimal" placeholder="45.50 or 10%">' +
+          '<div id="dcPrev" class="note" style="margin:-.5rem 0 .75rem">' + hint + "</div>" +
+          '<label for="dcWhy">Why</label>' +
+          '<input id="dcWhy" class="f" placeholder="what you told them">' +
+          '<div class="acts" style="margin:-.4rem 0 .8rem">' +
+          DISCOUNT_REASONS.map(function (w) {
+            return '<button class="act" data-why="' + esc(w) + '" type="button">' +
+              esc(w) + "</button>";
+          }).join("") + "</div>"
+        : '<div class="msg warn">The whole service fee is already off, so there is ' +
+          "nothing left to take." +
+          (already > sub + 0.004
+            ? " The sheet counts only " + money(sub) + " of the " + money(already) +
+              " — a discount cannot be bigger than the work."
+            : "") + "</div>") +
+       
+      rows.map(function (a) {
+        return '<div class="item"><div class="top"><span class="nm">' + esc(a.reason) +
+          '</span><span class="amt">' + money(a.amount) + "</span></div>" +
+          '<div class="dates">' + esc(fmtDate(String(a.created_at).slice(0, 10))) +
+          (personOf(a.created_by) ? " · " + esc(personOf(a.created_by).name) : "") + "</div>" +
+          '<div class="acts"><button class="act" data-off="' + a.id +
+          '" type="button">Put it back on</button></div></div>';
+      }).join("") +
+       
+      (rows.length > 1
+        ? '<p class="note">The sheet prints them as one line — <b>Less ' +
+          esc(inv.discount_reason || "discount") + "</b>.</p>"
+        : "") +
+      '<div class="row">' +
+      (room > 0.004
+        ? '<button class="primary" id="dcGo" type="button">Take it off</button>'
+        : "") +
+      '<button class="act" id="dcNo" type="button">' +
+      (room > 0.004 ? "Cancel" : "Close") + "</button></div>");
+
+    $("dcNo").addEventListener("click", function () { back(); });
+
+if ($("dcAmt")) {
+      var preview = function () {
+        var raw = $("dcAmt").value;
+        var d = readDiscount(raw, sub);
+        if (d == null) {
+          $("dcPrev").innerHTML = raw.replace(/\s/g, "") === ""
+            ? hint
+            : "That is not an amount. Type it like <b>45.50</b>, or <b>10%</b>.";
+          return;
+        }
+        if (d.amount > room + 0.004) {
+          $("dcPrev").innerHTML = "<b>" + money(d.amount) + "</b> is more than the " +
+            money(room) + " left on this sheet.";
+          return;
+        }
+        var net = r2(sub - already - d.amount);
+        var tax = r2(net * rate), tot = r2(net + tax), owed = r2(tot - collected);
+        $("dcPrev").innerHTML =
+          (d.pct == null ? "" : d.pct + "% of " + money(sub) + " is ") +
+          "<b>" + money(d.amount) + "</b> off · " + money(tot) + " with tax · " +
+          (owed > 0.004 ? money(owed) + " still owed"
+            : owed < -0.004 ? "<b>" + money(-owed) + " to give back</b>"
+            : "nothing owed");
+      };
+      $("dcAmt").addEventListener("input", preview);
+    }
+
+    $("modal").querySelectorAll("[data-why]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        $("dcWhy").value = b.getAttribute("data-why");
+        $("dcAmt").focus();
+      });
+    });
+
+    if ($("dcGo")) $("dcGo").addEventListener("click", async function () {
+      this.disabled = true;
+      var posted = false;
+      try {
+         
+        var raw = $("dcAmt").value, why = $("dcWhy").value.trim();
+        var d = readDiscount(raw, sub);
+        if (d == null) throw new Error('"' + raw + '" isn’t an amount — type it like 45.50, or 10%.');
+        if (d.amount <= 0) throw new Error("How much comes off?");
+         
+        if (d.amount > room + 0.004)
+          throw new Error(already > 0
+            ? "Only " + money(room) + " is left to take off — " + money(already) + " already is."
+            : "That is more than the " + money(sub) + " on the sheet.");
+        if (!why) throw new Error("Say why — it prints on the sheet as “Less …”.");
+        var r = await sb.from("invoice_adjustments").insert({
+          invoice_id: inv.id, amount: d.amount, reason: why, created_by: S.me.id
+        }).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That didn’t save — taking money off is the office’s to do.");
+        posted = true;
+        await reload(["money", "attention"]);
+        back();
+        toast(money(d.amount) + " off — " + why.toLowerCase());
+      } catch (e) {
+        if (posted) { back(); toast("It came off — the screen couldn’t refresh. Reload to see it."); return; }
+        toast(e.message);
+        this.disabled = false;
+      }
+    });
+
+    $("modal").querySelectorAll("[data-off]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        b.disabled = true;
+        var a = rows.filter(function (x) { return x.id === b.getAttribute("data-off"); })[0];
+        var done = false;
+        try {
+           
+          var r = await sb.from("invoice_adjustments").update({
+            removed_at: new Date().toISOString(), removed_by: S.me.id
+          }).eq("id", a.id).is("removed_at", null).select();
+          if (r.error) throw explain(r.error);
+          if (!(r.data || []).length)
+            throw new Error("Nothing moved — it may already be back on.");
+          done = true;
+          await reload(["money", "attention"]);
+          back();
+          toast(money(a.amount) + " back on the bill.");
+        } catch (e) {
+          if (done) { back(); toast("It went back on — the screen couldn’t refresh. Reload to see it."); return; }
+          toast(e.message);
+          b.disabled = false;
+        }
+      });
+    });
+  }
+
+var VOID_INV_REASONS = ["Raised by mistake", "Billed on another sheet",
+                          "The visit never happened"];
+  var WITHDRAW_REASONS = ["Goodwill", "We got it wrong", "Not worth chasing"];
+
+  function notOwedModal(invoiceId, back) {
+    var inv = S.invoices.filter(function (i) { return i.id === invoiceId; })[0];
+    if (!inv) { toast("Couldn’t find that invoice — reload."); return; }
+    var c = custById(inv.customer_id);
+    var j = inv.job_id ? jobById(inv.job_id) : null;
+    var b = S.balances.filter(function (x) { return x.invoice_id === inv.id; })[0] || null;
+    var got = b ? Number(b.collected) || 0 : 0;
+    var owed = b ? Number(b.balance) || 0 : Number(inv.total) || 0;
+    var mode = null;
+    var leave = back || closeModal;
+
+    function head() {
+      return "<h3>Not asking for this money — " + esc(c ? c.name : "") + "</h3>" +
+        '<p class="note">' +
+        (j && j.scheduled_date ? esc(fmtDate(j.scheduled_date)) + " · " : "") +
+        money(inv.total) + " invoiced" +
+        (got > 0.004 ? " · " + money(got) + " in" : "") +
+        (owed > 0.004 ? " · " + money(owed) + " owed" : " · nothing owed") + "</p>";
+    }
+
+function draw() {
+      if (inv.voided_at || inv.charge_withdrawn) {
+        openModal(head() +
+          '<div class="msg warn"><b>' +
+          (inv.voided_at ? "This invoice is already voided."
+                         : "This charge is already withdrawn.") + "</b>" +
+          ((inv.voided_at ? inv.void_reason : inv.charge_withdrawn_reason)
+            ? "<br>" + esc(inv.voided_at ? inv.void_reason : inv.charge_withdrawn_reason)
+            : "") + "</div>" +
+          '<div class="row"><button class="act" id="noNo" type="button">Close</button></div>');
+        $("noNo").addEventListener("click", leave);
+        return;
+      }
+      if (mode) return drawReason();
+      openModal(head() +
+        '<div class="msg"><b>The work happened. We are not asking to be paid.</b><br>' +
+        "It stays on their record as work done, comes off what they owe, and is out of the " +
+        "month’s takings." +
+        (got > 0.004
+          ? "<br>The " + money(got) + " already in stays in. This only stops us asking for " +
+            "the " + money(owed) + " left."
+          : "") +
+        '<div class="acts" style="margin-top:.5rem">' +
+        (owed > 0.004
+          ? '<button class="act go" id="noWd" type="button">Withdraw the charge</button>'
+          : '<span class="pill">nothing owed — giving money back is a refund on the ' +
+            "payment</span>") +
+        "</div></div>" +
+        '<div class="msg"><b>It should never have been raised.</b><br>' +
+        "Nothing was ever owed. It stays void even if services are added to the sheet " +
+        "afterwards, so do not use it for a visit that is still going to happen." +
+        (got > 0.004
+          ? "<br><b>" + money(got) + " has been collected against it.</b> Nothing was owed, " +
+            "so that money belongs somewhere else — give it back, or put it on the right " +
+            "sheet, under Payment issue on the Daily Close."
+          : "") +
+        '<div class="acts" style="margin-top:.5rem">' +
+        (got > 0.004
+          ? '<span class="pill warn">money is in — it cannot be voided</span>'
+          : '<button class="act" id="noVd" type="button">Void the invoice</button>') +
+        "</div></div>" +
+        '<div class="row"><button class="act" id="noNo" type="button">Leave it</button></div>');
+      $("noNo").addEventListener("click", leave);
+      if ($("noWd")) $("noWd").addEventListener("click", function () { mode = "withdraw"; draw(); });
+      if ($("noVd")) $("noVd").addEventListener("click", function () { mode = "void"; draw(); });
+    }
+
+function drawReason() {
+      var vd = mode === "void";
+      var reasons = vd ? VOID_INV_REASONS : WITHDRAW_REASONS;
+      openModal(head() +
+        '<div class="msg ' + (vd ? "bad" : "warn") + '"><b>' +
+        (vd ? "Void " + money(inv.total) + " — it was never owed."
+            : "Not asking for " + money(owed) + " — the work still happened.") + "</b><br>" +
+        (vd ? "The sheet bills for nothing and the invoice reads void."
+            : "The sheet still shows the work. It comes off what they owe.") + "</div>" +
+        "<label>Why</label>" +
+        '<div class="acts" style="margin-bottom:.3rem">' +
+        reasons.map(function (r, i) {
+          return '<button class="act' + (i === 0 ? " go" : "") + '" data-nr="' + esc(r) +
+            '" type="button">' + esc(r) + "</button>";
+        }).join("") +
+        '<button class="act" id="noOther" type="button">Something else…</button></div>' +
+        '<div id="noFree" hidden><label for="noWhy">What happened?</label>' +
+        '<input id="noWhy" class="f" placeholder="say why">' +
+        '<div class="acts"><button class="act go" id="noGo" type="button">' +
+        (vd ? "Void it" : "Withdraw it") + "</button></div></div>" +
+        '<div class="row"><button class="act" id="noBack" type="button">Back</button></div>');
+      $("noBack").addEventListener("click", function () { mode = null; draw(); });
+      $("noOther").addEventListener("click", function () {
+        $("noFree").hidden = false; $("noWhy").focus(); this.disabled = true;
+      });
+      $("modal").querySelectorAll("[data-nr]").forEach(function (btn) {
+        btn.addEventListener("click", function () { doIt(btn.getAttribute("data-nr"), btn); });
+      });
+      $("noGo").addEventListener("click", function () { doIt($("noWhy").value.trim(), this); });
+    }
+
+    async function doIt(why, btn) {
+      btn.disabled = true;
+      try {
+        if (!why) throw new Error("Say why, or pick one of the reasons.");
+         
+        var fresh = await many(sb.from("v_invoice_balances").select("*").eq("invoice_id", inv.id));
+        var nowGot = fresh.length ? Number(fresh[0].collected) || 0 : got;
+        var nowOwed = fresh.length ? Number(fresh[0].balance) || 0 : owed;
+        if (mode === "void" && nowGot > 0.004)
+          throw new Error(money(nowGot) + " has been collected against this. Give it back or " +
+            "move it onto the right sheet first — voiding it would leave that money with " +
+            "nothing behind it.");
+        if (mode === "withdraw" && nowOwed <= 0.004)
+          throw new Error("Nothing is owed on this any more, so there is nothing to withdraw. " +
+            "To give money back, record a refund on the payment.");
+        var patch = mode === "void"
+          ? { voided_at: new Date().toISOString(), voided_by: S.me.id, void_reason: why }
+          : { charge_withdrawn: true, charge_withdrawn_at: new Date().toISOString(),
+              charge_withdrawn_by: S.me.id, charge_withdrawn_reason: why };
+         
+        var q = sb.from("invoices").update(patch).eq("id", inv.id);
+        q = mode === "void" ? q.is("voided_at", null) : q.eq("charge_withdrawn", false);
+        var r = await q.select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("Nothing moved. Somebody may have done it already — reload and look.");
+        await reload(["money", "attention"]);
+        closeModal();
+        toast(mode === "void"
+          ? "Voided — " + money(inv.total) + " was never owed."
+          : "Not asking for it — " + money(nowOwed) + " off what they owe.");
+        render();
+      } catch (e) {
+        toast(closedMonthMsg(e) ||
+          (/charge_withdrawn_/.test(e.message)
+            ? "Withdrawing a charge needs the latest bit of SQL run first."
+            : e.message));
+        btn.disabled = false;
+      }
+    }
+
+    draw();
+  }
+
+function undoReversalModal(rv, p) {
+    var c = p ? custById(p.customer_id) : null;
+    var said = personOf(rv.created_by);
+    openModal("<h3>" + esc(revLabel(rv.kind)) + " — " + money(rv.amount) + "</h3>" +
+      '<p class="note">' + esc(c ? c.name : "customer not loaded") +
+      (p ? " · against " + money(p.amount_collected) + " by " + esc(p.method) +
+           (p.check_number ? " #" + esc(p.check_number) : "") + " taken " +
+           esc(fmtDate(String(p.collected_at).slice(0, 10)))
+         : "") +
+      " · belongs to " + esc(fmtDate(rv.effective_on)) +
+      (said ? ", recorded by " + esc(said.name) : "") + "</p>" +
+      '<div class="msg warn">' + esc(rv.reason) + "</div>" +
+      '<p class="note">Only for a reversal that should never have been entered — the wrong ' +
+      "payment, or the same one twice. A check that really did bounce stays bounced.</p>" +
+      '<p class="note">The ' + money(rv.amount) + " goes back to being collected money and " +
+      "what the job owes drops by the same. The row stays on the record, marked undone " +
+      "with your name.</p>" +
+      '<div class="row"><button class="primary" id="urGo" type="button">It should never have ' +
+      "been entered</button>" +
+      '<button class="act" id="urNo" type="button">Leave it</button></div>');
+    $("urNo").addEventListener("click", closeModal);
+    $("urGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+         
+        var r = await sb.from("payment_reversals")
+          .update({ undone_at: new Date().toISOString(), undone_by: S.me.id })
+          .eq("id", rv.id).is("undone_at", null).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("Nothing moved — it has already been undone, or it is not yours " +
+            "to undo.");
+        await reload(["money", "attention"]);
+        closeModal();
+        toast(money(rv.amount) + " is back on as collected.");
+        render();
+      } catch (e) {
+        toast(closedMonthMsg(e) || e.message);
         this.disabled = false;
       }
     });
@@ -6484,6 +8569,8 @@ function renderCustomers() {
         '<span class="dot" style="background:' + esc((ar && ar.dot_color) || "var(--dot)") + '"></span>' +
         '<span class="nm">' + esc(c.name) + "</span>" +
         (ps.length > 1 ? '<span class="pill">' + ps.length + " addresses</span>" : "") +
+         
+        (c.inactive_reason ? '<span class="pill warn">' + esc(c.inactive_reason) + "</span>" : "") +
         (owed > 0.004 ? '<span class="amt" style="color:var(--owed)">' + money(owed) + " owed</span>" : "") +
         "</div><div class=\"why\">" + esc((ps[0] || {}).address || "") +
         (ar ? " · " + esc(ar.name) : "") + "</div></div>";
@@ -6864,7 +8951,18 @@ var qBox = $("q"), qRes = $("qr");
       .eq("related_id", id).order("happened_on", { ascending: false }).limit(12));
 
     openModal("<h3>" + esc(c.name) + (c.first_name ? " · " + esc(c.first_name) : "") + "</h3>" +
-      '<p class="note">' + esc(c.phone || "no phone on file") + (c.email ? " · " + esc(c.email) : "") + "</p>" +
+      '<p class="note">' + esc(c.phone || "no phone on file") + (c.email ? " · " + esc(c.email) : "") +
+        (c.year_started ? " · customer since " + c.year_started : "") + "</p>" +
+       
+      (c.legacy_service_text
+        ? '<p class="note">On the old list: “' + esc(c.legacy_service_text) + "”</p>"
+        : "") +
+      (c.inactive_reason
+        ? '<div class="msg warn"><b>Marked as ' + esc(c.inactive_reason) +
+          "</b> — no calls, no postcards, no schedule letter." +
+          '<div class="acts"><button class="act" id="ccBack" type="button">' +
+          "They’re still a customer — clear it</button></div></div>"
+        : "") +
       (owed > 0.004 ? '<div class="msg bad"><b>Owes ' + money(owed) + "</b> right now.</div>" : "") +
       ps.map(function (p) {
         var ar = areaOf(p.area_code);
@@ -6907,6 +9005,22 @@ var qBox = $("q"), qRes = $("qr");
           "programme</button>" +
           '<button class="act" id="ccQuote" type="button">＋ An estimate</button></div>';
       })() +
+       
+      (function () {
+        var evs = evalsOf(id);
+        return (isOffice()
+          ? '<div class="acts" style="margin-top:.8rem"><button class="act" id="ccEval" ' +
+            'type="button">＋ Crawl space form</button></div>'
+          : "") +
+          evs.slice(0, 4).map(function (e) {
+            return '<div class="dates" style="margin:.25rem 0">' +
+              '<a href="#" data-eval="' + e.id + '">' + esc(e.mode) + " · " +
+              fmtDate(e.form_date) + " — " + money(e.total) + "</a> · " +
+              (e.voided_at ? "<s>voided</s>"
+                           : e.signed_on ? "signed " + fmtDate(e.signed_on) : "not signed") +
+              "</div>";
+          }).join("");
+      })() +
       '<p class="note" style="margin-top:.8rem">' + plural(jobs.length, "job") + " on record</p>" +
       jobs.slice(0, 6).map(function (j) {
         var b = balOf(j.id);
@@ -6919,18 +9033,71 @@ var qBox = $("q"), qRes = $("qr");
       (notes.length ? '<p class="note" style="margin-top:.8rem">Notes</p>' + notes.map(function (n) {
         return '<div class="dates" style="margin:.25rem 0">' + fmtDate(n.happened_on) + " — " + esc(n.text) + "</div>";
       }).join("") : "") +
-      '<div class="row"><button class="act" id="ccClose" type="button">Close</button></div>');
+      '<div class="row"><button class="act" id="ccClose" type="button">Close</button>' +
+      (c.inactive_reason ? "" :
+        '<button class="act" id="ccGone" type="button">No longer a customer…</button>') +
+      "</div>");
     $("ccClose").addEventListener("click", closeModal);
+    if ($("ccGone")) $("ccGone").addEventListener("click", function () { inactiveModal(id); });
+    if ($("ccBack")) $("ccBack").addEventListener("click", function () { markInactive(id, null); });
     if ($("ccProg"))
       $("ccProg").addEventListener("click", function () { programModal(id); });
     if ($("ccQuote"))
       $("ccQuote").addEventListener("click", function () { newQuoteModal(id); });
+    if ($("ccEval"))
+      $("ccEval").addEventListener("click", function () { newEvalModal(id); });
+    $("modal").querySelectorAll("[data-eval]").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault(); closeModal(); go("eval", a.getAttribute("data-eval"));
+      });
+    });
     $("modal").querySelectorAll("[data-measure]").forEach(function (b) {
       b.addEventListener("click", function () { measureModal(b.getAttribute("data-measure")); });
     });
     $("modal").querySelectorAll("[data-sheet]").forEach(function (a) {
       a.addEventListener("click", function (e) { e.preventDefault(); closeModal(); go("sheet", a.dataset.sheet); });
     });
+  }
+
+var INACTIVE = [
+    ["moved",       "They moved away",           "no calls, no post"],
+    ["passed",      "They passed away",          "the folder stays, the post stops"],
+    ["declined",    "They declined the service", "off the list until they ask"],
+    ["unreachable", "Nobody ever answers",       "set aside after three tries"]
+  ];
+  function inactiveModal(id) {
+    var c = custById(id); if (!c) return;
+    openModal("<h3>" + esc(c.name) + " — no longer a customer</h3>" +
+      '<p class="note">Which is it? Nothing is deleted and the record stays ' +
+      "searchable, so this can be undone from the same card.</p>" +
+      '<div class="picklist" style="max-height:none">' +
+      INACTIVE.map(function (o) {
+        return '<button type="button" class="pickrow" data-why="' + o[0] + '"><span>' +
+          esc(o[1]) + '</span><span class="pickamt">' + esc(o[2]) + "</span></button>";
+      }).join("") + "</div>" +
+      '<div class="row"><button class="act" id="inNo" type="button">Cancel</button></div>');
+     
+    $("inNo").addEventListener("click", function () { customerCard(id); });
+    $("modal").querySelectorAll("[data-why]").forEach(function (b) {
+      b.addEventListener("click", function () { markInactive(id, b.getAttribute("data-why")); });
+    });
+  }
+   
+  async function markInactive(id, why) {
+    var c = custById(id);
+    try {
+      var r = await sb.from("customers").update({ inactive_reason: why || null })
+        .eq("id", id).select();
+      if (r.error) throw explain(r.error);
+       
+      if (!(r.data || []).length) throw new Error("That didn’t save — nothing was changed.");
+      S.customers = await all(function () { return sb.from("customers").select("*").order("name"); });
+      closeModal();
+      toast((c ? c.name : "They") + (why
+        ? " — " + why + ". Off the calling list and out of the post."
+        : " — back on the calling list."));
+      render();
+    } catch (e) { toast(e.message); }
   }
 
 var NTHS = [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [5, "the last"]];
@@ -6994,10 +9161,10 @@ var NTHS = [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [5, "the last"]];
       '<input id="pgNote" class="f" value="' + esc(pg.letter_note || "") +
         '" placeholder="Always Friday morning, please">' +
        
-      '<label>Bundled onto a visit</label>' +
+      '<label>Also on that visit</label>' +
       '<div id="pgEx"></div>' +
       '<div class="acts"><button class="act" id="pgExAdd" type="button">' +
-      "＋ Add something bundled</button></div>" +
+      "＋ Add something</button></div>" +
       '<div id="pgPreview" class="msg">Working out the dates…</div>' +
       (!fresh && !progOf(cid)
         ? '<p class="note">They were on the programme before, so their old slot and ' +
@@ -7026,7 +9193,7 @@ var EX = S.progExtras.filter(function (e) { return e.customer_id === cid; })
 
     var drawEx = function () {
       if (!EX.length) {
-        $("pgEx").innerHTML = '<p class="note">Nothing bundled — just the sprays.</p>';
+        $("pgEx").innerHTML = '<p class="note">Nothing else — just the sprays.</p>';
         return;
       }
       $("pgEx").innerHTML = EX.map(function (e, i) {
@@ -7037,7 +9204,7 @@ var EX = S.progExtras.filter(function (e) { return e.customer_id === cid; })
               ">" + esc(m.slice(0, 3)) + "</option>";
           }).join("") + "</select>" +
           '<input class="f exwhat" data-ex="' + i + '" data-f="label" list="pgSvcList" value="' +
-            esc(e.label) + '" placeholder="what is bundled onto that visit">' +
+            esc(e.label) + '" placeholder="what else is done that visit">' +
           '<div class="exfoot">' +
             '<input class="f r" data-ex="' + i + '" data-f="price" inputmode="decimal" value="' +
               esc(e.price == null ? "" : e.price) + '" placeholder="price">' +

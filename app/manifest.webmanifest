@@ -1,0 +1,25 @@
+{
+  "name": "United Termite",
+  "short_name": "United",
+  "description": "The book, the day's stops, and the render sheet.",
+  "lang": "en-US",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#f4f6f3",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
