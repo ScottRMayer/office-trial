@@ -337,9 +337,11 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
     letter-spacing:.09em;padding:.1rem .2rem;text-transform:uppercase;margin-bottom:.25rem}
   .fcols{display:grid;grid-template-columns:repeat(4,1fr);gap:0 .55rem}
   .fcols.five{grid-template-columns:repeat(5,1fr)}
+   
+  .fcols.two{grid-template-columns:1fr 1fr;gap:0 .8rem}
   .fcols.three{grid-template-columns:1fr 1fr 1.15fr;gap:0 .8rem}
   @media (max-width:720px){
-    .fcols,.fcols.five,.fcols.three{grid-template-columns:1fr 1fr}
+    .fcols,.fcols.five,.fcols.three,.fcols.two{grid-template-columns:1fr 1fr}
      
     table.matpick col.pct{width:3.2rem} table.matpick col.amt{width:4.2rem}
     table.matpick{font-size:.72rem}
@@ -917,7 +919,7 @@ async function sendMagicLink() {
         "An admin can switch it back on.");
     var off = S.me.role === "admin" || S.me.role === "office";
     var r = await Promise.all([
-      many(sb.from("profiles").select("id,name,role,is_technician,active,applicator_no,works_under")),
+      many(sb.from("profiles").select("id,name,email,role,is_technician,active,applicator_no,works_under")),
       many(sb.from("areas").select("*").order("route_order")),
       many(sb.from("settings").select("*").eq("id", 1)),
       soft(sb.from("v_service_menu").select("*"), "v_service_menu",
@@ -1121,6 +1123,7 @@ function renderNav() {
     if (route.name === "field") return renderField();
     if (route.name === "sheet") return renderSheet(route.arg);
     if (route.name === "plan") return renderPlan(route.arg);
+    if (route.name === "customer") return renderCustomer(route.arg);
     if (route.name === "eval") return renderEval(route.arg);
     if (route.name === "customers") return renderCustomers();
     if (route.name === "lists") return renderLists();
@@ -4086,12 +4089,18 @@ function peopleCard() {
     var h = '<div class="card" id="set-people"><h2>People</h2>' +
       '<p class="note">Who can see and do what. A change takes effect the next time ' +
       "they load the app.</p>" +
-      '<table class="lst"><tr><th>Name</th><th>Can do</th><th>In the field</th>' +
-      "<th>Licence</th><th>Works under</th><th>Signed in</th></tr>" +
+      '<table class="lst"><tr><th>Name</th><th>Signs in with</th><th>Can do</th>' +
+      "<th>In the field</th><th>Licence</th><th>Works under</th><th>Signed in</th></tr>" +
       S.people.map(function (pp) {
         var me = pp.id === S.me.id;
         return "<tr>" +
           "<td>" + esc(pp.name) + (me ? ' <span class="pill">you</span>' : "") + "</td>" +
+           
+          "<td>" + esc(pp.email || "\u2014") +
+            (isAdmin()
+              ? ' <button class="act" data-email="' + pp.id +
+                '" type="button" style="padding:.12rem .4rem;font-size:.72rem">change</button>'
+              : "") + "</td>" +
           '<td><select class="li" data-who="' + pp.id + '" data-col="role"' +
             (me ? " disabled" : "") + ">" +
             ROLES.map(function (r) {
@@ -4107,7 +4116,9 @@ function peopleCard() {
       }).join("") + "</table>" +
       '<p class="note" style="margin-top:.7rem">Your own role and sign-in are not ' +
       "editable here — locking yourself out of your own system should take more than a " +
-      "mis-tap.</p>" +
+      "mis-tap. <b>Signs in with</b> is the address the password and the emailed link " +
+      "belong to; changing it is how these four move onto their real addresses at " +
+      "go-live.</p>" +
       '<div class="acts" style="margin-top:.7rem">' +
       '<button class="act go" id="addUser" type="button">＋ Somebody new</button></div>' +
       "</div>";
@@ -4168,7 +4179,7 @@ function newUserModal() {
         }
         if (r.data && r.data.error) throw new Error(r.data.error);
         S.people = await many(sb.from("profiles")
-          .select("id,name,role,is_technician,active,applicator_no,works_under"));
+          .select("id,name,email,role,is_technician,active,applicator_no,works_under"));
         closeModal();
         toast(r.data && r.data.warning ? r.data.warning : nm + " invited — " + em);
         renderLists();
@@ -7002,6 +7013,9 @@ var SET_TARGETS = [
         toast("Password changed");
       });
     if ($("expGo")) $("expGo").addEventListener("click", function () { exportBook(this); });
+    app.querySelectorAll("[data-email]").forEach(function (b) {
+      b.addEventListener("click", function () { changeEmailModal(b.getAttribute("data-email")); });
+    });
      
     if ($("addArea"))
       $("addArea").addEventListener("click", function () { newAreaModal(); });
@@ -7054,7 +7068,7 @@ app.querySelectorAll("input.li,select.li").forEach(function (el) {
           if (rr.error) { toast(explain(rr.error).message); return; }
           if (!(rr.data || []).length) { toast("That didn’t save — you may not have the right to."); return; }
           toast("Saved");
-          if (tgt[1] === "profiles") S.people = await many(sb.from("profiles").select("id,name,role,is_technician,active,applicator_no,works_under"));
+          if (tgt[1] === "profiles") S.people = await many(sb.from("profiles").select("id,name,email,role,is_technician,active,applicator_no,works_under"));
           if (tgt[1] === "areas") S.areas = await many(sb.from("areas").select("*").order("route_order"));
           if (tgt[1] === "settings") S.settings = (await many(sb.from("settings").select("*").eq("id", 1)))[0] || S.settings;
           renderLists();
@@ -7103,7 +7117,7 @@ app.querySelectorAll("input.li,select.li").forEach(function (el) {
         el.disabled = false;
         if (r.error) { toast(explain(r.error).message); return; }
         if (!(r.data || []).length) { toast("That didn’t save — you may not have the right to."); return; }
-        if (tgt[1] === "profiles") S.people = await many(sb.from("profiles").select("id,name,role,is_technician,active,applicator_no,works_under"));
+        if (tgt[1] === "profiles") S.people = await many(sb.from("profiles").select("id,name,email,role,is_technician,active,applicator_no,works_under"));
         else if (tgt[1] === "areas") S.areas = await many(sb.from("areas").select("*").order("route_order"));
         else await reloadLists();
         renderLists();
@@ -8745,7 +8759,7 @@ function renderCustomers() {
     }).join("");
     app.innerHTML = h + stamp();
     app.querySelectorAll("[data-cust]").forEach(function (b) {
-      b.addEventListener("click", function () { customerCard(b.dataset.cust); });
+      b.addEventListener("click", function () { go("customer", b.dataset.cust); });
     });
     if ($("custNew")) $("custNew").addEventListener("click", function () { newCustomerModal(null); });
     if ($("custBook")) $("custBook").addEventListener("click", function () { bookModal({}); });
@@ -8781,6 +8795,78 @@ function openModal(html) {
   });
    
   $("lockveil").addEventListener("click", function (e) { e.stopPropagation(); });
+
+function changeEmailModal(userId) {
+    var pp = personOf(userId);
+    if (!pp) { toast("That person has moved \u2014 reload."); return; }
+    var me = userId === S.me.id;
+    openModal("<h3>The address " + esc(pp.name) + " signs in with</h3>" +
+      '<p class="note">Now: <b>' + esc(pp.email || "none on file") + "</b></p>" +
+      '<label for="ceNew">The new address</label>' +
+      '<input id="ceNew" class="f" type="email" autocomplete="off" spellcheck="false" ' +
+      'placeholder="' + esc(pp.email || "name@theirdomain.com") + '">' +
+      '<p class="note">They keep the password they already have \u2014 this moves the ' +
+      "address it belongs to, and nothing is emailed to them. The next password reset " +
+      "or sign-in link goes to the new one." +
+      (me ? " <b>This is your own sign-in. Get it right.</b>" : "") + "</p>" +
+      '<div id="ceMsg"></div>' +
+      '<div class="row"><button class="primary" id="ceGo" type="button">Move it</button>' +
+      '<button class="act" id="ceNo" type="button">Leave it</button></div>');
+    $("ceNo").addEventListener("click", closeModal);
+    $("ceGo").addEventListener("click", async function () {
+      var em = $("ceNew").value.trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)) {
+        $("ceMsg").innerHTML = '<div class="msg bad">That does not look like an email address.</div>';
+        return;
+      }
+      this.disabled = true;
+      $("ceMsg").innerHTML = '<div class="msg">Moving it\u2026</div>';
+      try {
+        var r = await sb.functions.invoke("change-email", {
+          body: { user_id: userId, email: em }
+        });
+        if (r.error) {
+           
+          var said = "", code = 0;
+          try {
+            var ctx = r.error.context;
+            if (ctx && typeof ctx.json === "function") {
+              code = ctx.status || 0;
+              var b = await ctx.json();
+              said = (b && (b.error || b.message)) || "";
+            }
+          } catch (ignore) {   }
+          if (!said && code === 404)
+            said = "The change-email function is not deployed yet \u2014 see " +
+                   "supabase/functions/change-email.";
+          if (!said && code === 401)
+            said = "Supabase refused the sign-in token before the function saw it. " +
+                   "This is the legacy JWT secret being on: turn it off in " +
+                   "Project Settings \u2192 JWT Keys.";
+          throw new Error(said || r.error.message || "It did not go through.");
+        }
+        var d = r.data || {};
+        if (d.error) throw new Error(d.error);
+        S.people = await many(sb.from("profiles")
+          .select("id,name,email,role,is_technician,active,applicator_no,works_under"));
+        if (me) {
+           
+          closeModal();
+          renderLists();
+          toast("Moved to " + em + ". Sign in with that from now on.");
+        } else {
+          closeModal();
+          renderLists();
+          toast(esc(pp.name) + " signs in with " + em + " from now on." +
+                (d.warning ? " " + d.warning : ""));
+        }
+      } catch (e) {
+        $("ceMsg").innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>";
+        this.disabled = false;
+      }
+    });
+    $("ceNew").focus();
+  }
 
 function payModal(invoiceId) {
     var inv = S.invoices.filter(function (i) { return i.id === invoiceId; })[0];
@@ -9116,8 +9202,373 @@ var qBox = $("q"), qRes = $("qr");
   qBox.addEventListener("blur", function () { setTimeout(function () { qRes.classList.remove("show"); }, 160); });
   qRes.addEventListener("click", function (e) {
     var b = e.target.closest("[data-cust]");
-    if (b) { qRes.classList.remove("show"); qBox.value = ""; customerCard(b.dataset.cust); }
+    if (b) { qRes.classList.remove("show"); qBox.value = ""; go("customer", b.dataset.cust); }
   });
+
+async function renderCustomer(id) {
+    var c = custById(id);
+    if (!c) { app.innerHTML = '<div class="msg bad">That customer isn\u2019t here.</div>'; return; }
+    var mayEdit = isOffice();
+    var ps = propsOf(id);
+    var jobs = S.jobs.filter(function (j) { return j.customer_id === id; })
+      .sort(function (a, b) {
+        return String(b.completed_date || b.scheduled_date || "")
+          .localeCompare(String(a.completed_date || a.scheduled_date || ""));
+      });
+    var owed = 0;
+    jobs.forEach(function (j) {
+      var b = balOf(j.id);
+      if (b && !b.charge_withdrawn && !b.voided_at) owed += Number(b.balance) || 0;
+    });
+    var pg = progOf(id);
+    var qs = S.quotes.filter(function (q) { return q.customer_id === id; });
+    var ws = S.warranties.filter(function (w) { return w.customer_id === id; });
+    var evs = evalsOf(id);
+
+    var notes = [];
+    try {
+      notes = await many(sb.from("notes").select("*").eq("related_table", "customers")
+        .eq("related_id", id).order("happened_on", { ascending: false }));
+    } catch (e) {   }
+
+    var fld = function (lbl, col, val, ph, hint, wide) {
+      return '<div' + (wide ? ' style="grid-column:1/-1"' : "") + ">" +
+        '<label for="cf_' + col + '">' + esc(lbl) + "</label>" +
+        (mayEdit
+          ? '<input id="cf_' + col + '" class="f" data-cfld="' + col + '" value="' +
+            esc(val == null ? "" : val) + '" placeholder="' + esc(ph || "") + '">'
+          : '<div class="fcellv">' + esc(val == null || val === "" ? "\u2014" : val) + "</div>") +
+        (hint ? '<p class="note" style="margin:.2rem 0 0">' + hint + "</p>" : "") +
+        "</div>";
+    };
+
+    var h = missingBanner() +
+      '<div class="acts noprint" style="margin-bottom:.8rem">' +
+      '<button class="act" id="cfBack" type="button">\u2039 Customers</button>' +
+      '<button class="act" id="cfBook" type="button">\uff0b Book a job</button>' +
+      "</div>";
+
+    h += "<h1>" + esc(c.name) + (c.first_name ? " \u00b7 " + esc(c.first_name) : "") + "</h1>" +
+      '<p class="sub">' + plural(jobs.length, "job") + " on record" +
+      (c.year_started ? " \u00b7 customer since " + esc(c.year_started) : "") +
+      (owed > 0.004 ? " \u00b7 owes " + money(owed) : "") + "</p>";
+
+    if (c.inactive_reason)
+      h += '<div class="msg warn"><b>Marked as ' + esc(c.inactive_reason) +
+        "</b> \u2014 no calls, no postcards, no schedule letter." +
+        (mayEdit
+          ? '<div class="acts"><button class="act" id="cfBack2" type="button">' +
+            "They\u2019re still a customer \u2014 clear it</button></div>"
+          : "") + "</div>";
+
+    if (owed > 0.004)
+      h += '<div class="msg bad"><b>Owes ' + money(owed) + "</b> right now.</div>";
+
+h += '<div class="card"><h2>Who they are</h2>' +
+      '<div class="fcols two">' +
+      fld("Last name \u2014 how it is filed", "name", c.name, "", "Required.") +
+      fld("How they are addressed", "first_name", c.first_name, "Mrs. Anne") +
+      fld("Phone", "phone", c.phone, "(732) 555-0100") +
+      fld("Email", "email", c.email, "none on file") +
+      fld("Year they started", "year_started", c.year_started, "2004",
+          "A year, not a date \u2014 the mailing list only ever held the year.") +
+      "</div>" +
+       
+      '<h2 style="margin-top:1rem">Where the post goes</h2>' +
+      '<p class="note">The bill and the schedule letter go here. For an owner living ' +
+      "at the address serviced this is the same place, and changing it changes both. " +
+      "For a rental it is the owner\u2019s address and the serviced address below stays " +
+      "as it is.</p>" +
+      '<div class="fcols two">' +
+      fld("Street", "address", c.address, "", "", true) +
+      fld("Town", "city", c.city) +
+      fld("Zip", "zip", c.zip) +
+      "</div>" +
+      (c.legacy_service_text
+        ? '<p class="note" style="margin-top:.7rem">On the old mailing list, in its own ' +
+          "words: \u201c" + esc(c.legacy_service_text) + "\u201d</p>"
+        : "") +
+      "</div>";
+
+h += '<div class="card"><h2>' + plural(ps.length, "address") + " serviced</h2>";
+    if (!ps.length)
+      h += '<p class="empty">No address on file, so nothing can be booked. Add one.</p>';
+    ps.forEach(function (p) {
+      var ar = areaOf(p.area_code);
+      h += '<div class="item" style="display:block"><div class="top">' +
+        '<span class="dot" style="background:' + esc((ar && ar.dot_color) || "var(--dot)") +
+        '"></span><span class="nm">' + esc(p.address || "no street") + "</span>" +
+        (p.is_primary ? '<span class="pill ok">their own</span>'
+                      : '<span class="pill">' + esc(p.label || "second address") + "</span>") +
+        "</div>" +
+        '<div class="fcols two" style="margin-top:.5rem">' +
+        '<div style="grid-column:1/-1"><label>Street</label>' +
+        (mayEdit
+          ? '<input class="f" data-pfld="' + p.id + '|address" value="' + esc(p.address || "") + '">'
+          : '<div class="fcellv">' + esc(p.address || "\u2014") + "</div>") + "</div>" +
+        "<div><label>Town</label>" +
+        (mayEdit
+          ? '<input class="f" data-pfld="' + p.id + '|city" value="' + esc(p.city || "") + '">'
+          : '<div class="fcellv">' + esc(p.city || "\u2014") + "</div>") + "</div>" +
+        "<div><label>Zip</label>" +
+        (mayEdit
+          ? '<input class="f" data-pfld="' + p.id + '|zip" value="' + esc(p.zip || "") + '">'
+          : '<div class="fcellv">' + esc(p.zip || "\u2014") + "</div>") + "</div>" +
+         
+        "<div><label>Community</label>" +
+        (mayEdit
+          ? '<select class="f" data-pfld="' + p.id + '|area_code">' +
+            '<option value="">\u2014 not set \u2014</option>' +
+            S.areas.map(function (a) {
+              return '<option value="' + esc(a.code) + '"' +
+                (p.area_code === a.code ? " selected" : "") + ">" + esc(a.code) + " \u2014 " +
+                esc(a.name) + "</option>";
+            }).join("") + "</select>"
+          : '<div class="fcellv">' + esc(ar ? ar.name : "\u2014") + "</div>") + "</div>" +
+        "<div><label>Month box</label>" +
+        (mayEdit
+          ? '<select class="f" data-pfld="' + p.id + '|month_box">' +
+            '<option value="">\u2014 not set \u2014</option>' +
+            MONTHS.map(function (m, i) {
+              return '<option value="' + (i + 1) + '"' +
+                (Number(p.month_box) === i + 1 ? " selected" : "") + ">" + esc(m) + "</option>";
+            }).join("") + "</select>"
+          : '<div class="fcellv">' +
+            esc(p.month_box ? MONTHS[Number(p.month_box) - 1] : "\u2014") + "</div>") + "</div>" +
+        (p.is_primary
+          ? ""
+          : "<div><label>What it is</label>" +
+            (mayEdit
+              ? '<input class="f" data-pfld="' + p.id + '|label" value="' +
+                esc(p.label || "") + '" placeholder="the rental">'
+              : '<div class="fcellv">' + esc(p.label || "\u2014") + "</div>") + "</div>") +
+        "</div>" +
+        (p.yard_sq_ft
+          ? '<p class="note" style="margin:.5rem 0 0">Yard about ' +
+            esc(Number(p.yard_sq_ft).toLocaleString()) + " sq ft" +
+            (p.bldg_sq_ft ? " \u00b7 building about " +
+              esc(Number(p.bldg_sq_ft).toLocaleString()) + " sq ft" : "") + "</p>"
+          : "") +
+        "</div>";
+    });
+    if (mayEdit)
+      h += '<div class="acts" style="margin-top:.6rem">' +
+        '<button class="act" id="cfAddProp" type="button">\uff0b Another address</button></div>';
+    h += "</div>";
+
+h += '<div class="card"><h2>What is arranged</h2>' +
+      '<div class="acts">' +
+      (mayEdit ? '<button class="act" id="cfProg" type="button">' +
+        (pg ? "Change the programme" : "\uff0b Pre-scheduled programme") + "</button>" : "") +
+      (mayEdit ? '<button class="act" id="cfQuote" type="button">\uff0b An estimate</button>' : "") +
+      (mayEdit ? '<button class="act" id="cfEval" type="button">\uff0b Crawl space form</button>' : "") +
+      "</div>" +
+      (pg
+        ? '<p class="note" style="margin-top:.6rem"><b>' +
+          plural((pg.months || []).length, "visit") + "</b> a year \u00b7 " +
+          esc((pg.months || []).map(function (m) { return MONTHS[m - 1].slice(0, 3); }).join(", ")) +
+          " \u00b7 " + money(pg.base_price == null
+            ? ((S.settings || {}).program_price || 65) : pg.base_price) + " a spray</p>"
+        : "") +
+      (qs.length
+        ? '<p class="note" style="margin-top:.6rem">Estimates</p>' +
+          qs.map(function (q) {
+            return '<div class="dates"><a href="#" data-cfq="' + q.id + '">' +
+              money(q.amount) + " \u00b7 " + esc(q.status) + "</a>" +
+              (q.description ? " \u2014 " + esc(q.description) : "") + "</div>";
+          }).join("")
+        : "") +
+      (evs.length
+        ? '<p class="note" style="margin-top:.6rem">Crawl space forms</p>' +
+          evs.map(function (e) {
+            return '<div class="dates"><a href="#" data-cfe="' + e.id + '">' + esc(e.mode) +
+              " \u00b7 " + fmtDate(e.form_date) + " \u2014 " + money(e.total) + "</a> \u00b7 " +
+              (e.voided_at ? "<s>voided</s>"
+                           : e.signed_on ? "signed " + fmtDate(e.signed_on) : "not signed") +
+              "</div>";
+          }).join("")
+        : "") +
+      (ws.length
+        ? '<p class="note" style="margin-top:.6rem">Warranties</p>' +
+          ws.map(function (w) {
+            return '<div class="dates">' + esc(w.type) + " \u00b7 through " +
+              esc(fmtDate(w.expiration_date)) +
+              (w.annual_amount ? " \u00b7 " + money(w.annual_amount) + " a year" : "") + "</div>";
+          }).join("")
+        : "") +
+      "</div>";
+
+h += '<div class="card"><h2>Every job</h2>';
+    h += !jobs.length
+      ? '<p class="empty">Nothing on file yet.</p>'
+      : jobs.map(function (j) {
+          var b = balOf(j.id), t = personOf(j.assigned_to);
+          var when = j.completed_date || j.scheduled_date;
+          return '<div class="item tap" data-cfjob="' + j.id + '"><div class="top">' +
+            '<span class="nm">' + esc(when ? fmtDate(when) : "no date") + "</span>" +
+            '<span class="pill' + (j.status === "complete" ? " ok" : "") + '">' +
+            esc(j.status) + "</span>" +
+            (b && Number(b.balance) > 0.004
+              ? '<span class="pill warn">' + money(b.balance) + " owed</span>" : "") +
+            '<span class="amt">' + (b ? money(b.total) : "\u2014") + "</span></div>" +
+            '<div class="why">' +
+            esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) +
+            (t ? " \u00b7 " + esc(t.name) : "") + "</div></div>";
+        }).join("");
+    h += "</div>";
+
+h += '<div class="card"><h2>Notes</h2>' +
+      (mayEdit
+        ? '<label for="cfNote">Add one</label>' +
+          '<input id="cfNote" class="f" placeholder="what was said, or what to remember">' +
+          '<div class="acts"><button class="act go" id="cfNoteGo" type="button">' +
+          "Put it on the folder</button></div>"
+        : "") +
+      (notes.length
+        ? notes.map(function (n) {
+            var by = personOf(n.user_id);
+            return '<div class="dates" style="margin:.35rem 0">' +
+              esc(fmtDate(n.happened_on)) + " \u2014 " + esc(n.text) +
+              (by ? ' <span class="empty">(' + esc(by.name.split(" ")[0]) + ")</span>" : "") +
+              "</div>";
+          }).join("")
+        : '<p class="empty" style="margin-top:.6rem">Nothing written down yet.</p>') +
+      "</div>";
+
+    if (mayEdit && !c.inactive_reason)
+      h += '<div class="acts" style="margin-bottom:1.4rem">' +
+        '<button class="act" id="cfGone" type="button">No longer a customer\u2026</button></div>';
+
+    h += stamp();
+    app.innerHTML = h;
+
+$("cfBack").addEventListener("click", function () { go("customers"); });
+    $("cfBook").addEventListener("click", function () { bookModal({ customer_id: id }); });
+    if ($("cfBack2")) $("cfBack2").addEventListener("click", function () { markInactive(id, null); });
+    if ($("cfGone")) $("cfGone").addEventListener("click", function () { inactiveModal(id); });
+    if ($("cfProg")) $("cfProg").addEventListener("click", function () { programModal(id); });
+    if ($("cfQuote")) $("cfQuote").addEventListener("click", function () { newQuoteModal(id); });
+    if ($("cfEval")) $("cfEval").addEventListener("click", function () { newEvalModal(id); });
+    if ($("cfAddProp")) $("cfAddProp").addEventListener("click", function () { addPropModal(id); });
+
+    app.querySelectorAll("[data-cfjob]").forEach(function (el) {
+      el.addEventListener("click", function () { jobModal(el.getAttribute("data-cfjob")); });
+    });
+    app.querySelectorAll("[data-cfq]").forEach(function (a) {
+      a.addEventListener("click", function (e) { e.preventDefault(); quoteModal(a.getAttribute("data-cfq")); });
+    });
+    app.querySelectorAll("[data-cfe]").forEach(function (a) {
+      a.addEventListener("click", function (e) {
+        e.preventDefault(); go("eval", a.getAttribute("data-cfe"));
+      });
+    });
+
+    if ($("cfNoteGo"))
+      $("cfNoteGo").addEventListener("click", async function () {
+        var t = $("cfNote").value.trim();
+        if (!t) { toast("Type the note first."); return; }
+        this.disabled = true;
+        try {
+          var r = await sb.from("notes").insert({
+            related_table: "customers", related_id: id, user_id: S.me.id,
+            kind: "call", text: t
+          }).select();
+          if (r.error) throw explain(r.error);
+          $("cfNote").value = "";
+          renderCustomer(id);
+        } catch (e) { toast(e.message); this.disabled = false; }
+      });
+
+if (!mayEdit) return;
+
+    var NUM_FLD = { year_started: 1, month_box: 1 };
+    async function saveOne(el, table, key, col, raw) {
+      var val = String(raw).trim();
+      var patch = {};
+      if (NUM_FLD[col]) patch[col] = val === "" ? null : Number(val);
+      else patch[col] = val === "" ? null : val;
+      if (col === "name" && !val) { toast("A last name is how the record is filed."); return false; }
+      el.disabled = true;
+      try {
+        var q = sb.from(table).update(patch);
+        var r = await (table === "customers" ? q.eq("id", key) : q.eq("id", key)).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length) throw new Error("That didn\u2019t save \u2014 the database refused it.");
+         
+        S.customers = await all(function () { return sb.from("customers").select("*").order("name"); });
+        S.properties = await all(function () { return sb.from("properties").select("*").order("id"); });
+        toast("Saved");
+        return true;
+      } catch (e) { toast(e.message); return false; }
+      finally { el.disabled = false; }
+    }
+
+    app.querySelectorAll("[data-cfld]").forEach(function (el) {
+      el.addEventListener("change", async function () {
+        var col = el.getAttribute("data-cfld");
+        var ok = await saveOne(el, "customers", id, col, el.value);
+         
+        if (ok && (col === "name" || col === "first_name")) renderCustomer(id);
+      });
+    });
+    app.querySelectorAll("[data-pfld]").forEach(function (el) {
+      var bits = el.getAttribute("data-pfld").split("|");
+      el.addEventListener("change", async function () {
+        var ok = await saveOne(el, "properties", bits[0], bits[1], el.value);
+         
+        if (ok && (bits[1] === "area_code" || bits[1] === "month_box")) renderCustomer(id);
+      });
+    });
+  }
+
+function addPropModal(cid) {
+    var c = custById(cid) || {};
+    openModal("<h3>Another address for " + esc(c.name || "them") + "</h3>" +
+      '<p class="note">A second address is serviced separately and has its own month ' +
+      "box, so it comes round on its own.</p>" +
+      '<label for="apAddr">Street</label><input id="apAddr" class="f">' +
+      '<div class="fcols two"><div><label for="apCity">Town</label>' +
+      '<input id="apCity" class="f" value="' + esc(c.city || "") + '"></div>' +
+      '<div><label for="apZip">Zip</label>' +
+      '<input id="apZip" class="f" value="' + esc(c.zip || "") + '"></div></div>' +
+      '<label for="apLabel">What it is</label>' +
+      '<input id="apLabel" class="f" placeholder="the rental">' +
+      '<div class="fcols two"><div><label for="apArea">Community</label>' +
+      '<select id="apArea" class="f"><option value="">\u2014 not set \u2014</option>' +
+      S.areas.map(function (a) {
+        return '<option value="' + esc(a.code) + '">' + esc(a.code) + " \u2014 " +
+          esc(a.name) + "</option>";
+      }).join("") + "</select></div>" +
+      '<div><label for="apMonth">Month box</label>' +
+      '<select id="apMonth" class="f"><option value="">\u2014 not set \u2014</option>' +
+      MONTHS.map(function (m, i) {
+        return '<option value="' + (i + 1) + '">' + esc(m) + "</option>";
+      }).join("") + "</select></div></div>" +
+      '<div class="row"><button class="primary" id="apGo" type="button">Add it</button>' +
+      '<button class="act" id="apNo" type="button">Cancel</button></div>');
+    $("apNo").addEventListener("click", closeModal);
+    $("apGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+        var addr = $("apAddr").value.trim();
+        if (!addr) throw new Error("It needs a street address.");
+        var r = await sb.from("properties").insert({
+          customer_id: cid, address: addr,
+          city: $("apCity").value.trim() || null,
+          zip: $("apZip").value.trim() || null,
+          label: $("apLabel").value.trim() || null,
+          area_code: $("apArea").value || null,
+          month_box: $("apMonth").value ? Number($("apMonth").value) : null,
+          is_primary: false
+        }).select();
+        if (r.error) throw explain(r.error);
+        S.properties = await all(function () { return sb.from("properties").select("*").order("id"); });
+        closeModal();
+        toast("Added.");
+        renderCustomer(cid);
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
 
   async function customerCard(id) {
     var c = custById(id); if (!c) return;
@@ -9214,11 +9665,14 @@ var qBox = $("q"), qRes = $("qr");
       (notes.length ? '<p class="note" style="margin-top:.8rem">Notes</p>' + notes.map(function (n) {
         return '<div class="dates" style="margin:.25rem 0">' + fmtDate(n.happened_on) + " — " + esc(n.text) + "</div>";
       }).join("") : "") +
-      '<div class="row"><button class="act" id="ccClose" type="button">Close</button>' +
+      '<div class="row"><button class="primary" id="ccOpen" type="button">' +
+      "Open the folder \u2192</button>" +
+      '<button class="act" id="ccClose" type="button">Close</button>' +
       (c.inactive_reason ? "" :
-        '<button class="act" id="ccGone" type="button">No longer a customer…</button>') +
+        '<button class="act" id="ccGone" type="button">No longer a customer\u2026</button>') +
       "</div>");
     $("ccClose").addEventListener("click", closeModal);
+    $("ccOpen").addEventListener("click", function () { closeModal(); go("customer", id); });
     if ($("ccGone")) $("ccGone").addEventListener("click", function () { inactiveModal(id); });
     if ($("ccBack")) $("ccBack").addEventListener("click", function () { markInactive(id, null); });
     if ($("ccProg"))
