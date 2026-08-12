@@ -771,8 +771,7 @@ function sheetIsOpen(j) {
     if (j.status === "complete") return false;
     var sh = sheetOf(j.id);
     if (sh && sh.signed_on) return false;
-    var inv = invOf(j.id);
-    if (inv && (inv.status === "paid" || inv.status === "part-paid")) return false;
+     
     return true;
   }
   var SFR_EPA = "70506-6-53883";
