@@ -8836,15 +8836,18 @@ function changeEmailModal(userId) {
         });
         if (r.error) {
            
-          var said = "", code = 0;
+          var said = "", code = 0, hint = "";
           try {
             var ctx = r.error.context;
             if (ctx && typeof ctx.json === "function") {
               code = ctx.status || 0;
               var b = await ctx.json();
               said = (b && (b.error || b.message)) || "";
+               
+              hint = (b && b.hint) || "";
             }
           } catch (ignore) {   }
+          if (said && hint) said = said + " — " + hint;
           if (!said && code === 404)
             said = "The change-email function is not deployed yet \u2014 see " +
                    "supabase/functions/change-email.";
