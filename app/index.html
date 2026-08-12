@@ -1557,7 +1557,7 @@ async function saveOutcome(b, outcome, note) {
         b.addEventListener("click", function () { fn(b); });
       });
     };
-    on("[data-jump]", function (b) { var e = $(b.dataset.jump); if (e) e.scrollIntoView({ behavior: "smooth" }); });
+    on("[data-jump]", function (b) { jumpTo(b.dataset.jump); });
     on("[data-pay]", function (b) { payModal(b.dataset.pay); });
     on("[data-remind]", function (b) { remind(b.dataset.remind, b); });
     on("[data-notowed]", function (b) { notOwedModal(b.dataset.notowed); });
@@ -4075,7 +4075,8 @@ function settingsNav() {
     var to = [["set-people", "People"], ["set-you", "Your account"],
               ["set-areas", "Communities"], ["set-work", "How you work"],
               ["set-closed", "Days off"],
-              ["boxes", "Prices"], ["set-sheet", "The sheet’s lists"]];
+               
+              ["set-prices", "Prices"], ["set-sheet", "The sheet’s lists"]];
     return '<div class="acts" style="margin-bottom:1rem">' +
       to.map(function (t) {
         return '<button class="act" data-jump="' + t[0] + '" type="button">' + esc(t[1]) + "</button>";
@@ -4334,8 +4335,46 @@ function workCard() {
       row("Afternoon ends", "pm_to", st.pm_to, "17", "5pm") +
       row("Follow up a quiet quote after", "followup_days", st.followup_days, "14", "days") +
        
-      row("Pre-scheduled spray, each visit", "program_price", st.program_price, "65",
-          "the programme rate — <b>every schedule letter is priced from it</b>") +
+      (function () {
+        var kinds = [["flat", "a price I type"], ["amount", "so much off the one-off"],
+                     ["percent", "a percentage off the one-off"]];
+        var kind = st.program_discount_kind || "flat";
+        var base = (S.catalog || []).filter(function (c) {
+          return c.name === (st.program_base_service || "Pest Control Service General");
+        })[0];
+        return '<tr><td>Pre-scheduled spray, each visit</td>' +
+          '<td><select class="li" data-set="program_discount_kind" ' +
+          'data-col="program_discount_kind">' +
+          kinds.map(function (k) {
+            return '<option value="' + k[0] + '"' + (kind === k[0] ? " selected" : "") +
+              ">" + esc(k[1]) + "</option>";
+          }).join("") + "</select></td>" +
+          '<td class="empty" style="font-size:.78rem">' +
+          (kind === "flat"
+            ? "typed below"
+            : "off <b>" + esc(st.program_base_service || "Pest Control Service General") +
+              "</b>, which is " + (base ? money(base.price) : "not in the price book")) +
+          "</td></tr>" +
+          (kind === "flat"
+            ? ""
+            : '<tr><td>' + (kind === "percent" ? "Percent off" : "Amount off") + "</td>" +
+              '<td><input class="li" data-set="program_discount" data-col="program_discount" ' +
+              'value="' + esc(st.program_discount == null ? "" : st.program_discount) +
+              '" placeholder="' + (kind === "percent" ? "13.33" : "10.00") + '"></td>' +
+              '<td class="empty" style="font-size:.78rem">' +
+              (base && st.program_discount != null
+                ? "so each visit is <b>" + money(st.program_price) + "</b>, worked out by the " +
+                  "database and following the price book"
+                : "type it and the rate works itself out") +
+              "</td></tr>") +
+          (kind === "flat"
+            ? row("Pre-scheduled spray, each visit", "program_price", st.program_price, "65",
+                  "the programme rate — <b>every schedule letter is priced from it</b>")
+            : '<tr><td>The rate that comes out</td>' +
+              '<td><span class="fcellv"><b>' + money(st.program_price) + "</b></span></td>" +
+              '<td class="empty" style="font-size:.78rem">not typed — computed. ' +
+              "Change the one-off price and this follows it.</td></tr>");
+      })() +
       "</table>" +
       '<p class="note">Every invoice keeps the tax rate it was raised with, so a change ' +
       "here only affects work booked from now on.</p></div>";
@@ -6856,7 +6895,7 @@ var hasOrder = S.catalog.some(function (s) { return s.sort_order !== undefined; 
     S.catalog.forEach(function (s) { if (s.sheet_group) groups[s.sheet_group] = 1; });
     h += peopleCard() + youCard() + areasCard() + workCard() + closedCard();
 
-    h += '<div class="card"><h2>Types of service</h2>' +
+    h += '<div class="card" id="set-prices"><h2>Types of service</h2>' +
       '<p class="note">In the order they print. No price prints as a blank to write in.</p>' +
       '<table class="lst"><tr>' + (hasOrder ? '<th class="r">Order</th>' : "") +
       "<th>Service</th><th>Group</th><th class=\"r\">Price</th>" +
@@ -6999,14 +7038,12 @@ var SET_TARGETS = [
   ];
   var NUMERIC = ["price", "sort_order", "route_order", "tax_rate",
                  "slots_per_tech_per_window", "am_from", "am_to", "pm_from", "pm_to",
-                 "followup_days", "years_in_business", "program_price"];
+                 "followup_days", "years_in_business", "program_price",
+                 "program_discount"];
 
   function wireLists() {
     app.querySelectorAll("[data-jump]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var e = $(b.getAttribute("data-jump"));
-        if (e) e.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
+      b.addEventListener("click", function () { jumpTo(b.getAttribute("data-jump")); });
     });
      
     if ($("pwGo"))
@@ -8774,6 +8811,15 @@ function renderCustomers() {
     if ($("custBook")) $("custBook").addEventListener("click", function () { bookModal({}); });
   }
 
+function jumpTo(id) {
+    var e = $(id);
+    if (!e) return;
+    var bar = $("bar");
+    var over = (bar && bar.offsetHeight ? bar.offsetHeight : 0) + 10;
+    var y = e.getBoundingClientRect().top + window.pageYOffset - over;
+    window.scrollTo({ top: y < 0 ? 0 : y, behavior: "smooth" });
+  }
+
 function openModal(html) {
     $("modal").innerHTML = html;
     $("veil").classList.add("show");
@@ -9456,9 +9502,20 @@ h += '<div class="card"><h2>Notes</h2>' +
       (notes.length
         ? notes.map(function (n) {
             var by = personOf(n.user_id);
+             
+            var canFix = mayEdit && n.user_id === S.me.id;
+            var canBin = isAdmin();
             return '<div class="dates" style="margin:.35rem 0">' +
               esc(fmtDate(n.happened_on)) + " \u2014 " + esc(n.text) +
               (by ? ' <span class="empty">(' + esc(by.name.split(" ")[0]) + ")</span>" : "") +
+              (canFix
+                ? ' <button class="act" data-nedit="' + n.id +
+                  '" type="button" style="padding:.1rem .35rem;font-size:.7rem">fix</button>'
+                : "") +
+              (canBin
+                ? ' <button class="act" data-nbin="' + n.id +
+                  '" type="button" style="padding:.1rem .35rem;font-size:.7rem">remove</button>'
+                : "") +
               "</div>";
           }).join("")
         : notesFailed
@@ -9491,6 +9548,18 @@ $("cfBack").addEventListener("click", function () { go("customers"); });
       $("cfEval").addEventListener("click", function () { newEvalModal(id); veilThen(again); });
     if ($("cfAddProp")) $("cfAddProp").addEventListener("click", function () { addPropModal(id); });
 
+    app.querySelectorAll("[data-nedit]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var n = notes.filter(function (x) { return x.id === b.getAttribute("data-nedit"); })[0];
+        if (n) noteEditModal(n, id);
+      });
+    });
+    app.querySelectorAll("[data-nbin]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var n = notes.filter(function (x) { return x.id === b.getAttribute("data-nbin"); })[0];
+        if (n) noteBinModal(n, id);
+      });
+    });
     app.querySelectorAll("[data-cfjob]").forEach(function (el) {
       el.addEventListener("click", function () { jobModal(el.getAttribute("data-cfjob")); });
     });
@@ -9615,6 +9684,58 @@ app.querySelectorAll("[data-cfld]").forEach(function (el) {
           if (d) d.style.background = (ar2 && ar2.dot_color) || "var(--dot)";
         }
       });
+    });
+  }
+
+function noteEditModal(n, cid) {
+    openModal("<h3>Fix this note</h3>" +
+      '<p class="note">Written ' + esc(fmtDate(n.happened_on)) + ". Only the person who " +
+      "wrote a note can change it.</p>" +
+      '<label for="neWhen">When it happened</label>' +
+      '<input id="neWhen" class="f" type="date" value="' + esc(n.happened_on) + '">' +
+      '<label for="neText">What it says</label>' +
+      '<input id="neText" class="f" value="' + esc(n.text) + '">' +
+      '<div class="row"><button class="primary" id="neGo" type="button">Save it</button>' +
+      '<button class="act" id="neNo" type="button">Leave it</button></div>');
+    $("neNo").addEventListener("click", closeModal);
+    $("neGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+        var t = $("neText").value.trim();
+        var w = $("neWhen").value;
+        if (!t) throw new Error("A note with nothing in it is not a note.");
+        if (!w) throw new Error("It needs the date it happened.");
+        var r = await sb.from("notes").update({ text: t, happened_on: w })
+          .eq("id", n.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("Nothing moved \u2014 only the person who wrote a note can change it.");
+        closeModal();
+        toast("Fixed.");
+        renderCustomer(cid);
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
+function noteBinModal(n, cid) {
+    openModal("<h3>Take this note off the folder?</h3>" +
+      '<div class="msg warn">' + esc(fmtDate(n.happened_on)) + " \u2014 " + esc(n.text) + "</div>" +
+      '<p class="note">It goes for good. Notes are not a record of work or money, so ' +
+      "there is nothing to keep \u2014 but if this one is about either, fix it instead.</p>" +
+      '<div class="row"><button class="primary" id="nbGo" type="button">Take it off</button>' +
+      '<button class="act" id="nbNo" type="button">Keep it</button></div>');
+    $("nbNo").addEventListener("click", closeModal);
+    $("nbGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+        var r = await sb.from("notes").delete().eq("id", n.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("Nothing moved \u2014 taking a note off is an admin's to do.");
+        closeModal();
+        toast("Taken off.");
+        renderCustomer(cid);
+      } catch (e) { toast(e.message); this.disabled = false; }
     });
   }
 
