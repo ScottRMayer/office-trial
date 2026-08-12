@@ -2836,6 +2836,8 @@ var IMP_FIELDS = [
     ["phone",       "Phone",                       false, ["phone", "tel", "home", "mobile", "cell"]],
     ["email",       "Email",                       false, ["email", "e-mail"]],
     ["bill_to",     "Billing address, if different", false, ["bill", "mailing", "owner"]],
+    ["bill_city",   "Billing town, if different",  false, ["billcity", "billtown", "ownercity", "mailcity"]],
+    ["bill_zip",    "Billing zip, if different",   false, ["billzip", "ownerzip", "mailzip"]],
     ["area_code",   "Community code",              false, ["area", "community", "code", "dev"]],
     ["month_box",   "Month box",                   false, ["month", "box", "mo"]],
     ["ft_code",     "FT code",                     false, ["ft", "full treat", "termite"]],
@@ -3043,6 +3045,8 @@ var ragged = [];
         email: pick(row, "email") || null,
         notes: pick(row, "notes") || null,
         bill_to: pick(row, "bill_to") || null,
+        bill_city: pick(row, "bill_city") || null,
+        bill_zip: pick(row, "bill_zip") || null,
         area_code: area,
         month_box: mb,
         ft_code: ft || null,
@@ -3094,7 +3098,10 @@ var bills = [];
         made.forEach(function (cust) {
           var src = byKey[(cust.name + "|" + (cust.address || "")).toLowerCase()];
           if (src && src.bill_to && src.bill_to !== src.address)
-            bills.push({ id: cust.id, name: cust.name, address: src.bill_to });
+             
+            bills.push({ id: cust.id, name: cust.name, address: src.bill_to,
+                         city: src.bill_city || src.city || null,
+                         zip: src.bill_zip || src.zip || null });
         });
         if (bills.length) {
           var bu = await sb.from("customers").upsert(bills, { onConflict: "id" }).select();
@@ -3468,6 +3475,14 @@ function fmtLetter(iso) {
         ? ' <button class="act" id="bookYear" type="button">Put ' + y +
           " in the book</button>"
         : "") + "</div>";
+
+var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reason; });
+    if (elsewhere.length)
+      h += '<div class="msg warn"><b>' + plural(elsewhere.length, "letter") +
+        " post to a different address than the one serviced</b> — " +
+        elsewhere.map(function (r) { return esc(r.customer_name); }).join(", ") +
+        ". Check the town on each customer record is the <b>mailing</b> town " +
+        "before printing.</div>";
 
     h += '<div class="buckets" style="margin-bottom:.8rem">' +
       '<div class="bucket"><div class="lbl">On the programme</div><div class="amt">' +
@@ -3865,8 +3880,13 @@ var out = esc(body);
       '<div class="lto">' + esc(when.toLocaleDateString(undefined,
           { month: "long", day: "numeric", year: "numeric" })) + "<br><br>" +
         "<b>" + esc(r.first_name || r.customer_name) + "</b><br>" +
-        lines([r.bill_to || r.service_address,
-               r.bill_to ? "" : addrLine("", r.city, r.state, r.zip)]) + "</div>" +
+         
+        (function () {
+          var mc = r.bill_to ? (custById(r.customer_id) || {}) : null;
+          return lines([r.bill_to || r.service_address,
+                        r.bill_to ? addrLine("", mc.city, mc.state || r.state, mc.zip)
+                                  : addrLine("", r.city, r.state, r.zip)]);
+        })() + "</div>" +
        
       out + "</div>";
   }
@@ -4071,6 +4091,7 @@ async function shrinkImage(file, maxPx) {
   async function drawSnaps(jobId) {
     var box = $("snaps");
     if (!box) return;
+    if (box.getAttribute("data-job") && box.getAttribute("data-job") !== jobId) return;
     var rows;
     try { rows = await snapsOf(jobId); }
     catch (e) { box.innerHTML = '<p class="note">' + esc(e.message) + "</p>"; return; }
@@ -4108,25 +4129,59 @@ async function shrinkImage(file, maxPx) {
   }
 
   function wireSnaps(jobId) {
+     
+    if ($("snaps")) $("snaps").setAttribute("data-job", jobId);
     drawSnaps(jobId);
     var f = $("snapFile");
     if (!f) return;
-    f.addEventListener("change", async function () {
+    f.addEventListener("change", function () {
       var files = Array.prototype.slice.call(f.files || []);
       f.value = "";
-      if (!files.length) return;
-      var done = 0, failed = 0;
-      for (var i = 0; i < files.length; i++) {
-        toast("Sending " + (i + 1) + " of " + files.length + "…");
-        try { await sendSnap(jobId, files[i]); done++; }
-        catch (e) { failed++; toast(e.message); }
-      }
-      await drawSnaps(jobId);
-      if (!failed) toast(plural(done, "photograph") + " on the sheet.");
+      if (files.length) snapBatchModal(jobId, files, "");
     });
   }
 
-  async function sendSnap(jobId, file) {
+function snapBatchModal(jobId, files, cap0) {
+    openModal("<h3>" + plural(files.length, "photograph") + " to send</h3>" +
+      '<label for="snapCap">What it shows <span class="empty">(optional)</span></label>' +
+      '<input id="snapCap" class="f" placeholder="crawl space, north sill…"' +
+      (cap0 ? ' value="' + esc(cap0) + '"' : "") + ">" +
+      '<div class="acts">' +
+      ["Inspection graph", "Damage", "Before", "After"].map(function (k) {
+        return '<button class="act" data-snapkind="' + k + '" type="button">' + k + "</button>";
+      }).join("") + "</div>" +
+      '<p class="note" id="snapState"></p>' +
+      '<div class="row"><button class="primary" id="snapGo" type="button">Send</button>' +
+      '<button class="act" id="snapNo" type="button">Cancel</button></div>');
+    $("snapNo").addEventListener("click", closeModal);
+    document.querySelectorAll("[data-snapkind]").forEach(function (b) {
+      b.addEventListener("click", function () { $("snapCap").value = b.getAttribute("data-snapkind"); });
+    });
+    $("snapGo").addEventListener("click", async function () {
+       
+      var cap = $("snapCap").value.trim() || null;
+      this.disabled = true; $("snapNo").disabled = true;
+      var left = files.slice(), sent = 0, why = "";
+      while (left.length) {
+        $("snapState").textContent = "Sending " + (sent + 1) + " of " + files.length + "…";
+        try { await sendSnap(jobId, left[0], cap); left.shift(); sent++; }
+        catch (e) { why = e.message; break; }
+      }
+      drawSnaps(jobId);
+      if (!left.length) { closeModal(); toast(plural(sent, "photograph") + " on the sheet."); return; }
+       
+      openModal("<h3>" + plural(left.length, "photograph") + " didn’t send</h3>" +
+        '<p class="note">' + esc(why) + "</p>" +
+        '<div class="row"><button class="primary" id="snapRe" type="button">Try again</button>' +
+        '<button class="act" id="snapDrop" type="button">Give up on them</button></div>');
+      $("snapDrop").addEventListener("click", closeModal);
+      $("snapRe").addEventListener("click", function () {
+        closeModal(); snapBatchModal(jobId, left, cap || "");
+      });
+    });
+  }
+
+  async function sendSnap(jobId, file, caption) {
     var blob = await shrinkImage(file, 1600);
      
     var name = (crypto && crypto.randomUUID ? crypto.randomUUID()
@@ -4142,7 +4197,8 @@ async function shrinkImage(file, maxPx) {
       throw new Error(up.error.message);
     }
     var r = await sb.from("job_photos").insert({
-      job_id: jobId, storage_path: path, uploaded_by: S.me.id
+      job_id: jobId, storage_path: path, uploaded_by: S.me.id,
+      caption: caption || null
     }).select();
     if (r.error) {
        
@@ -4210,7 +4266,8 @@ function quoteOf(id) {
       '<div class="row">' +
       (sold ? "" : '<button class="primary" id="qRang" type="button">I rang them</button>') +
       (sold
-        ? '<button class="primary" id="qBook" type="button">Put it in the book</button>'
+        ? (q.job_id ? ""  
+                    : '<button class="primary" id="qBook" type="button">Put it in the book</button>')
         : '<button class="act go" id="qYes" type="button">They said yes</button>') +
       (sold ? "" : '<button class="act" id="qNo" type="button">They said no</button>') +
       '<button class="act" id="qClose" type="button">Close</button></div>');
@@ -4222,8 +4279,9 @@ function quoteOf(id) {
     if ($("qBook")) $("qBook").addEventListener("click", function () {
       closeModal();
        
-      bookModal({ customer: q.customer_id, quote: q.id, price: q.amount,
-                  note: q.description || null });
+      bookModal({ customer_id: q.customer_id, quote_id: q.id,
+                  note: (q.description ? q.description + " — " : "") +
+                        "estimate " + money(q.amount) + " agreed" });
     });
   }
 
@@ -4310,8 +4368,9 @@ function saidYesModal(q) {
         S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
         closeModal();
         if (thenBook) {
-          bookModal({ customer: q.customer_id, quote: q.id, price: amt,
-                      note: q.description || null });
+          bookModal({ customer_id: q.customer_id, quote_id: q.id,
+                      note: (q.description ? q.description + " — " : "") +
+                            "estimate " + money(amt) + " agreed" });
         } else {
           toast("Sold. It stays on the dashboard until it is in the book.");
           render();
@@ -5445,8 +5504,7 @@ function tzOffsetMs(tz, when) {
     try {
        
       pays = await many(sb.from("payments")
-        .select("id,invoice_id,job_id,customer_id,method,amount_collected,check_number," +
-                "processor,processor_txn_id,collected,collected_at,recorded_by,recorded_offline")
+        .select("*")
         .gte("collected_at", dayStartISO(D))
         .lt("collected_at", dayStartISO(shiftISO(D, 1)))
         .order("collected_at"));
@@ -5525,7 +5583,7 @@ var noInvoice = [], excluded = [], counted = [];
     var nothingYet = !counted.length && !noInvoice.length && !excluded.length;
 
 var inDrawer = pays.filter(function (p) { return p.collected; });
-    var promised = pays.filter(function (p) { return !p.collected; });
+    var promised = pays.filter(function (p) { return !p.collected && !p.cancelled_at; });
     var by = function (m) { return inDrawer.filter(function (p) { return p.method === m; }); };
     var sum = function (rows) {
       return r2(rows.reduce(function (t, p) { return t + Number(p.amount_collected || 0); }, 0));
@@ -6158,7 +6216,8 @@ h += '<label for="bkwho">Who does it?</label><select id="bkwho" class="f">' +
         }).join("") + "</select>";
 
       h += '<label for="bknote">Anything the technician needs to know</label>' +
-        '<input id="bknote" class="f" placeholder="side door, dog is friendly">';
+        '<input id="bknote" class="f" placeholder="side door, dog is friendly"' +
+        (pre.note ? ' value="' + esc(pre.note) + '"' : "") + '>';
 
       h += '<div class="row"><button class="primary" id="bkGo" type="button">Book it</button>' +
         '<button class="act" id="bkNo" type="button">Cancel</button></div>';
@@ -6249,6 +6308,15 @@ h += '<label for="bkwho">Who does it?</label><select id="bkwho" class="f">' +
         if (!job) throw new Error("The job didn’t save.");
         booked = true;
 
+var linkWarn = "";
+        if (pre.quote_id) {
+          var qu = await sb.from("quotes").update({ job_id: job.id })
+            .eq("id", pre.quote_id).select();
+          if (qu.error || !(qu.data || []).length)
+            linkWarn = " — but the estimate link didn’t save, so it may still show as not in the book";
+          else S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
+        }
+
 var lines = picked.map(function (el, i) {
           return { job_id: job.id, service_id: el.value,
                    service_name: el.getAttribute("data-name"),
@@ -6263,7 +6331,8 @@ var lines = picked.map(function (el, i) {
         var c = custById(chosen);
         toast("Booked — " + (c ? c.name : "") + " " + fmtDate(date) + " " +
               windowName(win).toLowerCase() +
-              (total > 0 ? " · " + money(total) + " before tax" : " · to be priced"));
+              (total > 0 ? " · " + money(total) + " before tax" : " · to be priced") +
+              (typeof linkWarn === "string" ? linkWarn : ""));
         route.date = date;
         if (route.name !== "schedule") go("schedule"); else render();
       } catch (e) {
@@ -6313,6 +6382,10 @@ function newCustomerModal(then) {
        
       '<label for="ncbill">Billing address — only if the bill goes somewhere else</label>' +
       '<input id="ncbill" class="f" placeholder="leave empty if it is the same">' +
+      '<div class="fcols two"><div><label for="ncbcity">Billing town</label>' +
+      '<input id="ncbcity" class="f" placeholder="only with a billing address"></div>' +
+      '<div><label for="ncbzip">Billing zip</label>' +
+      '<input id="ncbzip" class="f" inputmode="numeric"></div></div>' +
       '<p class="note">Leave the billing address empty for an owner-occupier. Fill it ' +
       "in for a rental, or anyone whose post goes elsewhere — the sheet is printed for " +
       "the service address and the bill is addressed to this one.</p>" +
@@ -6345,8 +6418,12 @@ function newCustomerModal(then) {
         if (!made) throw new Error("That didn’t save.");
 
 if (billAddr && billAddr !== svcAddr) {
-          var bu = await sb.from("customers").update({ address: billAddr })
-            .eq("id", made.id).select();
+           
+          var bu = await sb.from("customers").update({
+            address: billAddr,
+            city: $("ncbcity").value.trim() || $("nccity").value.trim() || null,
+            zip: $("ncbzip").value.trim() || $("nczip").value.trim() || null
+          }).eq("id", made.id).select();
           if (bu.error) throw explain(bu.error);
         }
         var area = $("ncarea").value, month = $("ncmonth").value;
@@ -6420,7 +6497,7 @@ function openModal(html) {
    
   $("veil").addEventListener("click", function (e) {
     if (e.target !== $("veil")) return;
-    if ($("modal").querySelector("canvas.sig,[data-p],[data-a]")) {
+    if ($("modal").querySelector("canvas.sig,[data-p],[data-a],[data-snapkind],#snapRe")) {
       toast("Use Back or Cancel — tapping the edge won’t throw this away.");
       return;
     }
@@ -6435,6 +6512,8 @@ function payModal(invoiceId) {
     var b = inv ? S.balances.filter(function (x) { return x.invoice_id === inv.id; })[0] : null;
     if (!inv || !b) { toast("Couldn’t find that invoice — reload."); return; }
     var c = custById(inv.customer_id);
+    var jb = inv.job_id ? jobById(inv.job_id) : null;
+    var jobDone = !jb || jb.status === "complete";
     openModal("<h3>Record payment — " + esc(c ? c.name : "") + "</h3>" +
       '<p class="note">Owes <b>' + money(b.balance) + "</b> of " + money(b.total) +
       (Number(b.collected) > 0 ? " · " + money(b.collected) + " already in" : "") + "</p>" +
@@ -6444,21 +6523,137 @@ function payModal(invoiceId) {
       '<option value="to-be-mailed">To Be Mailed — they’ll send it</option></select>' +
       '<div id="cknum" style="display:none"><label for="ck">Check number</label>' +
       '<input id="ck" class="f" inputmode="numeric" placeholder="the number printed on the check"></div>' +
+      '<div id="ctxn" style="display:none"><label for="ptxn">Transaction ID from the terminal ' +
+      '<span class="empty">(leave empty if the office runs it later)</span></label>' +
+      '<input id="ptxn" class="f" placeholder="on the Authorize.Net screen after it runs"></div>' +
       '<label for="amt">How much did they hand over?</label>' +
       '<input id="amt" class="f" inputmode="decimal" value="' + Number(b.balance).toFixed(2) + '">' +
       '<p class="note">Type less if they paid part. Once recorded it cannot be ' +
-      "changed — only the office can reverse it. Recording money also closes the " +
-      "sheet, so finish the record first.</p>" +
+      "changed — only the office can reverse it. " +
+      (jobDone
+        ? "Recording money also closes the sheet, so finish the record first."
+        : "The work isn’t done yet, so this is a deposit — the sheet stays " +
+          "open for the technician until the job is complete.") + "</p>" +
       '<div class="row"><button class="primary" id="payGo" type="button">Record it</button>' +
       '<button class="act" id="payNo" type="button">Cancel</button></div>');
     $("pm").addEventListener("change", function () {
       $("cknum").style.display = this.value === "check" ? "" : "none";
+      $("ctxn").style.display = this.value === "card" ? "" : "none";
     });
     $("payNo").addEventListener("click", closeModal);
      
     var ref = "app-" + invoiceId + "-" + Date.now();
     $("payGo").addEventListener("click", function () { savePayment(inv, ref, this); });
+
+(async function () {
+      try {
+         
+        var sel = $("pm");
+        if (!sel) return;
+        var pr = await many(sb.from("payments").select("*")
+          .eq("invoice_id", inv.id).eq("collected", false).is("cancelled_at", null));
+        if (!pr.length || $("pm") !== sel) return;
+        var box = document.createElement("div");
+        box.className = "msg warn";
+        box.innerHTML = "<b>Written down, not in yet:</b><br>" +
+          pr.map(function (p, i) {
+            return esc(p.method) + " · " + money(p.amount_collected) +
+              " (" + esc(fmtDate(String(p.collected_at).slice(0, 10))) + ") " +
+              '<button class="act" data-arrived="' + i + '" type="button">It arrived / I ran it</button> ' +
+              '<button class="act" data-nocome="' + i + '" type="button">Not coming</button>';
+          }).join("<br>");
+        sel.parentNode.insertBefore(box, sel.previousElementSibling || sel);
+        box.querySelectorAll("[data-arrived]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            completePayment(pr[Number(b.getAttribute("data-arrived"))]);
+          });
+        });
+        box.querySelectorAll("[data-nocome]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            cancelPromise(pr[Number(b.getAttribute("data-nocome"))]);
+          });
+        });
+      } catch (e) {   }
+    })();
   }
+
+function completePayment(p) {
+    var isCard = p.method === "card";
+    openModal("<h3>" + (isCard ? "The card was run" : "It arrived") + " — " +
+        money(p.amount_collected) + "</h3>" +
+      '<p class="note">Written down as ' + esc(p.method) + " on " +
+        esc(fmtDate(String(p.collected_at).slice(0, 10))) +
+        ". If a different amount came — or it isn’t coming at all — use " +
+        "<b>Not coming</b> on the invoice instead, and record what actually " +
+        "arrived as its own payment.</p>" +
+      (isCard
+        ? '<label for="cpRef">Transaction ID from the terminal</label>' +
+          '<input id="cpRef" class="f" placeholder="on the Authorize.Net screen after it runs">'
+        : '<label for="cpHow">How did it come?</label><select id="cpHow" class="f">' +
+          '<option value="check">A check</option><option value="cash">Cash</option></select>' +
+          '<div id="cpCkBox"><label for="cpCk">Check number</label>' +
+          '<input id="cpCk" class="f" inputmode="numeric" placeholder="the number printed on the check"></div>') +
+      '<div class="row"><button class="primary" id="cpGo" type="button">Money’s in</button>' +
+      '<button class="act" id="cpNo" type="button">Not yet</button></div>');
+    $("cpNo").addEventListener("click", closeModal);
+    if ($("cpHow")) $("cpHow").addEventListener("change", function () {
+      $("cpCkBox").style.display = this.value === "check" ? "" : "none";
+    });
+    $("cpGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+        var patch = { collected: true, collected_at: new Date().toISOString() };
+        if (isCard) {
+          var refIn = $("cpRef").value.trim();
+          if (!refIn) throw new Error("The transaction ID is what proves the card ran — it’s on the terminal screen.");
+          patch.processor = "authorize-net";
+          patch.processor_txn_id = refIn;
+        } else {
+          patch.method = $("cpHow").value;
+          if (patch.method === "check") {
+            var ck = $("cpCk").value.trim();
+            if (!ck) throw new Error("A check needs the number printed on it.");
+            patch.check_number = ck;
+          }
+        }
+        var r = await sb.from("payments").update(patch).eq("id", p.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length) throw new Error("Nothing moved — completing a payment is the office’s to do.");
+        await reload(["money", "attention"]);
+        closeModal(); render();
+        toast(money(p.amount_collected) + " is in.");
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+   
+  function cancelPromise(p) {
+    openModal("<h3>Not coming — " + money(p.amount_collected) + "</h3>" +
+      '<p class="note">Written down as ' + esc(p.method) + " on " +
+        esc(fmtDate(String(p.collected_at).slice(0, 10))) +
+        ". Cancelling can’t be undone — whatever DID come gets recorded as " +
+        "its own payment.</p>" +
+      '<label for="cxWhy">Why it isn’t coming</label>' +
+      '<input id="cxWhy" class="f" placeholder="paid by check instead · changed their mind">' +
+      '<div class="row"><button class="primary" id="cxGo" type="button">It’s not coming</button>' +
+      '<button class="act" id="cxNo" type="button">Keep waiting</button></div>');
+    $("cxNo").addEventListener("click", closeModal);
+    $("cxGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+        var why = $("cxWhy").value.trim();
+        if (!why) throw new Error("Why is it not coming? The reason goes on the record.");
+        var r = await sb.from("payments").update({
+          cancelled_at: new Date().toISOString(), cancelled_reason: why
+        }).eq("id", p.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length) throw new Error("Nothing moved — cancelling a promise is the office’s to do.");
+        await reload(["money", "attention"]);
+        closeModal(); render();
+        toast("Taken off the list.");
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
   async function savePayment(inv, ref, btn) {
     btn.disabled = true;
     var posted = false;
@@ -6472,10 +6667,16 @@ function payModal(invoiceId) {
       if (amt > Number(b.balance) + 0.004) throw new Error("They only owe " + money(b.balance) + " on this one.");
       var ck = method === "check" ? $("ck").value.trim() : null;
       if (method === "check" && !ck) throw new Error("A check needs the number printed on it.");
-      var collected = method !== "to-be-mailed";
+       
+      var txn = method === "card" && $("ptxn") ? $("ptxn").value.trim() : "";
+      var collected = method === "to-be-mailed" ? false
+                    : method === "card" ? txn !== ""
+                    : true;
       var r = await sb.from("payments").insert({
         invoice_id: inv.id, job_id: inv.job_id, customer_id: inv.customer_id,
         method: method, amount_collected: amt, check_number: ck,
+        processor: txn ? "authorize-net" : "manual",
+        processor_txn_id: txn || null,
         collected: collected, recorded_by: S.me.id, client_ref: ref
       }).select();
       if (r.error) throw explain(r.error);
@@ -6486,7 +6687,9 @@ function payModal(invoiceId) {
       toast(collected
         ? money(amt) + " recorded" +
           (amt < Number(b.balance) - 0.004 ? " — " + money(Number(b.balance) - amt) + " still owed" : "")
-        : "Marked To Be Mailed — it stays on the list until the money arrives");
+        : method === "card"
+          ? "Card noted — not money yet. Complete it from this invoice once it’s run."
+          : "Marked To Be Mailed — it stays on the list until the money arrives");
     } catch (e) {
       if (posted) {
         closeModal();
