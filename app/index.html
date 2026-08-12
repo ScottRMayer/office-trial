@@ -8844,7 +8844,9 @@ function changeEmailModal(userId) {
               var b = await ctx.json();
               said = (b && (b.error || b.message)) || "";
                
-              hint = (b && b.hint) || "";
+              hint = [(b && b.also) || "", (b && b.hint) || ""].filter(function (x) {
+                return x;
+              }).join(" ");
             }
           } catch (ignore) {   }
           if (said && hint) said = said + " — " + hint;
