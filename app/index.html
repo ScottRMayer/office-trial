@@ -1610,14 +1610,24 @@ var WINDOWS = [["am", "Morning"], ["pm", "Afternoon"]];
    
   var slotsOf = function (j) { return Math.max(1, Number(j.slots) || 1); };
    
-  function hoursText(n) {
-    n = Number(n);
-    if (!n) return "";
-    if (n === 0.5) return "half an hour";
-    if (n === 1) return "an hour";
-    if (n === 1.5) return "an hour and a half";
-    if (n === Math.floor(n)) return n + " hours";
-    return n + " hours";
+  function slotMinutes() {
+    var st = S.settings || {};
+    var am = (Number(st.am_to || 13) - Number(st.am_from || 9));
+    var per = Number(st.slots_per_tech_per_window) || 5;
+    var mins = Math.round((am * 60) / per);
+    return mins > 0 ? mins : 48;
+  }
+   
+  function hoursText(slots) {
+    var mins = Math.max(1, Number(slots) || 1) * slotMinutes();
+    var q = Math.round(mins / 15) * 15;
+    if (q <= 45) return "about " + q + " minutes";
+    var h = Math.floor(q / 60), r = q % 60;
+    if (h >= 8) return "the whole day";
+    var word = h === 1 ? "an hour" : h + " hours";
+    if (r === 0) return "about " + word;
+    if (r === 30) return "about " + (h === 1 ? "an hour and a half" : h + "\u00bd hours");
+    return "about " + word + " " + r + " minutes";
   }
    
   function slotsInWindow(j, w) {
@@ -1969,6 +1979,11 @@ var waiting = isOffice()
             '<div class="why">' + esc(pr ? pr.address : "") + " · " +
             esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) +
             "</div>" +
+            (crewNames(j, j.assigned_to).length
+              ? '<div class="why"><b>Still on it: ' +
+                esc(crewNames(j, j.assigned_to).join(", ")) +
+                "</b> — open it to take them off</div>"
+              : "") +
             '<div class="acts">' +
             techs().map(function (t) {
               return '<button class="act' + (t.id === S.me.id ? " go" : "") + '" data-take="' +
@@ -2018,7 +2033,7 @@ var waiting = isOffice()
             (pr && !pr.is_primary ? " — <b>" + esc(pr.label || "second address") + ", not their own house</b>" : "") +
             "</div>" +
             '<div class="dates">' + esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) +
-            (j.duration_hours != null ? " · about " + esc(hoursText(j.duration_hours)) : "") + "</div>" +
+            " · " + esc(hoursText(slotsOf(j))) + "</div>" +
             (j.notes ? '<div class="dates">From the office: <b>' + esc(j.notes) + "</b></div>" : "") +
             "</div>";
         }).join("");
@@ -2095,8 +2110,10 @@ if (isOffice()) {
         '<span class="minilbl">Takes</span>' +
         [1, 2, 3, 4, 5].map(function (n) {
           return slotsOf(j) === n
-            ? '<span class="pill ok">' + n + (n === 1 ? " slot" : " slots") + "</span>"
-            : '<button class="act" data-slots="' + n + '" type="button">' + n + "</button>";
+            ? '<span class="pill ok">' + n + (n === 1 ? " slot" : " slots") +
+              " \u00b7 " + hoursText(n) + "</span>"
+            : '<button class="act" data-slots="' + n + '" type="button" title="' +
+              esc(hoursText(n)) + '">' + n + "</button>";
         }).join("") +
          
         (slotsOf(j) >= 10
@@ -2104,18 +2121,6 @@ if (isOffice()) {
           : '<button class="act" data-allday="1" type="button">All day</button>') +
         (slotsOf(j) > 5 && slotsOf(j) < 10
           ? '<span class="pill">morning + ' + (slotsOf(j) - 5) + " of the afternoon</span>" : "") +
-        "</div>";
-       
-      h += '<div class="acts" style="margin-top:.5rem">' +
-        '<span class="minilbl">About</span>' +
-        [0.5, 1, 1.5, 2, 3, 4].map(function (n) {
-          return Number(j.duration_hours) === n
-            ? '<span class="pill ok">' + hoursText(n) + "</span>"
-            : '<button class="act" data-hours="' + n + '" type="button">' + hoursText(n) + "</button>";
-        }).join("") +
-        (j.duration_hours != null
-          ? '<button class="act" data-hours="" type="button">Don\u2019t say</button>'
-          : '<span class="empty" style="font-size:.72rem">nobody has said</span>') +
         "</div>";
        
       h += '<div class="acts" style="margin-top:.5rem">' +
@@ -2130,18 +2135,30 @@ if (isOffice()) {
             esc(fmtDate(j.scheduled_date)) + " to " + esc(fmtDate(lastDay(j))) + "</span>"
           : "") +
         "</div>";
-       
-      var others = techs().filter(function (t) { return t.id !== j.assigned_to; });
-      if (j.assigned_to && others.length)
+
+var others = techs().filter(function (t) { return t.id !== j.assigned_to; });
+      var crew = crewOf(j.id);
+      if (others.length)
         h += '<div class="acts" style="margin-top:.5rem">' +
           '<span class="minilbl">With</span>' +
-          others.map(function (t) {
-            return crewOf(j.id).indexOf(t.id) >= 0
-              ? '<button class="act go" data-crew="off|' + t.id + '" type="button">' +
-                esc(t.name.split(" ")[0]) + " ✓</button>"
-              : '<button class="act" data-crew="on|' + t.id + '" type="button">＋ ' +
-                esc(t.name.split(" ")[0]) + "</button>";
-          }).join("") +
+          (j.assigned_to
+            ? others.map(function (t) {
+                return crew.indexOf(t.id) >= 0
+                  ? '<button class="act go" data-crew="off|' + t.id + '" type="button">' +
+                    esc(t.name.split(" ")[0]) + " ✓</button>"
+                  : '<button class="act" data-crew="on|' + t.id + '" type="button">＋ ' +
+                    esc(t.name.split(" ")[0]) + "</button>";
+              }).join("")
+            : (crew.length
+                ? crew.map(function (id) {
+                    var pp = personOf(id);
+                    return '<button class="act go" data-crew="off|' + id + '" type="button">' +
+                      esc(pp ? pp.name.split(" ")[0] : "?") + " ✓ — take off</button>";
+                  }).join("") +
+                  '<span class="empty" style="font-size:.72rem">still on a job nobody ' +
+                  "is holding — give it out, or take them off</span>"
+                : '<span class="empty" style="font-size:.72rem">nobody yet, so nobody ' +
+                  "second either</span>")) +
           (techsOnJob(j).length > 1
             ? '<span class="pill ok">both of them, ' + slotsOf(j) + " each</span>" : "") +
           "</div>";
@@ -2230,12 +2247,6 @@ if (tr) {
     $("modal").querySelectorAll("[data-win]").forEach(function (b) {
       b.addEventListener("click", function () {
         moveJob(j, { scheduled_window: b.getAttribute("data-win") }, b);
-      });
-    });
-    $("modal").querySelectorAll("[data-hours]").forEach(function (b) {
-      b.addEventListener("click", function () {
-        var raw = b.getAttribute("data-hours");
-        moveJob(j, { duration_hours: raw === "" ? null : Number(raw) }, b);
       });
     });
     $("modal").querySelectorAll("[data-slots]").forEach(function (b) {
@@ -2352,6 +2363,10 @@ async function moveJob(j, patch, btn, inList) {
       if (!(r.data || []).length)
         throw new Error("That didn’t save — the database refused it.");
       await reload(["jobs"]);
+       
+      if ("assigned_to" in patch)
+        S.crew = await soft(sb.from("job_crew").select("*"), "job_crew",
+                            "putting a second technician on a job");
       var t = personOf(patch.assigned_to);
       toast("assigned_to" in patch
         ? (t ? "Given to " + t.name : "Back in the pool")
@@ -2359,11 +2374,7 @@ async function moveJob(j, patch, btn, inList) {
           ? (patch.slots >= 10 ? "All day now" : plural(patch.slots, "slot") + " now")
           : "end_date" in patch
             ? (patch.end_date ? "Runs to " + fmtDate(patch.end_date) : "One day now")
-            : "duration_hours" in patch
-               
-              ? (patch.duration_hours == null
-                  ? "Taken off" : "About " + hoursText(patch.duration_hours) + " now")
-              : "Moved to the " + windowName(patch.scheduled_window).toLowerCase());
+            : "Moved to the " + windowName(patch.scheduled_window).toLowerCase());
        
       if (inList) render();
       else {
