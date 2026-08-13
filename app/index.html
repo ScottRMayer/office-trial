@@ -7371,7 +7371,7 @@ function drawWork() {
       var svc = svcNow(), p = propNow();
       if (!svc) { box.innerHTML = ""; proposed = null; return; }
       var basis = svc.price_basis, rate = rateOf(svc);
-      var min = svc.price_minimum == null ? null : Number(svc.price_minimum);
+      var min = minOf(svc);
       var area = areaFor(p, basis);
       proposed = area;
       var gaps = [];
@@ -7499,7 +7499,7 @@ if (preNote != null && preNote !== "") {
           row.basis_kind = svc.price_basis;
           row.basis_area = a;
           row.basis_rate = rate;
-          row.basis_minimum = svc.price_minimum == null ? null : Number(svc.price_minimum);
+          row.basis_minimum = minOf(svc);
           row.basis_measured_at =
             svc.price_basis === "crawl_sq_ft" ? (p ? p.crawl_measured_at : null)
                                               : (p ? p.measured_at : null);
@@ -7730,8 +7730,7 @@ h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1.6fr 
               (live && !bas && rt != null && ar != null
                 ? '<div class="rs-line noprint" style="border:none;font-size:.62rem">' +
                   "<span>" + esc(sqft(ar)) + " at " + esc(rate4(rt)) + " = " +
-                  money(fromArea(rt, ar, bk.price_minimum == null ? null
-                                          : Number(bk.price_minimum))) +
+                  money(fromArea(rt, ar, minOf(bk))) +
                   '</span><span><button class="act" data-earea="' + esc(k) +
                   '" type="button">Use it</button></span></div>'
                 : "") +
@@ -7969,7 +7968,7 @@ async function saveEval(patch) {
       if (ar == null)
         throw new Error("There is no " + (BASIS_LABEL[bk.price_basis] || bk.price_basis) +
                         " figure for this address yet.");
-      var min = bk.price_minimum == null ? null : Number(bk.price_minimum);
+      var min = minOf(bk);
       var n = fromArea(rt, ar, min);
       var cur = copyOf(nowRow().services);
       if (cur[name] === undefined) return;
@@ -8759,6 +8758,13 @@ var BASIS_LABEL = { yard_sq_ft: "Yard", bldg_sq_ft: "Building footprint",
     if (!svc || !svc.price_basis || svc.price_basis === "flat") return null;
     return svc.price_per_sq_ft == null ? null : Number(svc.price_per_sq_ft);
   }
+
+function minOf(svc) {
+    if (!svc || !svc.price_basis || svc.price_basis === "flat") return null;
+    if (svc.price_minimum == null) return null;
+    var m = Number(svc.price_minimum);
+    return isNaN(m) || m <= 0 ? null : m;
+  }
   function rate4(n) {
     return n == null ? "\u2014" : "$" + Number(n).toFixed(4) + " a sq ft";
   }
@@ -9254,7 +9260,9 @@ var hasOrder = S.catalog.some(function (s) { return s.sort_order !== undefined; 
     h += '<div class="card" id="set-prices"><h2>Types of service</h2>' +
       '<p class="note">In the order they print. No price prints as a blank to write in. ' +
       "A rate a square foot only ever offers a figure on the estimate screen \u2014 " +
-      "it never prices a booked job line, which still takes the price on the left.</p>" +
+      "it never prices a booked job line, which still takes the price on the left. " +
+      "Least is the smallest the job can come to however small the measurement is; " +
+      "0 or blank both mean there is no least.</p>" +
       '<table class="lst"><tr>' + (hasOrder ? '<th class="r">Order</th>' : "") +
       "<th>Service</th><th>Group</th><th class=\"r\">Price</th>" +
       "<th>Priced by</th><th class=\"r\">Rate a sq ft</th><th class=\"r\">Least</th>" +
