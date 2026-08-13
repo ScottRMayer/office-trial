@@ -7115,7 +7115,34 @@ function quoteOf(id) {
         ? "<tr><td>Try again</td><td class=\"r\">" + esc(fmtDate(q.next_followup_date)) + "</td></tr>"
         : "") +
       "<tr><td>Where it stands</td><td class=\"r\"><b>" + esc(q.status) + "</b></td></tr>" +
+       
+      (q.basis_kind && q.basis_kind !== "flat"
+        ? "<tr><td>Priced from</td><td class=\"r\">" +
+            esc(BASIS_LABEL[q.basis_kind] || q.basis_kind) + " " + sqft(q.basis_area) +
+            " at " + esc(rate4(q.basis_rate)) + "</td></tr>" +
+          "<tr><td>Which comes to</td><td class=\"r\">" +
+            money(fromArea(q.basis_rate, q.basis_area, q.basis_minimum)) +
+            (Math.abs((fromArea(q.basis_rate, q.basis_area, q.basis_minimum) || 0) -
+                      (Number(q.amount) || 0)) > 0.005
+              ? " \u00b7 <b>quoted " + money(q.amount) + "</b>" : "") +
+            "</td></tr>" +
+          "<tr><td>The measurement</td><td class=\"r\">" +
+            esc(q.basis_confidence || "nothing recorded") +
+            (q.basis_measured_at
+              ? " \u00b7 " + esc(fmtDate(String(q.basis_measured_at).slice(0, 10))) : "") +
+            (q.basis_kind === "yard_sq_ft" && q.basis_paving_known !== true
+              ? " \u00b7 no drive or walk deducted" : "") + "</td></tr>" +
+          (q.basis_note
+            ? "<tr><td>Noted</td><td class=\"r\">" + esc(q.basis_note) + "</td></tr>" : "")
+        : "") +
       "</table>" +
+       
+      (creditNeeded(q.basis_kind,
+                    (S.properties || []).filter(function (x) {
+                      return x.id === q.property_id;
+                    })[0] || null)
+        ? '<p class="note" style="font-size:.62rem">' + esc(MEASURE_CREDIT) + "</p>"
+        : "") +
       (sold && !q.job_id
         ? '<div class="msg warn">Accepted, and not in the book yet.</div>'
         : "") +
@@ -7279,18 +7306,38 @@ var NO_REASONS = ["Too expensive", "Went with somebody else", "Not doing it now"
     });
   }
 
-function newQuoteModal(cid) {
+function newQuoteModal(cid, pre) {
+     
+    pre = pre || {};
     var c = custById(cid);
     var ps = propsOf(cid);
     var st = S.settings || {};
+     
+    var byArea = (S.catalog || []).filter(function (s) {
+      return s.active !== false && s.price_basis && s.price_basis !== "flat";
+    }).sort(function (a, b) { return (a.name || "") < (b.name || "") ? -1 : 1; });
+
     openModal("<h3>An estimate for " + esc(c ? c.name : "") + "</h3>" +
       (ps.length > 1
         ? '<label for="nqProp">Which address</label><select id="nqProp" class="f">' +
           ps.map(function (p) {
-            return '<option value="' + p.id + '"' + (p.is_primary ? " selected" : "") + ">" +
+             
+            return '<option value="' + p.id + '"' +
+              (pre.prop ? (p.id === pre.prop ? " selected" : "")
+                        : (p.is_primary ? " selected" : "")) + ">" +
               esc(p.address) + "</option>";
           }).join("") + "</select>"
         : "") +
+      (byArea.length
+        ? '<label for="nqSvc">Priced by the square foot?</label>' +
+          '<select id="nqSvc" class="f"><option value="">No \u2014 a price I type</option>' +
+          byArea.map(function (s) {
+            return '<option value="' + esc(s.id) + '"' +
+              (pre.svc === s.id ? " selected" : "") + ">" + esc(s.name) + " \u2014 " +
+              esc(rate4(rateOf(s))) + "</option>";
+          }).join("") + "</select>"
+        : "") +
+      '<div id="nqWork"></div>' +
       '<label for="nqAmt">The price quoted</label>' +
       '<input id="nqAmt" class="f r" inputmode="decimal" placeholder="0.00">' +
       '<label for="nqWhat">What for</label>' +
@@ -7301,27 +7348,187 @@ function newQuoteModal(cid) {
       plural(Number(st.followup_days) || 7, "day") + " with no answer.</p>" +
       '<div class="row"><button class="primary" id="nqGo" type="button">Record it</button>' +
       '<button class="act" id="nqNo" type="button">Cancel</button></div>');
+
+if (pre.amount) $("nqAmt").value = pre.amount;
+    if (pre.what) $("nqWhat").value = pre.what;
+    if (pre.sent) $("nqSent").value = pre.sent;
+
+    var propNow = function () {
+      var pid = $("nqProp") ? $("nqProp").value : ((ps[0] || {}).id || null);
+      return S.properties.filter(function (x) { return x.id === pid; })[0] || null;
+    };
+    var svcNow = function () {
+      if (!$("nqSvc") || !$("nqSvc").value) return null;
+      return byArea.filter(function (s) { return s.id === $("nqSvc").value; })[0] || null;
+    };
+    var proposed = null;    
+     
+    var offered = pre.offered == null ? null : pre.offered;
+    var preNote = pre.bnote;    
+
+function drawWork() {
+      var box = $("nqWork");
+      var svc = svcNow(), p = propNow();
+      if (!svc) { box.innerHTML = ""; proposed = null; return; }
+      var basis = svc.price_basis, rate = rateOf(svc);
+      var min = svc.price_minimum == null ? null : Number(svc.price_minimum);
+      var area = areaFor(p, basis);
+      proposed = area;
+      var gaps = [];
+      if (basis === "yard_sq_ft" && (!p || p.paved_sq_ft == null))
+        gaps.push("No drive or walk has been taken off, so this figure still has the " +
+                  "driveway in it.");
+      if (basis === "bldg_sq_ft")
+        gaps.push("This is the building outline matched to the address. It is not the " +
+                  "crawl space and it is not the sprayed ground.");
+      if (basis === "crawl_sq_ft" && p && p.crawl_basis)
+        gaps.push("The crawl figure is \u201c" + p.crawl_basis + "\u201d.");
+      if (basis === "crawl_sq_ft" && p && p.crawl_sq_ft == null)
+        gaps.push("Nobody has said how much crawl space there is. Put the size in on the " +
+                  "folder first, or type the price.");
+       
+      if (area === 0)
+        gaps.push("The " + String(BASIS_LABEL[basis] || basis).toLowerCase() +
+                  " works out to nothing at this address, so there is no figure to " +
+                  "offer. Type the price.");
+       
+      if (p && p.measure_confidence && p.measure_confidence !== "exact" &&
+          (basis !== "crawl_sq_ft" ||
+           (p.crawl_basis && p.crawl_basis !== "measured on site")))
+        gaps.push("The address match is \u201c" + p.measure_confidence + "\u201d" +
+                  (basis === "crawl_sq_ft"
+                    ? ", so the footprint this is taken from is worth an eye."
+                    : "."));
+      if (rate == null)
+        gaps.push("There is no rate in the price book for this yet, so nothing can be " +
+                  "worked out. An admin sets it under Settings. The square footage " +
+                  "cannot be kept with the estimate until the rate is in the book; " +
+                  "the sentence below is kept as a plain note.");
+
+      box.innerHTML =
+        '<table class="lst">' +
+        "<tr><td>" + esc(svc.name) + '</td><td class="r">per sq ft</td></tr>' +
+        "<tr><td>" + esc(BASIS_LABEL[basis] || basis) + "</td><td class=\"r\">" +
+          '<input id="nqArea" class="f r" inputmode="numeric" style="max-width:8rem;' +
+          'display:inline-block" value="' + esc(area == null ? "" : area) +
+          '" placeholder="not measured"> sq ft</td></tr>' +
+        "<tr><td>Rate</td><td class=\"r\">" + esc(rate4(rate)) + "</td></tr>" +
+        (min != null
+          ? "<tr><td>Least it can be</td><td class=\"r\">" + money(min) + "</td></tr>"
+          : "") +
+        '<tr><td>Comes to</td><td class="r"><b id="nqComes">\u2014</b></td></tr>' +
+        "</table>" +
+        (gaps.length ? '<div class="msg warn">' + esc(gaps.join(" ")) + "</div>" : "") +
+        (area == null && basis !== "crawl_sq_ft"
+          ? '<div class="row"><button class="act" id="nqMeas" type="button">' +
+            "Measure the address</button></div>"
+          : "") +
+        '<label for="nqBnote">What to remember about the figure</label>' +
+        '<input id="nqBnote" class="f" value="' +
+          esc(basis === "yard_sq_ft" && (!p || p.paved_sq_ft == null)
+                ? "no drive or walk deducted"
+                : (basis === "crawl_sq_ft" && p && p.crawl_basis
+                    ? "crawl space " + p.crawl_basis : "")) +
+          '" placeholder="half the house is slab, priced the crawl half">' +
+        (creditNeeded(basis, p)
+          ? '<p class="note" style="font-size:.62rem">' + esc(MEASURE_CREDIT) + "</p>"
+          : "");
+
+if (preNote != null && preNote !== "") {
+        $("nqBnote").value = preNote;
+        preNote = null;
+      }
+
+      var recompute = function () {
+        var a = $("nqArea").value.trim() === "" ? null
+                : Math.round(Number($("nqArea").value));
+         
+        if (a != null && (isNaN(a) || a <= 0)) a = null;
+        var n = fromArea(rate, a, min);
+        $("nqComes").innerHTML = n == null ? "\u2014" : money(n);
+         
+        var amtBox = $("nqAmt"), was = amtBox.value.trim();
+        if (n != null && (was === "" || was === offered)) {
+          offered = n.toFixed(2);
+          amtBox.value = offered;
+        }
+      };
+      $("nqArea").addEventListener("input", recompute);
+      recompute();
+      if (!$("nqWhat").value.trim()) $("nqWhat").value = svc.name;
+      if ($("nqMeas"))
+        $("nqMeas").addEventListener("click", function () {
+          var p2 = propNow(); if (!p2) return;
+           
+          var pre2 = { prop: p2.id, svc: $("nqSvc") ? $("nqSvc").value : "",
+                       amount: $("nqAmt").value, offered: offered,
+                       what: $("nqWhat").value, sent: $("nqSent").value,
+                       bnote: $("nqBnote") ? $("nqBnote").value : "" };
+          var back = function () { newQuoteModal(cid, pre2); };
+          measureModal(p2.id, back, back);
+        });
+    }
+
     $("nqAmt").focus();
     $("nqNo").addEventListener("click", closeModal);
+    if ($("nqSvc")) $("nqSvc").addEventListener("change", drawWork);
+    if ($("nqProp")) $("nqProp").addEventListener("change", drawWork);
+    drawWork();
+
     $("nqGo").addEventListener("click", async function () {
       var amt = readMoney($("nqAmt").value);
       if (amt == null) { toast("What was quoted?"); return; }
       var what = $("nqWhat").value.trim();
       if (!what) { toast("What is the estimate for?"); return; }
+      var svc = svcNow(), p = propNow();
+      var row = {
+        customer_id: cid,
+        property_id: (p ? p.id : ((ps[0] || {}).id || null)) || null,
+        amount: amt, description: what,
+        sent_date: $("nqSent").value || todayISO(),
+        status: "open", created_by: S.me.id
+      };
+       
+      if (svc && $("nqArea")) {
+        var a = $("nqArea").value.trim() === "" ? null
+                : Math.round(Number($("nqArea").value));
+        var rate = rateOf(svc);
+         
+        if (a != null && !isNaN(a) && a > 0 && rate != null) {
+          var typedOver = proposed == null || a !== proposed;
+          row.basis_kind = svc.price_basis;
+          row.basis_area = a;
+          row.basis_rate = rate;
+          row.basis_minimum = svc.price_minimum == null ? null : Number(svc.price_minimum);
+          row.basis_measured_at =
+            svc.price_basis === "crawl_sq_ft" ? (p ? p.crawl_measured_at : null)
+                                              : (p ? p.measured_at : null);
+           
+          row.basis_confidence = typedOver ? "by hand"
+            : (svc.price_basis === "crawl_sq_ft"
+                ? (p && p.crawl_basis === "measured on site" ? "by hand"
+                    : (p ? p.measure_confidence : null))
+                : (p ? p.measure_confidence : null));
+          row.basis_paving_known =
+            svc.price_basis === "yard_sq_ft" ? !!(p && p.paved_sq_ft != null) : null;
+          row.basis_note = $("nqBnote") ? ($("nqBnote").value.trim() || null) : null;
+        } else if (rate == null && a != null && !isNaN(a) && a > 0 &&
+                   $("nqBnote") && $("nqBnote").value.trim()) {
+           
+          row.notes = $("nqBnote").value.trim();
+        }
+      }
       this.disabled = true;
       try {
-        var r = await sb.from("quotes").insert({
-          customer_id: cid,
-          property_id: ($("nqProp") ? $("nqProp").value : (ps[0] || {}).id) || null,
-          amount: amt, description: what,
-          sent_date: $("nqSent").value || todayISO(),
-          status: "open", created_by: S.me.id
-        }).select();
+        var r = await sb.from("quotes").insert(row).select();
         if (r.error) throw explain(r.error);
         S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
         await reload(["attention"]);
         closeModal();
-        toast("Estimate recorded — " + money(amt) + " for " + what);
+        toast("Estimate recorded \u2014 " + money(amt) + " for " + what +
+              (row.basis_area != null
+                ? " \u00b7 " + sqft(row.basis_area) + " at " + rate4(row.basis_rate)
+                : ""));
       } catch (e) { toast(e.message); this.disabled = false; }
     });
   }
@@ -7494,10 +7701,46 @@ h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1.6fr 
               "Untick above to take one off.</div>"
             : "") +
           picked.map(function (k) {
+             
+            var bk = (S.catalog || []).filter(function (s) {
+              return String(s.name || "").toLowerCase().replace(/^\s+|\s+$/g, "") ===
+                     String(k).toLowerCase().replace(/^\s+|\s+$/g, "");
+            })[0] || null;
+            var bas = (ev.service_basis || {})[k] || null;
+            var rt = rateOf(bk);
+            var ar = bk ? areaFor(p, bk.price_basis) : null;
             return '<div class="rs-line"><span>' + esc(k) + "</span>" + (live
               ? '<input class="fcell" data-eprice="' + esc(k) + '" inputmode="decimal" ' +
                 'style="width:6rem;text-align:right" value="' + esc(svcs[k]) + '">'
-              : '<span class="num">' + money(svcs[k]) + "</span>") + "</div>";
+              : '<span class="num">' + money(svcs[k]) + "</span>") + "</div>" +
+               
+              (bas && bas.sq_ft != null
+                ? '<div class="rs-line" style="border:none;font-size:.62rem">' +
+                  "<span>" + esc(sqft(bas.sq_ft)) + " at " +
+                  esc(rate4(bas.rate)) +
+                   
+                  (bas.minimum != null && bas.rate != null &&
+                   fromArea(bas.rate, bas.sq_ft, null) < Number(bas.minimum)
+                     ? " · least it can be " + money(bas.minimum) : "") +
+                  "</span><span>" +
+                  money(fromArea(bas.rate, bas.sq_ft,
+                                 bas.minimum == null ? null : Number(bas.minimum))) +
+                  "</span></div>"
+                : "") +
+              (live && !bas && rt != null && ar != null
+                ? '<div class="rs-line noprint" style="border:none;font-size:.62rem">' +
+                  "<span>" + esc(sqft(ar)) + " at " + esc(rate4(rt)) + " = " +
+                  money(fromArea(rt, ar, bk.price_minimum == null ? null
+                                          : Number(bk.price_minimum))) +
+                  '</span><span><button class="act" data-earea="' + esc(k) +
+                  '" type="button">Use it</button></span></div>'
+                : "") +
+              (live && !bas && rt != null && ar == null
+                ? '<div class="rs-line noprint" style="border:none;font-size:.62rem">' +
+                  "<span>" + esc(BASIS_LABEL[bk.price_basis] || bk.price_basis) +
+                  " is not recorded for this address, so there is no figure to offer." +
+                  "</span><span></span></div>"
+                : "");
           }).join("") + "</div>"
         : '<div class="noprint" style="font-size:.63rem;color:#777;margin-top:.3rem">' +
           "Tick what you are recommending — each one comes down here for its price.</div>") +
@@ -7575,6 +7818,14 @@ h += '<div class="rs-sec"><div style="display:flex;justify-content:space-between
             "voided original, " + esc(ev.signed_on) + "</div>"
           : '<div class="sigline"></div><div style="font-size:.58rem">Customer Signature</div>') +
       "</div></div></div>";
+
+if (Object.keys(ev.service_basis || {}).some(function (k) {
+          var b = (ev.service_basis || {})[k] || {};
+          return b.basis === "bldg_sq_ft" || b.basis === "yard_sq_ft" ||
+                 (b.basis === "crawl_sq_ft" && b.confidence &&
+                  b.confidence !== "measured on site");
+        }))
+      h += '<div style="font-size:.55rem;margin-top:.3rem">' + esc(MEASURE_CREDIT) + "</div>";
 
     h += '<div class="foot"><span>' + esc(co.company_name || "") + "</span>" +
       "<span>" + esc(co.phone || "") + "</span></div></div>";
@@ -7668,6 +7919,12 @@ evalField("evDate", function (v) {
         });
       });
     });
+    app.querySelectorAll("[data-earea]").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var name = el.getAttribute("data-earea");
+        evalWrite(el, function () { return priceFromArea(name); });
+      });
+    });
 
 async function saveEval(patch) {
       var r = await sb.from("evaluations").update(patch).eq("id", ev.id).select();
@@ -7684,17 +7941,49 @@ async function saveEval(patch) {
     }
     async function toggleService(name) {
       var cur = copyOf(nowRow().services);
-      if (cur[name] !== undefined) delete cur[name]; else cur[name] = 0;
-      var row = await saveEval({ services: cur });
+      var bas = copyOf(nowRow().service_basis);
+      if (cur[name] !== undefined) { delete cur[name]; delete bas[name]; }
+      else cur[name] = 0;
+      var row = await saveEval({ services: cur, service_basis: bas });
       toast(cur[name] === undefined ? name + " taken off" : name + " added — type its price");
       return syncQuote(row);
     }
+     
     async function setPrice(name, n) {
       var cur = copyOf(nowRow().services);
       if (cur[name] === undefined) return;
       cur[name] = n;
       var row = await saveEval({ services: cur });
       toast(name + " — " + money(n));
+      return syncQuote(row);
+    }
+     
+    async function priceFromArea(name) {
+      var bk = (S.catalog || []).filter(function (s) {
+        return String(s.name || "").toLowerCase().replace(/^\s+|\s+$/g, "") ===
+               String(name).toLowerCase().replace(/^\s+|\s+$/g, "");
+      })[0] || null;
+      var rt = rateOf(bk);
+      var ar = bk ? areaFor(p, bk.price_basis) : null;
+      if (rt == null) throw new Error("There is no rate in the price book for " + name + ".");
+      if (ar == null)
+        throw new Error("There is no " + (BASIS_LABEL[bk.price_basis] || bk.price_basis) +
+                        " figure for this address yet.");
+      var min = bk.price_minimum == null ? null : Number(bk.price_minimum);
+      var n = fromArea(rt, ar, min);
+      var cur = copyOf(nowRow().services);
+      if (cur[name] === undefined) return;
+      cur[name] = n;
+      var bas = copyOf(nowRow().service_basis);
+      bas[name] = { sq_ft: ar, rate: rt, minimum: min, basis: bk.price_basis,
+                    confidence: bk.price_basis === "crawl_sq_ft"
+                                  ? (p.crawl_basis || null) : (p.measure_confidence || null),
+                    measured_at: bk.price_basis === "crawl_sq_ft"
+                                   ? (p.crawl_measured_at || null) : (p.measured_at || null),
+                    note: bk.price_basis === "crawl_sq_ft" && p.crawl_note
+                            ? p.crawl_note : null };
+      var row = await saveEval({ services: cur, service_basis: bas });
+      toast(name + " — " + sqft(ar) + " at " + rate4(rt) + " = " + money(n));
       return syncQuote(row);
     }
     async function patchRow(name, patch) {
@@ -8038,6 +8327,23 @@ function inRing(x, y, ring) {
     return [x / n, y / n];
   }
 
+function measureDoubts(lot, bldg, assessed, drawn, candidates, pin) {
+    var why = [];
+    var bits = String(pin == null ? "" : pin).split("_");
+     
+    if (candidates > 1)
+      why.push(candidates + " parcel records could be this address");
+    if (bits.length > 3 && String(bits[3]).replace(/\s/g, "") !== "")
+      why.push("the tax record carries a unit qualifier, so this is one unit of several");
+    if (lot && bldg && bldg > lot * 0.45)
+      why.push("the outline covers over 45% of the lot, which usually means a whole attached block");
+    if (assessed && drawn && Math.abs(assessed - drawn) > assessed * 0.2)
+      why.push("the tax record and the drawn lot disagree by more than a fifth");
+    if (lot && bldg && bldg < lot * 0.08)
+      why.push("the outline is under 8% of the lot, so it is taking in common land or the wrong building");
+    return why.length ? why.join(" \u00b7 ") : null;
+  }
+
 async function measureByText(addr) {
     var want = addrParts(addr);
     if (!want.num || !want.core) {
@@ -8102,6 +8408,11 @@ async function measureByText(addr) {
       out.bldg_sq_ft = Math.round(Number(homes[0].SQFEET));
       out.bldg_addr = homes[0].PROP_ADDR || null;
       out.bldg_use = homes[0].PRIM_OCC || null;
+       
+      if (homes.length > 1) out.confidence = "uncertain";
+      out.doubt = measureDoubts(out.lot_sq_ft, out.bldg_sq_ft, assessed, drawn,
+                                cands.length, at.PAMS_PIN);
+      if (out.doubt) out.confidence = "uncertain";
     } else {
       out.confidence = "uncertain";
     }
@@ -8205,12 +8516,9 @@ if (!homes.length && ring) {
       out.bldg_addr = homes[0].PROP_ADDR || null;
       out.bldg_use = homes[0].PRIM_OCC || null;
        
-      if (lot && out.bldg_sq_ft > lot * 0.45) out.confidence = "uncertain";
-       
-      if (assessed && drawn && Math.abs(assessed - drawn) > assessed * 0.2)
-        out.confidence = "uncertain";
-       
-      if (lot && out.bldg_sq_ft < lot * 0.08) out.confidence = "uncertain";
+      out.doubt = measureDoubts(lot, out.bldg_sq_ft, assessed, drawn,
+                                cands.length, at.PAMS_PIN);
+      if (out.doubt) out.confidence = "uncertain";
     } else {
       out.confidence = "uncertain";
     }
@@ -8221,7 +8529,7 @@ if (!homes.length && ring) {
     return n == null ? "—" : Number(n).toLocaleString() + " sq ft";
   }
 
-async function measureModal(propId, done) {
+async function measureModal(propId, done, back) {
     var p = S.properties.filter(function (x) { return x.id === propId; })[0];
     if (!p) return;
     openModal("<h3>Measure " + esc(p.address) + "</h3>" +
@@ -8232,7 +8540,11 @@ async function measureModal(propId, done) {
     catch (e) {
       $("msBody").innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>" +
         '<div class="row"><button class="act" id="msNo" type="button">Close</button></div>';
-      $("msNo").addEventListener("click", closeModal);
+       
+      $("msNo").addEventListener("click", function () {
+        closeModal();
+        if (typeof back === "function") back();
+      });
       return;
     }
 
@@ -8240,7 +8552,7 @@ async function measureModal(propId, done) {
       $("msBody").innerHTML = '<div class="msg warn">' + esc(got.why) + "</div>" +
         '<p class="note">Put the figures in by hand below if you know them.</p>' +
         measureForm(p, {}) ;
-      wireMeasureForm(p, "by hand");
+      wireMeasureForm(p, "by hand", null, done, back);
       return;
     }
 
@@ -8252,22 +8564,34 @@ async function measureModal(propId, done) {
       "</table>" +
       '<p class="note">Found as <b>' + esc(got.geocoded_to || got.matched_address || "?") +
       "</b>" + (got.geocode_score ? " (" + got.geocode_score + "/100)" : "") +
-      (got.point_on_building ? " · on the building" : " · not on a building outline") +
+       
+      (got.by_text
+        ? " · matched on the address text, not by a point on a roof"
+        : (got.point_on_building ? " · on the building"
+                                 : " · not on a building outline")) +
       (got.lot_desc ? " · lot " + esc(got.lot_desc) : "") +
       (got.bldg_desc ? " · " + esc(got.bldg_desc) : "") +
-      (got.buildings > 1 ? " · " + got.buildings + " buildings on the parcel" : "") + "</p>" +
+       
+      (got.candidates > 1
+        ? " · " + got.candidates +
+          (got.by_text ? " parcel records match that address"
+                       : " parcel records under the point")
+        : "") +
+      (got.buildings > 1
+        ? " · " + got.buildings + " buildings on the parcel, took the " +
+          sqft(got.bldg_sq_ft) + " one" +
+          (got.bldg_addr ? " (" + esc(got.bldg_addr) + ")" : "") +
+          (got.bldg_use ? " · " + esc(got.bldg_use) : "")
+        : "") + "</p>" +
       (warn
         ? '<div class="msg warn">Check this one. ' +
-          (got.candidates > 1 ? got.candidates + " addresses could be it. " : "") +
-          (got.bldg_sq_ft && got.lot_sq_ft && got.bldg_sq_ft > got.lot_sq_ft * 0.45
-            ? "The building covers a lot of the parcel, which usually means the outline " +
-              "takes in more than one home. " : "") +
+          (got.doubt ? esc(got.doubt) + ". " : "") +
           (!got.bldg_sq_ft ? "No building was found on the parcel. " : "") +
           "</div>"
         : '<div class="msg good">A single clean match.</div>') +
       measureForm(p, got) +
       '<p class="note">' + esc(MEASURE_CREDIT) + "</p>";
-    wireMeasureForm(p, got.confidence, got);
+    wireMeasureForm(p, got.confidence, got, done, back);
   }
 
   function measureForm(p, got) {
@@ -8288,7 +8612,7 @@ async function measureModal(propId, done) {
       '<button class="act" id="msNo" type="button">Cancel</button></div>';
   }
 
-  function wireMeasureForm(p, confidence, got) {
+function wireMeasureForm(p, confidence, got, done, back) {
     var show = function () {
       var l = Number($("msLot").value) || 0, b = Number($("msBld").value) || 0,
           v = Number($("msPav").value) || 0;
@@ -8301,7 +8625,11 @@ async function measureModal(propId, done) {
       $(id).addEventListener("input", show);
     });
     show();
-    $("msNo").addEventListener("click", closeModal);
+     
+    $("msNo").addEventListener("click", function () {
+      closeModal();
+      if (typeof back === "function") back();
+    });
     $("msGo").addEventListener("click", async function () {
       this.disabled = true;
       var num = function (id) {
@@ -8328,6 +8656,127 @@ async function measureModal(propId, done) {
         if (typeof done === "function") done();
       } catch (e) { toast(e.message); this.disabled = false; }
     });
+  }
+
+async function crawlModal(propId, done) {
+    var p = S.properties.filter(function (x) { return x.id === propId; })[0];
+    if (!p) return;
+    var CB = ["whole footprint", "part of the footprint", "measured on site"];
+    openModal("<h3>Crawl space at " + esc(p.address) + "</h3>" +
+      '<table class="lst">' +
+      "<tr><td>Building footprint</td><td class=\"r\"><b>" + sqft(p.bldg_sq_ft) + "</b>" +
+        (p.measure_confidence && p.measure_confidence !== "exact"
+          ? ' <span class="pill bad">' + esc(p.measure_confidence) + "</span>" : "") +
+        "</td></tr></table>" +
+      '<p class="note">That is the outline matched to this address. It is not the ' +
+      "crawl space: an attached garage and a porch are inside it and are slab, so is " +
+      "a slab addition, and an addition on piers has no crawl under it either. " +
+      "Nothing published says which part of a house has one.</p>" +
+      '<label>What kind of figure is this</label><div class="picklist" id="crBasis">' +
+      CB.map(function (b) {
+        return '<button type="button" class="pickrow" data-crb="' + esc(b) + '"' +
+          (p.crawl_basis === b ? ' style="font-weight:700"' : "") + "><span>" +
+          esc(b) + "</span></button>";
+      }).join("") + "</div>" +
+      '<input id="crBasisV" type="hidden" value="' + esc(p.crawl_basis || "") + '">' +
+      '<label for="crSq">Crawl space</label>' +
+      '<input id="crSq" class="f r" inputmode="numeric" value="' +
+        esc(p.crawl_sq_ft == null ? "" : p.crawl_sq_ft) + '" placeholder="square feet">' +
+      '<div id="crWarn" class="msg"></div>' +
+      '<label for="crNote">Note</label>' +
+      '<input id="crNote" class="f" value="' + esc(p.crawl_note || "") +
+        '" placeholder="front half is slab \u00b7 rear addition on piers">' +
+      '<div class="row"><button class="primary" id="crGo" type="button">Save</button>' +
+      '<button class="act" id="crNo" type="button">Cancel</button></div>');
+
+    var show = function () {
+      var n = $("crSq").value.trim() === "" ? null : Math.round(Number($("crSq").value));
+      var b = $("crBasisV").value;
+      var bld = p.bldg_sq_ft == null ? null : Number(p.bldg_sq_ft);
+      var w = [];
+      if (n != null && bld != null && n > bld)
+        w.push("That is larger than the footprint. Saved anyway — the outline is a roof " +
+               "outline and a wing taken as its own polygon is not in it at all.");
+      if (b === "whole footprint" && bld != null)
+        w.push("Kept at " + sqft(bld) + " as it stands today. It does not follow a " +
+               "later re-measure, which is right: it is what the office asserted.");
+      if (b !== "measured on site" && p.measure_confidence && p.measure_confidence !== "exact")
+        w.push("The address match is \u201c" + p.measure_confidence + "\u201d, so the " +
+               "footprint this is taken from is worth an eye.");
+      $("crWarn").className = "msg" + (w.length ? " warn" : "");
+      $("crWarn").innerHTML = w.length ? w.join(" ") : "";
+    };
+    $("crSq").addEventListener("input", show);
+    $("modal").querySelectorAll("[data-crb]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var v = b.getAttribute("data-crb");
+        $("crBasisV").value = v;
+        $("modal").querySelectorAll("[data-crb]").forEach(function (o) {
+          o.style.fontWeight = o === b ? "700" : "";
+        });
+         
+        if (v === "whole footprint" && p.bldg_sq_ft != null)
+          $("crSq").value = String(p.bldg_sq_ft);
+        show();
+      });
+    });
+    show();
+    $("crNo").addEventListener("click", closeModal);
+    $("crGo").addEventListener("click", async function () {
+      this.disabled = true;
+      var raw = $("crSq").value.trim();
+      var n = raw === "" ? null : Math.round(Number(raw));
+      var b = $("crBasisV").value || null;
+      if (n != null && (isNaN(n) || n < 0)) {
+        toast("That size didn\u2019t read as a number."); this.disabled = false; return;
+      }
+      if (n != null && !b) {
+        toast("Say which kind of figure it is."); this.disabled = false; return;
+      }
+      try {
+        var r = await sb.from("properties").update({
+          crawl_sq_ft: n, crawl_basis: n == null ? null : b,
+          crawl_note: $("crNote").value.trim() || null,
+          crawl_measured_at: n == null ? null : new Date().toISOString(),
+          crawl_measured_by: n == null ? null : S.me.id
+        }).eq("id", p.id).select();
+        if (r.error) throw explain(r.error);
+        S.properties = await all(function () { return sb.from("properties").select("*").order("id"); });
+        closeModal();
+        toast(n == null ? "Crawl space cleared." : p.address + " \u2014 " + sqft(n) + " of crawl.");
+        if (typeof done === "function") done();
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
+var BASIS_LABEL = { yard_sq_ft: "Yard", bldg_sq_ft: "Building footprint",
+                      crawl_sq_ft: "Crawl space" };
+  function areaFor(p, basis) {
+    if (!p || !basis || basis === "flat") return null;
+    return p[basis] == null ? null : Number(p[basis]);
+  }
+  function rateOf(svc) {
+    if (!svc || !svc.price_basis || svc.price_basis === "flat") return null;
+    return svc.price_per_sq_ft == null ? null : Number(svc.price_per_sq_ft);
+  }
+  function rate4(n) {
+    return n == null ? "\u2014" : "$" + Number(n).toFixed(4) + " a sq ft";
+  }
+   
+  function fromArea(rate, area, min) {
+    if (rate == null || area == null) return null;
+     
+    var ten = Math.round(Number(rate) * 10000) * Math.round(Number(area));
+    var cents = Math.floor(ten / 100);
+    if (ten - cents * 100 >= 50) cents += 1;    
+    return Math.max(cents / 100, min == null ? 0 : Number(min));
+  }
+   
+  function creditNeeded(basis, p) {
+    if (basis === "bldg_sq_ft" || basis === "yard_sq_ft") return true;
+    if (basis === "crawl_sq_ft")
+      return !!(p && p.crawl_basis && p.crawl_basis !== "measured on site");
+    return false;
   }
 
 var MC = null;    
@@ -8803,9 +9252,12 @@ var hasOrder = S.catalog.some(function (s) { return s.sort_order !== undefined; 
     h += peopleCard() + youCard() + areasCard() + workCard() + closedCard();
 
     h += '<div class="card" id="set-prices"><h2>Types of service</h2>' +
-      '<p class="note">In the order they print. No price prints as a blank to write in.</p>' +
+      '<p class="note">In the order they print. No price prints as a blank to write in. ' +
+      "A rate a square foot only ever offers a figure on the estimate screen \u2014 " +
+      "it never prices a booked job line, which still takes the price on the left.</p>" +
       '<table class="lst"><tr>' + (hasOrder ? '<th class="r">Order</th>' : "") +
       "<th>Service</th><th>Group</th><th class=\"r\">Price</th>" +
+      "<th>Priced by</th><th class=\"r\">Rate a sq ft</th><th class=\"r\">Least</th>" +
       "<th>Prints</th><th>In use</th><th>On sheets</th></tr>" +
       sorted.map(function (s) {
         return "<tr>" +
@@ -8819,6 +9271,23 @@ var hasOrder = S.catalog.some(function (s) { return s.sort_order !== undefined; 
             esc(s.sheet_group || "") + '" list="grpList"></td>' +
           '<td class="r"><input class="li r" data-svc="' + s.id + '" data-col="price" value="' +
             (Number(s.price) > 0 ? money(s.price) : "") + '" placeholder="on the job"></td>' +
+           
+          '<td><select class="li" data-svc="' + s.id + '" data-col="price_basis">' +
+            [["flat", "the price above"], ["yard_sq_ft", "the yard"],
+             ["bldg_sq_ft", "the building footprint"], ["crawl_sq_ft", "the crawl space"]]
+              .map(function (o) {
+                return '<option value="' + o[0] + '"' +
+                  ((s.price_basis || "flat") === o[0] ? " selected" : "") + ">" +
+                  esc(o[1]) + "</option>";
+              }).join("") + "</select></td>" +
+          '<td class="r"><input class="li r" style="max-width:5.5rem" data-svc="' + s.id +
+            '" data-col="price_per_sq_ft" value="' +
+            (s.price_per_sq_ft == null ? "" : Number(s.price_per_sq_ft).toFixed(4)) +
+            '" placeholder="0.0162"></td>' +
+          '<td class="r"><input class="li r" style="max-width:5rem" data-svc="' + s.id +
+            '" data-col="price_minimum" value="' +
+            (s.price_minimum == null ? "" : money(s.price_minimum)) +
+            '" placeholder="none"></td>' +
           "<td>" + flag("svc", s.id, "on_render_sheet", s.on_render_sheet) + "</td>" +
           "<td>" + flag("svc", s.id, "active", s.active) + "</td>" +
           '<td class="r"><span class="pill">' + linesUsing(s.name) + "</span></td></tr>";
@@ -8982,6 +9451,8 @@ var SET_TARGETS = [
                  "slots_per_tech_per_window", "am_from", "am_to", "pm_from", "pm_to",
                  "followup_days", "years_in_business", "program_price",
                  "program_discount"];
+   
+  var RATE_CELLS = ["price_per_sq_ft", "price_minimum"];
 
   function wireLists() {
     app.querySelectorAll("[data-jump]").forEach(function (b) {
@@ -9069,6 +9540,11 @@ app.querySelectorAll("input.li,select.li").forEach(function (el) {
           var n = readMoney(v);
           if (v !== "" && n === null) { toast("That price didn’t read as a number."); return; }
           patch.price = v === "" ? 0 : n;
+        } else if (RATE_CELLS.indexOf(col) >= 0) {
+           
+          var rn = readMoney(v);
+          if (v !== "" && rn === null) { toast("That didn’t read as a number."); return; }
+          patch[col] = v === "" ? null : rn;
         } else if (col === "name") {
           if (!v) { toast("A name is needed."); return; }
           patch[col] = v;
@@ -11444,21 +11920,48 @@ h += '<div class="card"><h2>' + plural(ps.length, "address") + " serviced</h2>";
         (p.is_primary ? '<span class="pill ok">their own</span>'
                       : '<span class="pill">' + esc(p.label || "second address") + "</span>") +
         "</div>" +
-         
-        '<div class="dates" style="margin-top:.35rem">' +
+
+'<div class="dates" style="margin-top:.35rem">' +
         (p.yard_sq_ft != null
           ? "Yard <b>" + Number(p.yard_sq_ft).toLocaleString() + " sq ft</b>" +
             (p.lot_sq_ft != null
               ? " \u00b7 lot " + Number(p.lot_sq_ft).toLocaleString() : "") +
             (p.bldg_sq_ft != null
               ? " \u00b7 building " + Number(p.bldg_sq_ft).toLocaleString() : "") +
+            " \u00b7 drive " + (p.paved_sq_ft != null
+              ? Number(p.paved_sq_ft).toLocaleString()
+              : "<b>not taken off</b>") +
             (p.measure_confidence && p.measure_confidence !== "exact"
               ? ' <span class="pill bad">' + esc(p.measure_confidence) + "</span>" : "")
           : '<span class="empty">Not measured</span>') +
+        " \u00b7 crawl space " +
+        (p.crawl_sq_ft != null
+          ? "<b>" + Number(p.crawl_sq_ft).toLocaleString() + " sq ft</b>" +
+            (p.crawl_basis ? ' <span class="pill">' + esc(p.crawl_basis) + "</span>" : "") +
+            (p.bldg_sq_ft != null && Number(p.crawl_sq_ft) > Number(p.bldg_sq_ft)
+              ? ' <span class="pill bad">bigger than the footprint</span>' : "")
+          : '<span class="empty">not set</span>') +
         (mayEdit
           ? ' <button class="act" data-cfmeasure="' + p.id + '" type="button">' +
-            (p.yard_sq_ft != null ? "Re-measure" : "Measure the yard") + "</button>"
+            (p.yard_sq_ft != null ? "Re-measure" : "Measure the yard") + "</button>" +
+            ' <button class="act" data-cfcrawl="' + p.id + '" type="button">' +
+            (p.crawl_sq_ft != null ? "Crawl space" : "Crawl space size") + "</button>"
           : "") + "</div>" +
+         
+        (p.measured_at != null
+          ? '<div class="dates" style="margin-top:.2rem;opacity:.85">measured ' +
+            esc(fmtDate(String(p.measured_at).slice(0, 10))) + " \u00b7 " +
+            esc(p.measure_confidence || "no confidence recorded") +
+            (p.matched_address ? " \u00b7 matched as " + esc(p.matched_address) : "") +
+            (p.paved_sq_ft == null
+              ? " \u00b7 the yard still has the drive and walk in it" : "") +
+            (p.measure_note ? " \u00b7 " + esc(p.measure_note) : "") +
+             
+            (p.measured_source !== "by hand"
+              ? '<div style="font-size:.62rem;opacity:.8">' + esc(MEASURE_CREDIT) + "</div>"
+              : "") +
+            "</div>"
+          : "") +
         '<div class="fcols two" style="margin-top:.5rem">' +
         '<div style="grid-column:1/-1"><label>Street</label>' +
         (mayEdit
@@ -11501,12 +12004,7 @@ h += '<div class="card"><h2>' + plural(ps.length, "address") + " serviced</h2>";
                 esc(p.label || "") + '" placeholder="the rental">'
               : '<div class="fcellv">' + esc(p.label || "\u2014") + "</div>") + "</div>") +
         "</div>" +
-        (p.yard_sq_ft
-          ? '<p class="note" style="margin:.5rem 0 0">Yard about ' +
-            esc(Number(p.yard_sq_ft).toLocaleString()) + " sq ft" +
-            (p.bldg_sq_ft ? " \u00b7 building about " +
-              esc(Number(p.bldg_sq_ft).toLocaleString()) + " sq ft" : "") + "</p>"
-          : "") +
+
         "</div>";
     });
     if (mayEdit)
@@ -11635,6 +12133,11 @@ $("cfBack").addEventListener("click", function () { go("customers"); });
 app.querySelectorAll("[data-cfmeasure]").forEach(function (b) {
       b.addEventListener("click", function () {
         measureModal(b.getAttribute("data-cfmeasure"), function () { renderCustomer(id); });
+      });
+    });
+    app.querySelectorAll("[data-cfcrawl]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        crawlModal(b.getAttribute("data-cfcrawl"), function () { renderCustomer(id); });
       });
     });
     app.querySelectorAll("[data-nedit]").forEach(function (b) {
