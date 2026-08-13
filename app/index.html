@@ -357,6 +357,9 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .rs-line{display:flex;justify-content:space-between;gap:.6rem;font-size:.74rem;
     border-bottom:1px dotted #d8d8d8;padding:.1rem 0}
   .rs-line .num{font-family:ui-monospace,Consolas,monospace;white-space:nowrap}
+   
+  .rs-line.void{color:#777}
+  .rs-line.void .vwhy{display:block;font-size:.58rem;color:#777}
   table.matpick{width:100%;border-collapse:collapse;font-size:.68rem;table-layout:fixed}
   table.matpick th,table.matpick td{border:1px solid #bbb;padding:.04rem .18rem;vertical-align:middle}
   table.matpick th{background:#f0f0f0;font-size:.54rem;text-align:left}
@@ -405,11 +408,87 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
     text-align:center;padding:0 .35rem}
   .plan .psigs{display:grid;grid-template-columns:1fr 9rem;gap:.2rem 1.2rem;
     margin:1.2rem 0 .8rem}
+   
+  .plan .pgrid{width:100%;border-collapse:collapse;margin:.5rem 0 .9rem}
+  .plan .pgrid th{font-size:.58rem;letter-spacing:.08em;text-transform:uppercase;
+    color:#333;text-align:left;font-weight:600;padding:0 .3rem .1rem;
+    border-bottom:1px solid #333}
+  .plan .pgrid td{padding:.28rem .3rem;border-bottom:1px solid #333;min-height:1.2rem;
+    font-variant-numeric:tabular-nums}
+  .plan .pgrid tr.pblankrow td{height:1.35rem}
+  .plan .ptear{border:none;border-top:1px dashed #333;margin:1.1rem 0 .8rem;
+    position:relative}
+  .plan .ptear span{position:absolute;top:-.62rem;left:50%;transform:translateX(-50%);
+    background:#fff;padding:0 .5rem;font-size:.55rem;letter-spacing:.12em;
+    text-transform:uppercase;color:#333}
+  .plan .pphones{width:100%;border-collapse:collapse;margin:.35rem 0}
+  .plan .pphones td{padding:.06rem 0;vertical-align:top}
+  .plan .pphones td.pnum{text-align:right;font-weight:700;white-space:nowrap;
+    font-variant-numeric:tabular-nums;padding-left:.8rem}
   @media (max-width:560px){
     .plan .pfld{grid-template-columns:1fr} .plan .psigs{grid-template-columns:1fr}
   }
    
-  .snaps{display:flex;gap:.5rem;flex-wrap:wrap;margin:.3rem 0}
+  .n33{background:#fff;color:#111;font-family:ui-sans-serif,Arial,Helvetica,sans-serif;
+    font-size:.72rem;line-height:1.28;max-width:52rem;margin:0 auto 1.2rem;
+    display:flex;flex-direction:column}
+  .n33 + .n33{page-break-before:always}
+  .n33two{font-family:ui-serif,Georgia,serif;font-size:.74rem;line-height:1.45}
+
+.n33-frame{flex:1 1 auto;border:1px solid #111;border-radius:2px}
+  .n33-foot{flex:0 0 auto;display:flex;justify-content:space-between;
+    align-items:flex-end;gap:.8rem;padding-top:.22rem;
+    font-size:.5rem;line-height:1.32;color:#333}
+  .n33-foot .n33-pg{font-weight:800;white-space:nowrap}
+
+.n33-row{display:grid;border-bottom:1px solid #111}
+  .n33-row:last-child{border-bottom:none}
+  .n33-cell{border-left:1px solid #111;padding:.14rem .28rem;min-width:0}
+  .n33-cell:first-child{border-left:none}
+  .n33-row.co{grid-template-columns:1.45fr 1fr}
+  .n33-row.two{grid-template-columns:1fr 1fr}
+  .n33-row.wide{grid-template-columns:1.6fr 1fr}
+  .n33-cap{display:block;font-size:.5rem;letter-spacing:.05em;text-transform:uppercase;
+    font-weight:700;color:#333}
+  .n33-cap b{font-size:.6rem;letter-spacing:.02em;color:#111}
+  .n33-pre{font-weight:700}
+  .n33-rule{border-bottom:1px solid #999;min-height:1.05rem;padding:0 .15rem}
+  .n33-rule.tall{min-height:1.4rem}
+
+.n33-sec{border-bottom:1px solid #111;padding:.12rem .28rem;
+    font-size:.63rem;font-weight:800;letter-spacing:.02em}
+  .n33-body{padding:.2rem .3rem}
+  .n33-ind{padding-left:1.2rem}
+  .n33 .box{margin-bottom:0}
+
+.n33-iv{display:grid;grid-template-columns:1fr 1.2fr}
+  .n33-iv > div{padding:.2rem .3rem;min-width:0}
+  .n33-iv > div + div{border-left:1px solid #111}
+  .n33-obs{display:grid;grid-template-columns:9.5rem 1fr;gap:0 .45rem;align-items:end}
+  .n33-key{border:1px solid #111;border-radius:2px;padding:.22rem .3rem}
+  .n33-key .n33-kttl{font-size:.52rem;line-height:1.3;margin-bottom:.18rem}
+  .n33-key ol{margin:0;padding:0;list-style:none;display:grid;
+    grid-auto-flow:column;grid-template-rows:repeat(14,auto);gap:0 .55rem}
+  .n33-key li{display:grid;grid-template-columns:1.1rem 1fr;gap:0 .2rem;
+    font-size:.52rem;line-height:1.34;break-inside:avoid}
+  .n33-key li > span:first-child{text-align:right;color:#333}
+
+  .n33-lines{display:grid;gap:.4rem;padding:.28rem .3rem .4rem}
+  .n33-sig{min-height:2.2rem;display:flex;flex-direction:column;justify-content:space-between}
+  .n33-sig .n33-x{font-weight:800;font-size:.8rem}
+  .n33two p{margin:.5rem 0}
+  .n33two .n33-item{margin:.55rem 0}
+  .n33two .n33-item > b{display:block}
+  .n33two u{text-decoration:underline}
+
+  @media (max-width:720px){
+     
+    .n33-iv{grid-template-columns:1fr}
+    .n33-iv > div + div{border-left:none;border-top:1px solid #111}
+    .n33-obs{grid-template-columns:1fr}
+  }
+
+.snaps{display:flex;gap:.5rem;flex-wrap:wrap;margin:.3rem 0}
   .snap{position:relative;width:8rem}
   .snap img{width:8rem;height:6rem;object-fit:cover;border:1px solid var(--rule);
     border-radius:4px;background:var(--paper);display:block;cursor:pointer}
@@ -510,6 +589,23 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
      
     .plan{border:none;padding:.4in .5in;page-break-inside:avoid}
     .plan .pline,.plan .pblank{border-bottom-color:#000}
+
+@page npma{size:8.5in 11in;margin:.35in .3in}
+    body.npma{page:npma}
+
+.n33{height:10.1in;margin:0;max-width:none;font-size:.7rem}
+    .n33 + .n33{page-break-before:always}
+    .n33two{font-size:.68rem;line-height:1.38}
+    .n33-frame,.n33-row,.n33-cell,.n33-sec,.n33-key,.n33-iv > div + div{border-color:#000}
+    .n33-rule{border-bottom-color:#000}
+    .n33-foot{color:#000}
+    .n33 .box{min-height:0;padding:.1rem 0;margin-bottom:0}
+    .n33-iv{grid-template-columns:1fr 1.2fr}
+    .n33-iv > div + div{border-left:1px solid #000;border-top:none}
+    .n33-obs{grid-template-columns:9.5rem 1fr}
+     
+    .n33-iv,.n33-obs,.n33-key,.n33-row{page-break-inside:avoid}
+
     @page{margin:.35in .3in}
 
 *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -521,6 +617,9 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     table.matpick th,table.mat th{background:#fff!important;
       border-bottom:1.5px solid #000!important}
     .matname.on{background:#fff!important}
+     
+    .rs-line.void{color:#000!important}
+    .rs-line.void s{text-decoration:line-through;text-decoration-thickness:1.5px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -652,6 +751,7 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
             customers: [], properties: [], jobs: [], lines: [], sheets: [], treatments: [],
             invoices: [], balances: [], quotes: [], evals: [], warranties: [], attention: [],
             progLetters: [], progExtras: [], closedDays: [], calls: [], recalls: [],
+            cis: [], cisItems: [], gaps: [], wdi: [], wdiStatus: [],
             loadedAt: null };
   var route = { name: "dashboard", arg: null, date: todayISO(), tech: null,
                 span: localStorage.getItem("ut_span") || "day",
@@ -963,7 +1063,20 @@ all(function () { return sb.from("customers").select("*").order("name").order("i
       }) : [],
       off ? all(function () { return sb.from("recalls").select("*").order("property_id"); }) : [],
        
-      off ? many(sb.from("evaluations").select("*").order("form_date", { ascending: false })) : []
+      off ? many(sb.from("evaluations").select("*").order("form_date", { ascending: false })) : [],
+       
+      off ? soft(sb.from("consumer_sheets").select("*").order("issued_on", { ascending: false }),
+                 "consumer_sheets",
+                 "the Consumer Information Sheet — run supabase/migrations/0042") : [],
+      off ? soft(sb.from("consumer_sheet_items").select("*").order("sort_order"),
+                 "consumer_sheet_items", "what a disclosure lists — run 0042") : [],
+      off ? soft(sb.from("v_compliance_gaps").select("*"), "v_compliance_gaps",
+                 "the compliance list — run 0042") : [],
+       
+      soft(sb.from("wdi_reports").select("*").order("inspection_date", { ascending: false }),
+           "wdi_reports", "the Wood Destroying Insect report — run 0043"),
+      off ? soft(sb.from("v_wdi_status").select("*"), "v_wdi_status",
+                 "the ninety-day list — run 0043") : []
     ]);
     S.people = r[0]; S.areas = r[1]; S.settings = r[2][0] || null; S.menu = r[3];
     S.products = r[4];
@@ -976,6 +1089,8 @@ all(function () { return sb.from("customers").select("*").order("name").order("i
     S.crew = r[21]; S.progLetters = r[22]; S.progExtras = r[23];
     S.closedDays = r[24];
     S.calls = r[25]; S.recalls = r[26]; S.evals = r[27];
+    S.cis = r[28]; S.cisItems = r[29]; S.gaps = r[30];
+    S.wdi = r[31]; S.wdiStatus = r[32];
      
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
@@ -1000,6 +1115,10 @@ async function reload(what) {
       S.sheets = await all(function () { return sb.from("job_sheets").select("*").order("job_id"); });
       S.treatments = await all(function () { return sb.from("treatment_records").select("*").order("id"); });
       S.chems = await all(function () { return sb.from("treatment_chemicals").select("*").order("sort_order").order("id"); });
+       
+      if (isOffice())
+        S.gaps = await soft(sb.from("v_compliance_gaps").select("*"),
+                            "v_compliance_gaps", "the compliance list");
       S.crew = await soft(sb.from("job_crew").select("*"), "job_crew",
                           "putting a second technician on a job");
     }
@@ -1014,6 +1133,23 @@ async function reload(what) {
           .gte("year", new Date().getFullYear() - 1).order("id");
       });
       S.recalls = await all(function () { return sb.from("recalls").select("*").order("property_id"); });
+    }
+    if (!what || what.indexOf("wdi") >= 0) {
+      S.wdi = await soft(sb.from("wdi_reports").select("*")
+                           .order("inspection_date", { ascending: false }),
+                         "wdi_reports", "the Wood Destroying Insect report");
+      if (isOffice())
+        S.wdiStatus = await soft(sb.from("v_wdi_status").select("*"),
+                                 "v_wdi_status", "the ninety-day list");
+    }
+    if (isOffice() && (!what || what.indexOf("cis") >= 0)) {
+      S.cis = await soft(sb.from("consumer_sheets").select("*")
+                           .order("issued_on", { ascending: false }),
+                         "consumer_sheets", "the Consumer Information Sheet");
+      S.cisItems = await soft(sb.from("consumer_sheet_items").select("*").order("sort_order"),
+                              "consumer_sheet_items", "what a disclosure lists");
+      S.gaps = await soft(sb.from("v_compliance_gaps").select("*"),
+                          "v_compliance_gaps", "the compliance list");
     }
     if (isOffice() && (!what || what.indexOf("warranties") >= 0))
       S.warranties = await many(sb.from("warranties").select("*"));
@@ -1035,9 +1171,14 @@ var custById = function (id) { return S.customers.filter(function (c) { return c
     return S.properties.filter(function (x) { return x.id === j.property_id; })[0] ||
            propsOf(j.customer_id)[0] || null;
   }
-  var linesOf = function (id) {
+   
+  var allLinesOf = function (id) {
     return S.lines.filter(function (l) { return l.job_id === id; })
       .sort(function (a, b) { return a.sort_order - b.sort_order; });
+  };
+   
+  var linesOf = function (id) {
+    return allLinesOf(id).filter(function (l) { return !l.voided_at; });
   };
   var sheetOf = function (id) { return S.sheets.filter(function (x) { return x.job_id === id; })[0] || null; };
    
@@ -1047,6 +1188,37 @@ var custById = function (id) { return S.customers.filter(function (c) { return c
     })[0] || null;
   };
   var trOf    = function (id) { return S.treatments.filter(function (t) { return t.job_id === id; })[0] || null; };
+   
+  var cisOf = function (cid) {
+    return S.cis.filter(function (x) { return x.customer_id === cid; })
+      .sort(function (a, b) { return String(b.issued_on).localeCompare(String(a.issued_on)); });
+  };
+  var cisItemsOf = function (sid) {
+    return S.cisItems.filter(function (x) { return x.sheet_id === sid; })
+      .sort(function (a, b) { return (a.sort_order || 0) - (b.sort_order || 0); });
+  };
+   
+  function cisCovers(cid, propId, onISO) {
+    return cisOf(cid).some(function (x) {
+      return (x.property_id == null || x.property_id === propId) &&
+             String(x.issued_on) <= String(onISO || todayISO());
+    });
+  }
+  var wdiOf = function (jid) {
+    return S.wdi.filter(function (x) { return x.job_id === jid; })[0] || null;
+  };
+   
+  var wdiPrevOn = function (propId, notId) {
+    if (!propId) return null;
+    return S.wdi.filter(function (x) {
+      return x.property_id === propId && x.id !== notId && x.signed_on;
+    }).sort(function (a, b) {
+      return String(b.inspection_date).localeCompare(String(a.inspection_date));
+    })[0] || null;
+  };
+  var gapsForJob = function (jid) {
+    return S.gaps.filter(function (g) { return g.job_id === jid; });
+  };
    
   var allChemsOf = function (trId) {
     if (!trId) return [];
@@ -1076,7 +1248,16 @@ function sheetIsOpen(j) {
     return S.balances.filter(function (b) { return b.invoice_id === i.id; })[0] || null;
   }
   var techs = function () { return S.people.filter(function (p) { return p.is_technician && p.active; }); };
-  var NEEDS_RECORD = ["one-time-treatment", "recurring-service", "termite-warranty-work", "callback-retreatment"];
+   
+  var NEEDS_RECORD = ["one-time-treatment", "recurring-service", "termite-warranty-work",
+                      "callback-retreatment", "renewal"];
+   
+  var NEEDS_GROUND = ["callback-retreatment", "termite-warranty-work"];
+  var GROUNDS = [
+    ["five-years",        "It\u2019s been five years"],
+    ["termites-back",     "Termites are back"],
+    ["barrier-disrupted", "The soil was dug up"]
+  ];
 
 function renderNav() {
     var tabs = [];
@@ -1116,13 +1297,18 @@ function renderNav() {
   }
   function render() {
      
-    if (route.name !== "sheet" && route.name !== "plan" && route.name !== "eval")
+    if (route.name !== "sheet" && route.name !== "plan" && route.name !== "eval" &&
+        route.name !== "cis" && route.name !== "wdi")
       document.body.classList.remove("hassheetbar");
+     
+    if (route.name !== "wdi") document.body.classList.remove("npma");
     if (route.name === "dashboard") return renderDashboard();
     if (route.name === "schedule") return renderSchedule();
     if (route.name === "field") return renderField();
     if (route.name === "sheet") return renderSheet(route.arg);
     if (route.name === "plan") return renderPlan(route.arg);
+    if (route.name === "cis") return renderCIS(route.arg);
+    if (route.name === "wdi") return renderWDI(route.arg);
     if (route.name === "customer") return renderCustomer(route.arg);
     if (route.name === "eval") return renderEval(route.arg);
     if (route.name === "customers") return renderCustomers();
@@ -1130,6 +1316,7 @@ function renderNav() {
     if (route.name === "import") return renderImport();
     if (route.name === "letters") return renderLetters();
     if (route.name === "month") return renderMonthClose();
+    if (route.name === "pesticide") return renderPesticide();
     if (route.name === "close") return renderClose(route.date);
      
     if (isOffice()) renderDashboard(); else renderField();
@@ -1249,7 +1436,91 @@ function nextBox() {
         (boxes.length ? '<button class="expand" type="button" data-jump="boxes">Show me which ↓</button>' : "") +
       "</div></div>";
 
-h += '<div class="card"><h2>Needs a person</h2>' +
+if (S.gaps.length) {
+      var byKind = {};
+      S.gaps.forEach(function (g) {
+        (byKind[g.gap] = byKind[g.gap] || { n: 0, u: g.urgency, rows: [] });
+        byKind[g.gap].n += 1;
+        byKind[g.gap].rows.push(g);
+      });
+      var kinds = Object.keys(byKind).sort(function (a, b) {
+        return byKind[a].u - byKind[b].u || byKind[b].n - byKind[a].n;
+      });
+      h += '<div class="card" id="gaps" style="border-left:4px solid var(--risk)">' +
+        "<h2>The sheet says, and the file does not</h2>" +
+        '<p class="note">' + plural(S.gaps.length, "thing") + " to put right. " +
+        "Nothing here can be dismissed.</p>" +
+        kinds.map(function (k) {
+          var g = byKind[k];
+          return '<div style="margin:.5rem 0 .2rem"><b>' + esc(k) + "</b> " +
+            '<span class="empty">' + g.n + "</span></div>" +
+            '<table class="lst">' +
+            g.rows.slice(0, 6).map(function (r) {
+              return "<tr>" +
+                "<td>" + esc(r.customer_name || "") +
+                  (r.address ? ' <span class="empty">' + esc(r.address) + "</span>" : "") +
+                "</td><td>" + esc(fmtDate(r.happened_on)) + "</td>" +
+                '<td style="font-size:.76rem">' + esc(r.detail || "") + "</td>" +
+                "<td>" + (r.job_id
+                  ? '<button class="act" data-gapjob="' + r.job_id +
+                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">the sheet</button>'
+                  : '<button class="act" data-gapcust="' + r.customer_id +
+                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">the folder</button>') +
+                "</td></tr>";
+            }).join("") + "</table>" +
+            (g.n > 6
+              ? '<p class="note">and ' + (g.n - 6) + " more of the same</p>"
+              : "");
+        }).join("") + "</div>";
+    }
+
+if (S.wdiStatus.length) {
+      var wk = {};
+      S.wdiStatus.forEach(function (x) {
+        (wk[x.state] = wk[x.state] || { n: 0, u: x.urgency, rows: [] });
+        wk[x.state].n += 1; wk[x.state].rows.push(x);
+      });
+      var wks = Object.keys(wk).sort(function (a, b) {
+        return wk[a].u - wk[b].u || wk[b].n - wk[a].n;
+      });
+      var urgent = S.wdiStatus.filter(function (x) { return x.urgency === 1; }).length;
+      h += '<div class="card" id="wdilist" style="border-left:4px solid var(--' +
+        (urgent ? "risk" : "brand") + ')">' +
+        "<h2>Inspection reports</h2>" +
+        '<p class="note">' + plural(S.wdiStatus.length, "thing") + " to see to." +
+        (urgent ? " " + urgent + " past the ninety days." : "") + "</p>" +
+        wks.map(function (k) {
+          var g = wk[k];
+          return '<div style="margin:.5rem 0 .2rem"><b>' + esc(k) + "</b> " +
+            '<span class="empty">' + g.n + "</span></div>" +
+            '<table class="lst"><tr><th>Who</th><th>Inspected</th>' +
+            "<th>Ninety days</th><th></th></tr>" +
+            g.rows.slice(0, 6).map(function (r) {
+              var d = Number(r.days_left);
+              return "<tr>" +
+                "<td>" + esc(r.customer_name || "") +
+                  (r.address ? ' <span class="empty">' + esc(r.address) + "</span>" : "") +
+                "</td>" +
+                "<td>" + esc(fmtDate(r.inspection_date)) + "</td>" +
+                "<td>" + (isNaN(d)
+                  ? esc(fmtDate(r.expires_on))
+                  : d < 0
+                    ? '<b style="color:var(--risk)">' + Math.abs(d) + " days ago</b>"
+                    : d + " days left") + "</td>" +
+                "<td>" + (r.job_id
+                  ? '<button class="act" data-wdijob="' + r.job_id +
+                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">the report</button>'
+                  : "") + "</td></tr>" +
+                (r.detail
+                  ? '<tr><td colspan="4" class="empty" style="font-size:.74rem;' +
+                    'padding-top:0">' + esc(r.detail) + "</td></tr>"
+                  : "");
+            }).join("") + "</table>" +
+            (g.n > 6 ? '<p class="note">and ' + (g.n - 6) + " more</p>" : "");
+        }).join("") + "</div>";
+    }
+
+    h += '<div class="card"><h2>Needs a person</h2>' +
       (S.attention.length
         ? '<div id="owed">' + owed.map(attnHTML).join("") + '</div><div id="risk">' +
           risk.map(attnHTML).join("") + "</div>"
@@ -1558,6 +1829,9 @@ async function saveOutcome(b, outcome, note) {
       });
     };
     on("[data-jump]", function (b) { jumpTo(b.dataset.jump); });
+    on("[data-gapjob]", function (b) { go("sheet", b.getAttribute("data-gapjob")); });
+    on("[data-gapcust]", function (b) { go("cis", b.getAttribute("data-gapcust")); });
+    on("[data-wdijob]", function (b) { go("wdi", b.getAttribute("data-wdijob")); });
     on("[data-pay]", function (b) { payModal(b.dataset.pay); });
     on("[data-remind]", function (b) { remind(b.dataset.remind, b); });
     on("[data-notowed]", function (b) { notOwedModal(b.dataset.notowed); });
@@ -2420,7 +2694,8 @@ function addServiceModal(j) {
          
         var r = await sb.from("job_lines").insert({
           job_id: j.id, service_id: sel.value, service_name: name, price: null,
-          sort_order: linesOf(j.id).length + 1
+           
+          sort_order: allLinesOf(j.id).length + 1
         }).select();
         if (r.error) throw explain(r.error);
         await reload(["jobs", "money", "attention"]);
@@ -2506,7 +2781,7 @@ if (!sup.applicator_no) {
               (p.epa_number ? " (EPA " + esc(p.epa_number) + ")" : "") + "</option>";
           }).join("") + "</select>" +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
-          '<div><label for="pct">Rate / %</label>' +
+          '<div><label for="pct">Strength %</label>' +
           '<input id="pct" class="f" inputmode="decimal" placeholder="0.06"></div>' +
           '<div><label for="amtu">How much</label>' +
           '<input id="amtu" class="f" placeholder="90 gal"></div></div>' +
@@ -2568,18 +2843,24 @@ if (!sup.applicator_no) {
         var prod = $("prod").value;
         if (prod && rec) {
           var pr = S.products.filter(function (x) { return x.id === prod; })[0];
+          var amtTyped = $("amtu").value.trim();
           var c2 = await sb.from("treatment_chemicals").insert({
             treatment_id: rec.id, product_id: prod, product_name: pr.name,
             epa_number: pr.epa_number, percent: $("pct").value.trim() || null,
-            amount: $("amtu").value.trim() || null, sort_order: 1
+            amount: amtTyped || null, sort_order: 1
           }).select();
           if (c2.error) throw explain(c2.error);
+           
+          var line2 = (c2.data || [])[0] || {};
+          var amtMiss = !!amtTyped && ("amount_qty" in line2) && line2.amount_qty == null;
         }
         await reload(["jobs"]);
         if (prod) {
            
           var pn = (S.products.filter(function (x) { return x.id === prod; })[0] || {}).name;
-          toast((pn || "The product") + " is on the sheet");
+          toast(amtMiss
+            ? "Filed — but '" + amtTyped + "' is not a quantity the yearly total can add up."
+            : (pn || "The product") + " is on the sheet");
           recordModal(j);
         } else {
           toast("Record filed — " + esc(rec.applicator_no || ""));
@@ -2609,18 +2890,26 @@ var SIG = { cv: null, strokes: [] };
       return;
     }
     var recYet = trOf(j.id), chemYet = recYet ? chemsOf(recYet.id) : [];
-    var notReady = !recYet || !chemYet.length;
+     
+    var noGround = NEEDS_GROUND.indexOf(j.type) >= 0 &&
+                   !(recYet && recYet.retreat_reason);
+    var notReady = !recYet || !chemYet.length || noGround;
     openModal("<h3>Customer signature</h3>" +
       '<p class="note">It prints on the sheet. <b>Signing closes the sheet</b> — after ' +
-      "this the pests, the places treated, the materials and the services can only be " +
-      "changed by the office opening it again.</p>" +
+      "this the pests, the places treated, the materials, the services and why this " +
+      "re-treatment is lawful can only be changed by the office opening it again.</p>" +
       (notReady
         ? '<div class="msg warn">' +
           (!recYet
             ? "<b>Nothing is on the treatment record yet.</b> Sign now and it cannot be " +
               "filled in without ringing the office."
-            : "<b>No material is on the record yet.</b> Sign now and nothing can be " +
-              "attached to it — the printed record would say no pesticide was applied.") +
+            : !chemYet.length
+            ? "<b>No material is on the record yet.</b> Sign now and nothing can be " +
+              "attached to it — the printed record would say no pesticide was applied."
+            : "<b>The record does not say why this re-treatment is lawful.</b> " +
+              typeLabel(j.type) + " needs one of the three grounds \u2014 five years, " +
+              "termites are back, or the soil was dug up. Sign now and the job cannot " +
+              "be marked complete without ringing the office.") +
           "</div>"
         : "") +
       '<canvas class="sig" id="sig" width="600" height="200"></canvas>' +
@@ -2762,6 +3051,10 @@ var chkBox = function (on) {
     var sh = sheetOf(j.id) || {}, tr = trOf(j.id);
     var chems = tr ? chemsOf(tr.id) : [], hasStd = chems.some(isSFR);
     var ls = linesOf(j.id), t = personOf(j.assigned_to) || {};
+     
+    var lineIsScratch = function () {
+      return isAdmin() && sheetIsOpen(j) && !(b && Number(b.collected) > 0.004);
+    };
     var sup = personOf(t.works_under) || t, co = S.settings || {};
 
 var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
@@ -2829,6 +3122,17 @@ document.body.classList.add("hassheetbar");
       (isOffice()
         ? '<button class="act" id="plan" type="button">' +
           (planOf(jobId) ? "Service Plan ✓" : "Service Plan") + "</button>"
+        : "") +
+       
+      (isOffice()
+        ? '<button class="act" id="cisBtn" type="button">' +
+          (cisCovers(j.customer_id, j.property_id, j.completed_date || j.scheduled_date)
+            ? "Information Sheet \u2713" : "Information Sheet") + "</button>"
+        : "") +
+       
+      (isOffice()
+        ? '<button class="act" id="wdiBtn" type="button">' +
+          (wdiOf(jobId) ? "NPMA-33 \u2713" : "NPMA-33") + "</button>"
         : "") +
       "</div>";
 
@@ -2902,12 +3206,26 @@ h += '<div class="rs-sec"><div class="rs-band">Type of service</div>' +
     h += '<div style="margin-top:.35rem;border-top:1px solid #ccc;padding-top:.25rem">';
     if (live)
       h += '<div class="noprint" style="font-size:.63rem;color:#777;margin-bottom:.15rem">' +
-        "Tick above to add it." + (isOffice() ? " Untick to remove." : "") + "</div>";
+        "Tick above to add it." +
+        (isOffice() ? " Tick a service that is already on to take it back off." : "") +
+        "</div>";
     h += ls.map(function (l) {
       return '<div class="rs-line"><span>' + esc(l.service_name) + "</span>" +
         '<span class="num">' +
         (Number(l.price) > 0 ? money(l.price) : "priced on the job") + "</span></div>";
     }).join("");
+     
+    h += allLinesOf(j.id).filter(function (l) { return l.voided_at; })
+      .map(function (l) {
+        var w = personOf(l.voided_by);
+        return '<div class="rs-line void"><span><s>' + esc(l.service_name) + "</s>" +
+          '<span class="vwhy">taken off ' +
+          esc(fmtDate(String(l.voided_at).slice(0, 10))) +
+          (w ? " by " + esc(w.name) : "") + " \u2014 " +
+          esc(l.void_reason || "") + "</span></span>" +
+          '<span class="num"><s>' +
+          (Number(l.price) > 0 ? money(l.price) : "priced on the job") + "</s></span></div>";
+      }).join("");
     h += "</div></div>";
 
 var pestList = withHistory(S.opts["pest"] || [], ticked.pest);
@@ -2931,6 +3249,64 @@ var std = stdProduct();
       "(General Surface Application)</b>" +
       (std && std.epa_number ? ' <span style="color:#777;font-size:.6rem">EPA #' +
         esc(std.epa_number) + "</span>" : "") + "</span></div></div></div>";
+
+var isRetreat = NEEDS_GROUND.indexOf(j.type) >= 0;
+    if (isRetreat) {
+      var ground = (tr && tr.retreat_reason) || "";
+      var dugList = withHistory(S.opts["treatment-area"] || [],
+                                (tr && tr.disrupted_locations) || []);
+      var dugOn = function (v) {
+        return (((tr && tr.disrupted_locations) || []).indexOf(v) >= 0);
+      };
+       
+      var gbox = function (kind, val, label, on) {
+        return '<div class="box' + (live ? "" : " dead") + '"' +
+          (live ? ' data-tick="' + kind + '" data-val="' + esc(val) +
+                  '" role="checkbox" aria-checked="' + (on ? "true" : "false") +
+                  '" tabindex="0"'
+                : ' data-shut="1"') +
+          ">" + chkBox(on) + "<span>" + label + "</span></div>";
+      };
+      h += '<div class="rs-sec"><div class="rs-band">Why this re-treatment is ' +
+        "lawful \u2014 N.J.A.C. 7:30-10.4</div>" +
+        '<div class="fcols three">' +
+        "<div>" +
+        GROUNDS.map(function (g) {
+          return gbox("ground", g[0], esc(g[1]), ground === g[0]);
+        }).join("") +
+        "</div>" +
+         
+        '<div><div style="font-size:.58rem;color:#777;letter-spacing:.06em">' +
+        "WHAT WAS SEEN</div>" +
+        '<input class="fline" id="rtnote" placeholder="live termites, mud tubes, ' +
+        'swarmers, fresh frass" value="' + esc((tr && tr.retreat_note) || "") + '"' +
+        (live ? "" : " readonly") + ">" +
+        (ground === "termites-back"
+          ? '<div class="noprint" style="font-size:.6rem;color:#777;margin-top:.2rem">' +
+            "Needed before the job can be marked complete.</div>"
+          : "") +
+        "</div>" +
+         
+        "<div>" +
+        (ground === "barrier-disrupted"
+          ? '<div style="font-size:.58rem;color:#777;letter-spacing:.06em">' +
+            "WHERE THE SOIL WAS DISTURBED</div>" +
+            dugList.map(function (a) {
+              return gbox("dug", a, esc(a), dugOn(a));
+            }).join("") +
+            '<div style="font-size:.6rem;margin-top:.2rem">' +
+            "<b>Only the disrupted locations may be treated.</b></div>"
+          : '<div style="font-size:.6rem;color:#777">Where the soil barrier was ' +
+            "dug up, tick which locations \u2014 only those may be treated.</div>") +
+        "</div></div>" +
+         
+        '<div class="noprint" id="lastTx" style="font-size:.63rem;color:#777;' +
+        'margin-top:.35rem">\u2026</div>' +
+        '<div class="noprint" style="font-size:.63rem;color:#777;margin-top:.15rem">' +
+        "Previously reported damage is not evidence of re-infestation. United did " +
+        "the original work here, so the history counts as known.</div>" +
+        "</div>";
+    }
 
 var areaList = withHistory(S.opts["treatment-area"] || [], ticked.area);
     var methodList = withHistory(S.opts["method"] || [], ticked.method);
@@ -2968,6 +3344,110 @@ h += '<div class="rs-sec"><div class="rs-band">Materials used ' +
         ? " · finished " + new Date(tr.completed_at).toLocaleTimeString(undefined,
             { hour: "numeric", minute: "2-digit" })
         : "") + "</div></div>";
+
+var condBox = function (kind, val, label, on) {
+      return '<div class="box' + (live ? "" : " dead") + '"' +
+        (live ? ' data-tick="' + kind + '" data-val="' + esc(val) +
+                '" role="checkbox" aria-checked="' + (on ? "true" : "false") +
+                '" tabindex="0"'
+              : ' data-shut="1"') +
+        ">" + chkBox(on) + "<span>" + label + "</span></div>";
+    };
+    var yn = function (kind, v) {
+      return condBox(kind, "yes", "Yes", v === true) +
+             condBox(kind, "no", "No", v === false);
+    };
+    h += '<div class="rs-sec"><div class="rs-band">Structural conditions ' +
+      "\u2014 NJ DEP application record</div>" +
+      '<div class="fcols three">' +
+      '<div><div style="font-size:.58rem;color:#777;letter-spacing:.06em">' +
+      "WELL OR CISTERN \u2014 WITHIN 20 FT (SANDY SOIL) OR 100 FT (OTHER SOILS)</div>" +
+      '<input class="fline" id="wellLoc" placeholder="where it is" value="' +
+      esc((tr && tr.well_cistern_location) || "") + '"' + (live ? "" : " readonly") + ">" +
+      '<div style="display:flex;gap:.4rem;align-items:center;margin-top:.2rem">' +
+      '<input class="fline" id="wellFt" inputmode="numeric" placeholder="feet" ' +
+      'style="max-width:5rem" value="' +
+      esc(tr && tr.well_cistern_ft != null ? tr.well_cistern_ft : "") + '"' +
+      (live ? "" : " readonly") + ">" +
+      '<span style="font-size:.6rem;color:#777">ft, paced off</span></div>' +
+      '<div style="margin-top:.2rem">' +
+      condBox("soil", "sandy", "Sandy soil", (tr && tr.soil_type) === "sandy") +
+      condBox("soil", "other", "Other soil", (tr && tr.soil_type) === "other") +
+      "</div></div>" +
+      '<div><div style="font-size:.58rem;color:#777;letter-spacing:.06em">' +
+      "SLAB CONTAINING AIR DUCTS</div>" +
+      yn("ducts", tr ? tr.slab_with_air_ducts : null) + "</div>" +
+      '<div><div style="font-size:.58rem;color:#777;letter-spacing:.06em">' +
+      "FRENCH DRAIN</div>" +
+      yn("drain", tr ? tr.french_drain : null) + "</div>" +
+      "</div>" +
+       
+      '<div class="noprint" id="condPrev" style="font-size:.63rem;color:#777;' +
+      'margin-top:.35rem"></div>' +
+      "</div>";
+
+if (tr) {
+      var upAt = tr.sign_posted_at ? new Date(tr.sign_posted_at) : null;
+      var dnAt = tr.sign_removed_at ? new Date(tr.sign_removed_at) : null;
+      var hrs = upAt && dnAt ? (dnAt - upAt) / 3600000 : null;
+      var stillUp = upAt && !dnAt ? (new Date() - upAt) / 3600000 : null;
+      var when = function (d) {
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+          " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+      };
+       
+      var regsOwed = chems.some(function (r) {
+        var pp = S.products.filter(function (x) { return x.id === r.product_id; })[0];
+        return pp && pp.needs_regs_summary === true;
+      });
+
+      h += '<div class="rs-sec noprint"><div class="rs-band">The sign, and what was handed over</div>' +
+        '<table class="lst"><tr><td style="width:11rem">Sign posted</td><td>' +
+        (upAt
+          ? "<b>" + esc(when(upAt)) + "</b>"
+          : (live
+              ? '<button class="act" id="signUp" type="button">Record it going up</button>'
+              : '<span class="empty">not recorded, and the record is filed</span>')) +
+        "</td></tr>" +
+
+        "<tr><td>Sign taken down</td><td>" +
+        (dnAt
+          ? "<b>" + esc(when(dnAt)) + "</b>" +
+            (hrs != null
+              ? ' <span class="empty">' + Math.round(hrs) + " hours up" +
+                (hrs < 24 ? " \u2014 the sheet says at least 24" : "") + "</span>"
+              : "")
+          : (upAt
+              ? '<button class="act go" id="signDown" type="button">It has come down</button>' +
+                (stillUp != null && stillUp > 72
+                  ? ' <b style="color:var(--risk)">up ' + Math.round(stillUp / 24) +
+                    " days \u2014 the sheet promises inside 72 hours</b>"
+                  : "")
+              : '<span class="empty">nothing went up</span>')) +
+        "</td></tr>" +
+
+        "<tr><td>Regulations handed over</td><td>" +
+        (tr.regs_given
+          ? "<b>yes</b>"
+          : (live
+              ? '<button class="act" id="regsGo" type="button">Mark it handed over</button>'
+              : '<span class="empty">no</span>')) +
+        (regsOwed && !tr.regs_given
+          ? ' <b style="color:var(--risk)">required \u2014 a termiticide that is not a bait</b>'
+          : "") +
+        "</td></tr></table>" +
+
+(c.wants_label_copies || c.wants_application_dates
+          ? '<div class="msg warn" style="margin:.5rem 0 0">' +
+            (c.wants_label_copies
+              ? "<b>This customer has asked for a copy of the label</b> for each pesticide. "
+              : "") +
+            (c.wants_application_dates
+              ? "<b>They have asked to be told the exact dates</b> of applications."
+              : "") + "</div>"
+          : "") +
+        "</div>";
+    }
 
 h += '<div class="rs-sec noprint"><div class="rs-band">Photographs</div>' +
       '<div class="snaps" id="snaps"></div>' +
@@ -3036,6 +3516,48 @@ wireSnaps(jobId);
       renderSheet(jobId);
     });
     if ($("plan")) $("plan").addEventListener("click", function () { go("plan", jobId); });
+    if ($("cisBtn")) $("cisBtn").addEventListener("click", function () { go("cis", j.customer_id); });
+    if ($("wdiBtn")) $("wdiBtn").addEventListener("click", function () { go("wdi", jobId); });
+     
+    if ($("signUp")) $("signUp").addEventListener("click", async function () {
+      this.disabled = true;
+      var r = await sb.from("treatment_records")
+        .update({ sign_posted_at: new Date().toISOString() }).eq("id", tr.id).select();
+      if (r.error) { toast(explain(r.error).message); this.disabled = false; return; }
+      if (!(r.data || []).length) {
+        toast("That didn" + "\u2019" + "t save. The record is filed, and when the sign went " +
+              "up is part of the visit \u2014 the sheet has to be opened for corrections.");
+        this.disabled = false; return;
+      }
+      await reload(["jobs"]); toast("Sign recorded."); renderSheet(jobId);
+    });
+
+    if ($("signDown")) $("signDown").addEventListener("click", async function () {
+      this.disabled = true;
+      var r = await sb.from("treatment_records")
+        .update({ sign_removed_at: new Date().toISOString() }).eq("id", tr.id).select();
+      if (r.error) { toast(explain(r.error).message); this.disabled = false; return; }
+      if (!(r.data || []).length) {
+        toast("That didn" + "\u2019" + "t save \u2014 tell me, because taking the sign down is " +
+              "meant to work on a filed record.");
+        this.disabled = false; return;
+      }
+      await reload(["jobs"]); toast("Down."); renderSheet(jobId);
+    });
+
+    if ($("regsGo")) $("regsGo").addEventListener("click", async function () {
+      this.disabled = true;
+      var r = await sb.from("treatment_records")
+        .update({ regs_given: true }).eq("id", tr.id).select();
+      if (r.error) { toast(explain(r.error).message); this.disabled = false; return; }
+      if (!(r.data || []).length) {
+        toast("That didn" + "\u2019" + "t save. Handing the regulations over happened at the " +
+              "visit, so on a filed record it goes through opening the sheet.");
+        this.disabled = false; return;
+      }
+      await reload(["jobs"]); toast("Recorded."); renderSheet(jobId);
+    });
+
     if ($("unlock")) $("unlock").addEventListener("click", function () { unlockModal(); });
     if ($("discBtn")) $("discBtn").addEventListener("click", function () {
       discountModal(inv.id, function () { closeModal(); renderSheet(jobId); });
@@ -3055,7 +3577,101 @@ wireSnaps(jobId);
       var n = parseInt(String(v).replace(/[^0-9]/g, ""), 10);
       return { warranty_term_yrs: isNaN(n) ? null : n };
     });
+    trField("rtnote", function (v) { return { retreat_note: v || null }; });
+    trField("wellLoc", function (v) { return { well_cistern_location: v || null }; });
+    trField("wellFt", function (v) {
+      var n = parseInt(String(v).replace(/[^0-9]/g, ""), 10);
+      return { well_cistern_ft: isNaN(n) ? null : n };
+    });
     wireMaterials();
+     
+    fillHistory();
+
+    async function fillHistory() {
+      var mLast = $("lastTx"), mCond = $("condPrev");
+      if (!mLast && !mCond) return;
+      try {
+         
+        var rows = await many(sb.rpc("structure_conditions_here", { p_job: jobId }));
+        var r0 = rows[0] || {};
+        if (mLast) {
+          if (!r0.last_treated) {
+            mLast.innerHTML = "No earlier application on file at this address that you " +
+              "can see \u2014 the office has the history.";
+          } else {
+            var asOf = (tr && tr.date) || j.completed_date || j.scheduled_date || todayISO();
+            var d0 = new Date(r0.last_treated + "T00:00:00");
+            var d1 = new Date(asOf + "T00:00:00");
+            var mo = (d1.getFullYear() - d0.getFullYear()) * 12 + (d1.getMonth() - d0.getMonth());
+            if (d1.getDate() < d0.getDate()) mo -= 1;
+            if (mo < 0) mo = 0;
+            var yrs = Math.floor(mo / 12), rem = mo % 12;
+            var said = yrs + (yrs === 1 ? " year" : " years") +
+              (rem ? " " + rem + (rem === 1 ? " month" : " months") : "");
+            mLast.innerHTML = "Last application on file here was " +
+              esc(fmtLong(r0.last_treated)) + " \u2014 " + esc(said) + ". " +
+              (yrs >= 5
+                ? "The five years have elapsed."
+                : "<b>The five years have not elapsed</b>, so this needs live termites, " +
+                  "fresh evidence, or a barrier disrupted by construction, excavation " +
+                  "or landscaping.") +
+              " This figure is shown, never enforced \u2014 whatever the pest was, and " +
+              "whatever the old mailing list says.";
+          }
+        }
+        if (mCond) {
+          var got = [];
+          if (r0.french_drain != null)
+            got.push(r0.french_drain ? "a french drain" : "no french drain");
+          if (r0.slab_with_air_ducts != null)
+            got.push(r0.slab_with_air_ducts ? "air ducts in the slab" : "no air ducts in the slab");
+          if (r0.well_cistern_location)
+            got.push("well: " + r0.well_cistern_location +
+              (r0.well_cistern_ft != null ? " (" + r0.well_cistern_ft + " ft)" : ""));
+          if (r0.soil_type) got.push(r0.soil_type + " soil");
+          var blank = !tr || (tr.french_drain == null && tr.slab_with_air_ducts == null &&
+            tr.soil_type == null && tr.well_cistern_ft == null && !tr.well_cistern_location);
+          if (got.length && blank && live) {
+             
+            mCond.innerHTML = "Last recorded at this address on " +
+              esc(fmtLong(r0.as_at)) + ": " + esc(got.join(" \u00b7 ")) +
+              '. <button class="act" id="condTake" type="button">Still true here</button>' +
+              " Nothing is on this record until you tap it.";
+            if ($("condTake")) $("condTake").addEventListener("click", function (e) {
+              tickWrite(e.target, function () {
+                return trPatch({
+                  well_cistern_location: r0.well_cistern_location,
+                  well_cistern_ft: r0.well_cistern_ft,
+                  soil_type: r0.soil_type,
+                  slab_with_air_ducts: r0.slab_with_air_ducts,
+                  french_drain: r0.french_drain
+                });
+              });
+            });
+          } else if (got.length) {
+            mCond.innerHTML = "Last recorded at this address on " +
+              esc(fmtLong(r0.as_at)) + ": " + esc(got.join(" \u00b7 ")) + ".";
+          } else {
+            mCond.innerHTML = "Nothing recorded about this building yet.";
+          }
+        }
+         
+        if (tr && tr.retreat_reason === "barrier-disrupted" && mLast) {
+          var dug = tr.disrupted_locations || [], out = [];
+          (tr.application_locations || []).forEach(function (a) {
+            if (dug.indexOf(a) < 0) out.push(a);
+          });
+          if (out.length)
+            mLast.innerHTML += '<br><b>Treated where the record does not say the soil ' +
+              "was dug up: " + esc(out.join(", ")) + ".</b> Only the disrupted locations " +
+              "may be treated \u2014 tick them, or say in the notes why those areas were " +
+              "treated.";
+        }
+      } catch (e) {
+         
+        if (mLast) mLast.innerHTML = "Couldn\u2019t load the history \u2014 " + esc(e.message);
+      }
+    }
 
 function sheetField(id, toPatch) {
       var el = $(id); if (!el || !live && id !== "snotes") { if (el) el.readOnly = true; return; }
@@ -3117,25 +3733,86 @@ function unlockModal() {
         });
     }
     function tick(kind, val, el) {
+       
+      if (kind === "svc") {
+        var on = linesOf(j.id).filter(function (l) { return l.service_name === val; })[0];
+        if (on && !lineIsScratch()) {
+           
+          if (!isOffice()) {
+            toast("Taking a service back off is the office\u2019s to do \u2014 put what " +
+                  "happened in the notes and they will sort it.");
+            return;
+          }
+          voidLineModal(on, j, function () { renderSheet(jobId); });
+          return;
+        }
+      }
       return tickWrite(el, function () {
         if (kind === "svc") return tickService(val);
         if (kind === "warranty") return saveSheet({ warranty_box: isOn("warranty", val) ? null : val });
         if (kind === "std") return fileStandard();
+         
+        if (kind === "ground")
+          return trPatch({ retreat_reason: ((tr && tr.retreat_reason) === val) ? null : val });
+        if (kind === "soil")
+          return trPatch({ soil_type: ((tr && tr.soil_type) === val) ? null : val });
+        if (kind === "ducts")
+          return trPatch({ slab_with_air_ducts: trFlag(tr ? tr.slab_with_air_ducts : null, val) });
+        if (kind === "drain")
+          return trPatch({ french_drain: trFlag(tr ? tr.french_drain : null, val) });
         return tickRecord(kind, val);
       });
     }
+     
+    function trFlag(cur, val) {
+      var want = (val === "yes");
+      return cur === want ? null : want;
+    }
+     
+    async function trPatch(patch) {
+      var now = trOf(j.id);
+      if (!now) {
+        var body = {
+          job_id: j.id, tech_id: j.assigned_to || S.me.id,
+          date: j.scheduled_date || todayISO(),
+          target_pests: [], application_locations: []
+        };
+        Object.keys(patch).forEach(function (k) { body[k] = patch[k]; });
+        var i = await sb.from("treatment_records").insert(body).select();
+        if (i.error) throw explain(i.error);
+        return;
+      }
+      var u = await sb.from("treatment_records").update(patch).eq("id", now.id).select();
+      if (u.error) throw explain(u.error);
+       
+      if (!(u.data || []).length)
+        throw new Error("That didn\u2019t save. If the sheet is signed or the job is " +
+          "complete, the office has to open it for corrections first.");
+    }
+     
+    function trField(id, toPatch) {
+      var el = $(id); if (!el) return;
+      if (!live) { el.readOnly = true; return; }
+      el.addEventListener("change", async function () {
+        el.disabled = true;
+        try {
+          await trPatch(toPatch(el.value.trim()));
+          toast("Saved");
+          await reload(["jobs"]);
+        } catch (e) { toast(e.message); }
+        el.disabled = false;
+      });
+    }
     async function tickService(name) {
-      var had = ls.filter(function (l) { return l.service_name === name; })[0];
+       
+      var had = linesOf(j.id).filter(function (l) { return l.service_name === name; })[0];
       if (had) {
          
-        if (!isAdmin())
-          throw new Error("Taking a service back off is an admin’s to do — " +
-            "put what happened in the notes and they will sort it.");
         var d = await sb.from("job_lines").delete().eq("id", had.id).select();
         if (d.error) throw explain(d.error);
         if (!(d.data || []).length)
           throw new Error("That line is still on the sheet — the database refused to " +
-            "remove it. If it is signed or paid, open it for corrections first.");
+            "remove it. Take it off with a reason instead, and it stays on the file.");
         toast(name + " taken off the sheet");
         return;
       }
@@ -3143,7 +3820,8 @@ function unlockModal() {
        
       var r = await sb.from("job_lines").insert({
         job_id: j.id, service_id: svc.id || null, service_name: name, price: null,
-        sort_order: ls.length + 1
+         
+        sort_order: allLinesOf(j.id).length + 1
       }).select();
       if (r.error) throw explain(r.error);
       var row = (r.data || [])[0] || {};
@@ -3159,8 +3837,11 @@ function unlockModal() {
         ? " added — " + money(row.price) : " added — priced on the job"));
     }
     async function tickRecord(kind, val) {
-      var col = kind === "pest" ? "target_pests"
-              : kind === "area" ? "application_locations" : "method";
+       
+      var COLS = { pest: "target_pests", area: "application_locations",
+                   dug: "disrupted_locations", method: "method" };
+      var col = COLS[kind] || null;
+      if (!col) throw new Error("That box isn\u2019t wired to a column \u2014 tell me.");
        
       var now = trOf(j.id);
       if (!now) {
@@ -3180,8 +3861,8 @@ function unlockModal() {
       else {
         var cur = (now[col] || []).slice(), ix = cur.indexOf(val);
         if (ix >= 0) cur.splice(ix, 1); else cur.push(val);
-         
-        if (!cur.length)
+
+if (!cur.length && col !== "disrupted_locations")
           throw new Error(col === "target_pests"
             ? "The record has to name at least one target pest. Tick the right one before " +
               "taking this one off."
@@ -3209,7 +3890,8 @@ function unlockModal() {
       if (hasStd)
         throw new Error("Already on the record. A filed pesticide application can’t be " +
           "taken back off — that is the law, not the app.");
-      await fileMaterial(prod, "0.25", "¼ gal");
+       
+      await fileMaterial(prod, "0.25", "1/4 gal");
     }
     async function fileMaterial(prod, pct, amt) {
       var rec = tr;
@@ -3228,7 +3910,16 @@ function unlockModal() {
         sort_order: (prod.sort_order || 0) + 1
       }).select();
       if (r.error) throw explain(r.error);
-      toast(prod.name + " added to the application record");
+       
+      var line = (r.data || [])[0] || {};
+      if (amt && "amount_qty" in line && line.amount_qty == null)
+        toast(prod.name + " is on the record — but '" + amt + "' is not a quantity the " +
+              "yearly total can add up.");
+      else if (amt && "amount_unit" in line && line.amount_qty != null &&
+               line.amount_unit == null)
+        toast(prod.name + " is on the record — but there's no unit on '" + amt + "'.");
+      else
+        toast(prod.name + " added to the application record");
     }
 
 function matFound(chemRows) {
@@ -3260,7 +3951,7 @@ function matFound(chemRows) {
                         : (r ? ' data-filed="' + esc(r.id) + '" title="Put on by mistake? Tap to void it."' : "")) + ">" +
             chkBox(!!r) + "<span>" + esc(m.name) +
             (m.epa_number ? '<span class="epa">EPA #' + esc(m.epa_number) + "</span>" : "") +
-            "</span></td><td>" + cell(r, "amount", "") + "</td>";
+            "</span></td><td>" + cell(r, "amount", "90 gal") + "</td>";
         }).join("");
         html += "</tr>";
       }
@@ -3323,12 +4014,1034 @@ function matFound(chemRows) {
             toast("That didn’t save — the sheet may be closed for changes."); return;
           }
            
-          toast("Saved");
+          var saved = (r.data || [])[0] || {};
+          var typed = el.value.trim();
+          var col = el.getAttribute("data-col");
+          var msg = "Saved";
+          if (typed && col === "amount" && "amount_qty" in saved) {
+            if (saved.amount_qty == null)
+              msg = "Saved — but '" + typed + "' is not a quantity the yearly total can " +
+                    "add up. '90 gal' or '1/4 gal' can be.";
+            else if (saved.amount_unit == null)
+              msg = "Saved — but there's no unit on it, so it's a number and not an " +
+                    "amount. Add gal, oz or lb.";
+          } else if (typed && col === "percent" && "percent_num" in saved &&
+                     saved.percent_num == null) {
+            msg = "Saved — but '" + typed + "' isn't a strength the record can report. " +
+                  "A mix rate like '2 oz per gal' is not a %.";
+          }
+           
+          toast(msg);
           await reload(["jobs"]);
           renderSheet(j.id);
         });
       });
     }
+  }
+
+var CISDOC = { cid: null, id: null };
+
+var CIS_WHY =
+    "As of November 19, 2001, the New Jersey DEP Pesticide Control Program " +
+    "instituted a new program that requires us to provide customers with " +
+    "information about the materials we will be using as part of the pest control " +
+    "program for your property. We are using this CONSUMER INFORMATION SHEET to " +
+    "provide you with this information. The accompanying sheet lists any label " +
+    "precautions for the pesticide(s) listed below that you should be aware of. " +
+    "We will apply the pesticides listed below to your property within fourteen " +
+    "(14) days of the date(s) listed:";
+  var CIS_SIGN =
+    "You will also notice that, following each application, at least one sign " +
+    "will be placed on your property that says PESTICIDE TREATED AREA and " +
+    "contains the international signage for keep off the grass. We are required " +
+    "to do this as part of the new program. The sign(s) must remain in place for " +
+    "at least 24 hours following the application and we are responsible for " +
+    "removing the sign within 72 hours following application. We would appreciate " +
+    "it if you would remove the sign for us. As the customer, you should also be " +
+    "aware that you may request notification of the exact date(s) of our " +
+    "applications and for a copy of the label for each pesticide we will use.";
+  var CIS_PHONES = [
+    ["National Pesticide Information Network " +
+     "(General Health &amp; Toxicology Information)", "1-800-858-7378"],
+    ["New Jersey Poison Information &amp; Education System (Emergencies)", "1-800-222-1222"],
+    ["New Jersey Pesticide Control Program", "609-984-6507"]
+  ];
+  var CIS_IPM =
+    "Pesticides are chemical substances used to control living organisms and vary " +
+    "in degree of toxicity. Pesticides may be part of a good pest control " +
+    "program. Sanitation, as well as physical and biological control measures, " +
+    "should be considered as another part of a good pest control program.";
+
+  async function renderCIS(cid) {
+    var c = custById(cid);
+    if (!c) { app.innerHTML = '<div class="msg bad">That customer isn\u2019t here.</div>'; return; }
+    if (!isOffice()) {
+      app.innerHTML = '<div class="msg bad">The Consumer Information Sheet is ' +
+        "issued from the office.</div>";
+      return;
+    }
+    if (CISDOC.cid !== cid) CISDOC = { cid: cid, id: null };
+
+    var co = S.settings || {}, ps = propsOf(cid);
+    var asked = function (col, on) {
+      return '<button type="button" class="tgl' + (on ? " on" : "") + '" data-cwant="' +
+        col + '" aria-pressed="' + (on ? "true" : "false") + '">' +
+        (on ? "yes" : "no") + "</button>";
+    };
+    var sheets = cisOf(cid);
+    var shown = CISDOC.id
+      ? sheets.filter(function (x) { return x.id === CISDOC.id; })[0] || sheets[0] || null
+      : sheets[0] || null;
+    var items = shown ? cisItemsOf(shown.id) : [];
+    var prop = shown
+      ? (S.properties.filter(function (p) { return p.id === shown.property_id; })[0] || ps[0] || {})
+      : (ps[0] || {});
+
+    document.body.classList.add("hassheetbar");
+    var h = '<div class="sheetbar noprint">' +
+      '<button class="act" id="ciBack" type="button">\u2039 Back to the folder</button>' +
+      (shown ? '<button class="act go" id="ciPrt" type="button">🖨 Print</button>' : "") +
+      '<button class="act" id="ciNew" type="button">\uff0b Issue a new one</button>' +
+      "</div>";
+
+    if (!S.products.length)
+      h += '<div class="msg warn noprint">There are no products on the materials ' +
+        "grid, so there is nothing a disclosure could list.</div>";
+
+h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      "<h2>On file</h2>";
+    if (!sheets.length) {
+      h += '<p class="note">None yet. A pesticide applied here with no sheet ' +
+        "issued shows on the compliance list, and this is where it is put right.</p>";
+    } else {
+      h += '<table class="lst"><tr><th>Issued</th><th>Address</th><th>Listed</th>' +
+        "<th>Tear-off</th><th></th></tr>" +
+        sheets.map(function (x) {
+          var xp = S.properties.filter(function (p) { return p.id === x.property_id; })[0];
+          var back = x.signed_on || x.returned_on || x.signature;
+          return "<tr" +
+            (shown && x.id === shown.id
+              ? ' style="background:var(--brand-w)"' : "") + ">" +
+            "<td>" + esc(fmtDate(x.issued_on)) + " \u00b7 " + esc(x.given_how) + "</td>" +
+            "<td>" + esc(xp ? xp.address : "every address") + "</td>" +
+            "<td>" + esc(cisItemsOf(x.id).map(function (i) { return i.brand_name; }).join(", ")
+                          || "nothing listed") + "</td>" +
+            "<td>" + (back
+              ? "back " + esc(fmtDate(x.signed_on || x.returned_on))
+              : '<span class="empty">not back</span>') + "</td>" +
+            '<td><button class="act" data-cishow="' + x.id +
+              '" type="button" style="padding:.1rem .4rem;font-size:.72rem">show</button>' +
+            '<button class="act" data-citear="' + x.id +
+              '" type="button" style="padding:.1rem .4rem;font-size:.72rem">' +
+              (back ? "tear-off" : "record the tear-off") + "</button></td></tr>";
+        }).join("") + "</table>";
+    }
+    h += "</div>";
+
+h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      "<h2>What this customer has asked for</h2>" +
+      '<p class="note">Both are on the sheet as a right: "you may request ' +
+      "notification of the exact date(s) of our applications and for a copy of the " +
+      "label for each pesticide we will use.\" Ticked here, they follow the job to " +
+      "whoever is standing at the door.</p>" +
+      '<table class="lst">' +
+      "<tr><td>To be told the exact dates</td><td>" +
+        asked("wants_application_dates", c.wants_application_dates) + "</td></tr>" +
+      "<tr><td>A copy of the label, each time</td><td>" +
+        asked("wants_label_copies", c.wants_label_copies) + "</td></tr>" +
+      "</table></div>";
+
+if (shown && !items.length)
+      h += '<div class="msg bad noprint"><b>This sheet lists no products.</b> It ' +
+        "counts as a disclosure on file and says nothing, so issue a fresh one " +
+        "and have an admin take this one off.</div>";
+    if (shown) h += cisPaper(co, c, prop, shown, items);
+    else h += '<div class="msg noprint">Nothing issued yet \u2014 <b>Issue a new one</b> ' +
+      "lists the products and their dates, and this is where the sheet appears.</div>";
+
+    app.innerHTML = h;
+
+app.querySelectorAll("[data-cwant]").forEach(function (b) {
+      b.addEventListener("click", async function () {
+        var col = b.getAttribute("data-cwant"), now = b.classList.contains("on");
+        var patch = {}; patch[col] = !now;
+        b.disabled = true;
+        var r = await sb.from("customers").update(patch).eq("id", cid).select();
+        b.disabled = false;
+        if (r.error) { toast(explain(r.error).message); return; }
+        if (!(r.data || []).length) {
+          toast("That didn\u2019t save \u2014 you may not have the right to."); return;
+        }
+         
+        var k = S.customers.map(function (x) { return x.id; }).indexOf(cid);
+        if (k >= 0) S.customers[k] = r.data[0];
+        renderCIS(cid);
+      });
+    });
+
+    $("ciBack").addEventListener("click", function () { go("customer", cid); });
+    $("ciNew").addEventListener("click", function () { cisNewModal(cid, ps); });
+    if ($("ciPrt")) $("ciPrt").addEventListener("click", function () {
+      setTimeout(function () { window.print(); }, 60);
+    });
+    app.querySelectorAll("[data-cishow]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        CISDOC = { cid: cid, id: b.getAttribute("data-cishow") };
+        renderCIS(cid);
+      });
+    });
+    app.querySelectorAll("[data-citear]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var x = sheets.filter(function (y) { return y.id === b.getAttribute("data-citear"); })[0];
+        if (x) cisTearModal(x, cid);
+      });
+    });
+  }
+
+function cisPaper(co, c, prop, x, items) {
+    var pd = function (iso) {
+      if (!iso) return "";
+      return new Date(iso + "T12:00:00").toLocaleDateString(undefined,
+        { month: "long", day: "numeric", year: "numeric" });
+    };
+    var h = '<div class="sheet plan">' +
+      '<div class="plic">LIC. #' + esc(co.business_licence || "") + "</div>" +
+      '<div style="text-align:center">' +
+      '<div class="co" style="font-size:2.1rem;letter-spacing:.05em">' +
+        esc(co.company_short || "UNITED") + "</div>" +
+      '<div style="font-size:.86rem;font-weight:600">' + esc(co.company_name || "") + "</div>" +
+      '<div style="font-size:.7rem">' +
+        esc(addrLine(co.street, co.city, co.state, co.zip)) +
+        (co.phone ? " \u2022 " + esc(co.phone) : "") + "</div></div>" +
+      '<div class="pttl">CONSUMER INFORMATION SHEET</div>';
+
+    h += '<div class="pfld"><div class="plbl">Customer</div>' +
+      '<div class="pline">' + esc((c.first_name ? c.first_name + " " : "") + (c.name || "")) +
+      "</div></div>" +
+      '<div class="pfld"><div class="plbl">Property</div>' +
+      '<div class="pline">' + esc(prop.address || "") + "</div></div>" +
+      '<div class="pfld"><div class="plbl">Date issued</div>' +
+      '<div class="pline">' + esc(pd(x.issued_on)) + "</div></div>";
+
+    h += "<p>Dear Customer:</p><p>" + CIS_WHY + "</p>";
+
+    h += '<table class="pgrid"><tr><th>Brand name</th><th>Chemical name</th>' +
+      "<th>Proposed date of application</th></tr>" +
+      items.map(function (i) {
+        return "<tr><td>" + esc(i.brand_name) + "</td><td>" + esc(i.chemical_name) +
+          "</td><td>" + esc(pd(i.proposed_on)) + "</td></tr>";
+      }).join("") +
+       
+      '<tr class="pblankrow"><td></td><td></td><td></td></tr>' +
+      '<tr class="pblankrow"><td></td><td></td><td></td></tr>' +
+      "</table>";
+
+    h += "<p>" + CIS_SIGN + "</p>" +
+      "<p>We are also required to provide the following phone numbers for your " +
+      "use in the event you have any health related questions concerning the " +
+      "materials that we will use:</p>" +
+      '<table class="pphones">' +
+      CIS_PHONES.map(function (p) {
+        return "<tr><td>" + p[0] + '</td><td class="pnum">' + p[1] + "</td></tr>";
+      }).join("") + "</table>" +
+      '<p class="psml">(The last number is for pesticide regulations information, ' +
+      "complaints &amp; health referrals.)</p>" +
+      "<p>" + CIS_IPM + "</p>";
+
+h += '<div class="ptear"><span>please detach</span></div>' +
+      '<p class="psml">As the customer, I hereby certify that ' +
+      "<b>" + esc((co.company_name || "").toUpperCase()) + "</b> has provided me, " +
+      "in writing, all the information required under the NJ DEP Pesticide Control " +
+      "Programs notification program. I have read the information supplied and " +
+      "understand my rights and responsibilities under this program. I also agree " +
+      "to remove the notification sign(s), that they will post on my property, no " +
+      "sooner than 24 hours following each application and no later than 72 hours " +
+      "following the application.</p>";
+
+h += '<div class="psigs">' +
+      "<div>" + (x.signature
+        ? sigSVG(x.signature, 220) + '<div class="plbl">Signed</div>'
+        : '<div class="sigline"></div><div class="plbl">Signed</div>') + "</div>" +
+      "<div>" + (x.signed_on
+        ? '<div class="pline">' + esc(pd(x.signed_on)) + '</div><div class="plbl">Date</div>'
+        : '<div class="sigline"></div><div class="plbl">Date</div>') + "</div></div>";
+
+    h += '<p class="psml"><b>Please sign and return this portion of the Consumer ' +
+      "Information Sheet to us for inclusion in our records.</b></p></div>";
+    return h;
+  }
+
+function cisNewModal(cid, ps) {
+    var rows = 1;
+    var prodOpts = S.products.filter(function (p) { return p.active !== false; });
+    if (!prodOpts.length) { toast("There are no products on the materials grid."); return; }
+
+    var rowHTML = function (n) {
+      return '<div class="row" id="ciR' + n + '" style="align-items:flex-end">' +
+        '<div style="flex:2 1 11rem"><label for="ciP' + n + '">Product</label>' +
+        '<select id="ciP' + n + '" class="f" data-cirow="' + n + '">' +
+        (n > 1 ? '<option value="">\u2014 nothing \u2014</option>' : "") +
+        prodOpts.map(function (p) {
+          return '<option value="' + p.id + '">' + esc(p.name) +
+            (btrimv(p.chemical_name) ? "" : " (needs a chemical name)") + "</option>";
+        }).join("") + "</select></div>" +
+        '<div style="flex:2 1 11rem"><label for="ciC' + n + '">Chemical name</label>' +
+        '<input id="ciC' + n + '" class="f" placeholder="off the label"></div>' +
+        '<div style="flex:1 1 9rem"><label for="ciD' + n + '">Proposed date</label>' +
+        '<input id="ciD' + n + '" class="f" type="date"></div></div>';
+    };
+
+    openModal("<h3>Issue a Consumer Information Sheet</h3>" +
+      '<p class="note">List what will be applied and when. The sheet promises the ' +
+      "work happens <b>within fourteen days</b> of each date, and the compliance " +
+      "list checks it against the record afterwards.</p>" +
+      (ps.length > 1
+        ? '<label for="ciProp">Which address</label><select id="ciProp" class="f">' +
+          '<option value="">every address on this folder</option>' +
+          ps.map(function (p) {
+            return '<option value="' + p.id + '">' + esc(p.address) + "</option>";
+          }).join("") + "</select>"
+        : "") +
+      '<label for="ciHow">How it goes to them</label>' +
+      '<select id="ciHow" class="f"><option value="handed">handed over</option>' +
+      '<option value="posted">posted</option><option value="emailed">emailed</option></select>' +
+      '<label for="ciWhen">Date issued</label>' +
+      '<input id="ciWhen" class="f" type="date" value="' + todayISO() + '">' +
+      '<div id="ciRows">' + rowHTML(1) + "</div>" +
+      '<div class="acts"><button class="act" id="ciAdd" type="button">' +
+      "\uff0b Another product</button></div>" +
+      '<div class="row"><button class="primary" id="ciGo" type="button">Issue it</button>' +
+      '<button class="act" id="ciNo" type="button">Not now</button></div>');
+
+var syncRow = function (n) {
+      var sel = $("ciP" + n), box = $("ciC" + n);
+      if (!sel || !box) return;
+      var p = S.products.filter(function (x) { return x.id === sel.value; })[0];
+      box.value = p ? (p.chemical_name || "") : "";
+      box.readOnly = !!(p && btrimv(p.chemical_name));
+    };
+    var wireRow = function (n) {
+      var sel = $("ciP" + n);
+      if (sel) sel.addEventListener("change", function () { syncRow(n); });
+      syncRow(n);
+    };
+    wireRow(1);
+
+    $("ciAdd").addEventListener("click", function () {
+      rows += 1;
+      $("ciRows").insertAdjacentHTML("beforeend", rowHTML(rows));
+      wireRow(rows);
+    });
+    $("ciNo").addEventListener("click", closeModal);
+    $("ciGo").addEventListener("click", async function () {
+      this.disabled = true;
+      var btn = this;
+      try {
+        var when = $("ciWhen").value;
+        if (!when) throw new Error("When is it being issued?");
+        var list = [], i, n;
+        for (n = 1; n <= rows; n++) {
+          var sel = $("ciP" + n); if (!sel || !sel.value) continue;
+          var p = S.products.filter(function (x) { return x.id === sel.value; })[0];
+          var chem = btrimv($("ciC" + n).value);
+          var on = $("ciD" + n).value;
+          if (!chem)
+            throw new Error("\u201c" + (p ? p.name : "That product") + "\u201d needs its " +
+              "chemical name \u2014 the sheet prints it, and a disclosure that does not " +
+              "name what is going down is not one. It is on the label.");
+          if (!on)
+            throw new Error("\u201c" + (p ? p.name : "That product") + "\u201d needs a " +
+              "proposed date. The fourteen days are counted from it.");
+          list.push({ product_id: p ? p.id : null, brand_name: p ? p.name : "",
+                      chemical_name: chem, proposed_on: on, sort_order: list.length,
+                      typed: !(p && btrimv(p.chemical_name)) });
+        }
+        if (!list.length) throw new Error("A sheet has to list at least one product.");
+
+        var propSel = $("ciProp");
+        var r = await sb.from("consumer_sheets").insert({
+          customer_id: cid,
+          property_id: propSel && propSel.value ? propSel.value : null,
+          issued_on: when,
+          given_how: $("ciHow").value,
+          issued_by: S.me.id
+        }).select();
+        if (r.error) throw explain(r.error);
+        var sheet = (r.data || [])[0];
+        if (!sheet) throw new Error("That didn\u2019t save. Issuing a sheet is the office\u2019s to do.");
+
+        var ri = await sb.from("consumer_sheet_items").insert(list.map(function (l) {
+          return { sheet_id: sheet.id, product_id: l.product_id, brand_name: l.brand_name,
+                   chemical_name: l.chemical_name, proposed_on: l.proposed_on,
+                   sort_order: l.sort_order };
+        })).select();
+        if (ri.error) {
+           
+          var un = await sb.from("consumer_sheets").delete().eq("id", sheet.id).select();
+          var stranded = !!(un.error || !(un.data || []).length);
+          var why = explain(ri.error);
+          throw new Error(why.message +
+            (stranded
+              ? " — and the empty sheet dated " + fmtDate(when) + " could not be " +
+                "removed, which is an admin’s to do. Ask for it to be taken off."
+              : ""));
+        }
+
+var stuck = 0, refused = 0;
+        for (i = 0; i < list.length; i++) {
+          if (!list[i].typed || !list[i].product_id) continue;
+          var up = await sb.from("pesticide_products")
+            .update({ chemical_name: list[i].chemical_name })
+            .eq("id", list[i].product_id).select();
+          if (up.error || !(up.data || []).length) refused += 1; else stuck += 1;
+        }
+
+        closeModal();
+        await reload(["cis"]);
+        await reloadLists();
+        CISDOC = { cid: cid, id: sheet.id };
+        toast("Sheet issued" +
+          (stuck ? " \u00b7 " + plural(stuck, "chemical name") + " added to the product list" : "") +
+          (refused ? " \u00b7 " + plural(refused, "chemical name") +
+            " saved on this sheet only \u2014 an admin can add it to the product list" : ""));
+        renderCIS(cid);
+      } catch (e) { toast(e.message); btn.disabled = false; }
+    });
+  }
+
+function cisTearModal(x, cid) {
+    openModal("<h3>The signed portion</h3>" +
+      '<p class="note">Issued ' + esc(fmtDate(x.issued_on)) + ". The date the " +
+      "customer signed is the one on the slip; the date it came back is when it " +
+      "reached the office. Either is enough for it to count as on file.</p>" +
+      '<label for="ctSign">Customer signed on</label>' +
+      '<input id="ctSign" class="f" type="date" value="' + esc(x.signed_on || "") + '">' +
+      '<label for="ctBack">Reached the office</label>' +
+      '<input id="ctBack" class="f" type="date" value="' + esc(x.returned_on || "") + '">' +
+      '<div class="row"><button class="primary" id="ctGo" type="button">Save it</button>' +
+      '<button class="act" id="ctNo" type="button">Leave it</button></div>');
+    $("ctNo").addEventListener("click", closeModal);
+    $("ctGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+        var sg = $("ctSign").value || null, bk = $("ctBack").value || null;
+        if (sg && sg < x.issued_on)
+          throw new Error("That is before the sheet was issued \u2014 check the date on the slip.");
+        if (bk && sg && bk < sg)
+          throw new Error("It cannot have reached the office before it was signed.");
+        var r = await sb.from("consumer_sheets")
+          .update({ signed_on: sg, returned_on: bk }).eq("id", x.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("Nothing moved. Recording a tear-off is the office\u2019s to do.");
+        closeModal();
+        await reload(["cis"]);
+        toast(sg || bk ? "On file." : "Cleared.");
+        renderCIS(cid);
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
+var N33_KEYS = [
+    "Fixed ceiling", "Suspended ceiling", "Fixed wall covering", "Floor covering",
+    "Insulation", "Cabinets or shelving", "Stored items", "Furnishings",
+    "Appliances", "No access or entry", "Limited access", "No access beneath",
+    "Only visual access", "Cluttered condition", "Standing water",
+    "Dense vegetation", "Exterior siding", "Window well covers", "Wood pile",
+    "Snow", "Unsafe conditions", "Rigid foam board", "Synthetic stucco",
+    "Duct work, wiring, and/or plumbing", "Spray foam insulation", "Equipment"
+  ];
+   
+  var N33_AREAS = [
+    ["basement", "Basement"], ["crawlspace", "Crawlspace"],
+    ["main_level", "Main Level"], ["attic", "Attic"], ["garage", "Garage"],
+    ["exterior", "Exterior"], ["porch", "Porch"], ["addition", "Addition"],
+    ["other", "Other"]
+  ];
+
+var N33_FOOT1 =
+    "Form NPMA-33 (7/01/19) \u00a9 2019 National Pest Management Association. " +
+    "All Rights Reserved. No reproduction of this form is permitted without the " +
+    "express permission of NPMA.";
+  var N33_FOOT2 =
+    "Previous editions are obsolete after 12/31/19. This form is approved for " +
+    "FHA and VA loans.";
+
+  function renderWDI(jobId) {
+    var j = jobById(jobId);
+    if (!j) { app.innerHTML = '<div class="msg bad">That job isn\u2019t here.</div>'; return; }
+    if (!isOffice()) {
+      app.innerHTML = '<div class="msg bad">A wood destroying insect report is ' +
+        "written in the office.</div>";
+      return;
+    }
+    var c = custById(j.customer_id) || {}, p = propOfJob(j) || {};
+    var co = S.settings || {}, t = personOf(j.assigned_to) || {};
+    var w = wdiOf(jobId) || {};
+    var prev = wdiPrevOn(p.id, w.id);
+    var certified = !!w.signed_on;
+    var obs = w.obstructions || {};
+     
+    var carry = !w.id && prev ? prev : null;
+    if (carry) obs = carry.obstructions || {};
+
+    document.body.classList.add("hassheetbar");
+    document.body.classList.add("npma");
+
+    var h = '<div class="sheetbar noprint">' +
+      '<button class="act" id="n3Back" type="button">\u2039 Back to the sheet</button>' +
+      '<button class="act go" id="n3Prt" type="button">\ud83d\udda8 Print</button>' +
+      '<button class="act" id="n3Save" type="button">' +
+      (w.id ? "Save it" : "Start the report") + "</button>" +
+      (w.id && !certified
+        ? '<button class="act go" id="n3Cert" type="button">Certify it</button>'
+        : "") +
+      (certified
+        ? '<button class="act" id="n3Ack" type="button">Record a signature</button>'
+        : "") + "</div>";
+
+    if (MISSING.some(function (m) { return m.what === "wdi_reports"; }))
+      h += '<div class="msg warn noprint"><b>The report table is not there yet.</b><br>' +
+        "Run <code>supabase/migrations/0043_the_npma_33.sql</code> and reload.</div>";
+
+if (w.expires_on) {
+      var left = Math.round((new Date(w.expires_on + "T12:00:00") - new Date()) / 86400000);
+      h += '<div class="msg ' + (left < 0 ? "bad" : left <= 30 ? "warn" : "") +
+        ' noprint">' +
+        (left < 0
+          ? "<b>This report expired " + Math.abs(left) + " days ago.</b> Page 2 says " +
+            "it is invalid for securing a mortgage or settling a transfer."
+          : "<b>" + left + " days left.</b> Good until " + esc(fmtDate(w.expires_on)) +
+            " \u2014 ninety days from the inspection, and it cannot be extended.") +
+        "</div>";
+    }
+
+    if (carry)
+      h += '<div class="msg noprint"><b>Filled in from the last report on this ' +
+        "address</b> (" + esc(fmtDate(prev.inspection_date)) + "). Nothing is saved " +
+        "until you save it, and every line is yours to change \u2014 obstructions and " +
+        "old evidence do not move between visits, a finding does.</div>";
+
+    if (certified)
+      h += '<div class="msg warn noprint"><b>Certified ' + esc(fmtDate(w.signed_on)) +
+        ".</b> What was inspected and found cannot change. The seller\u2019s and " +
+        "buyer\u2019s signatures can still be recorded.</div>";
+
+var dis = certified ? " disabled" : "";
+    var fld = function (id, lbl, ctl) {
+      return "<div><label for=\"" + id + "\">" + lbl + "</label>" + ctl + "</div>";
+    };
+    var inp = function (id, val, hint, kind) {
+      return '<input id="' + id + '" class="f" type="' + (kind || "text") +
+        '" value="' + esc(val == null ? "" : val) + '"' +
+        (hint ? ' placeholder="' + esc(hint) + '"' : "") + dis + ">";
+    };
+    var src = function (v, fallback) { return v != null && v !== "" ? v : fallback; };
+
+    h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      "<h2>Section I</h2>" +
+      '<div style="display:grid;gap:0 1rem;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))">' +
+      fld("n3Date", "Date of inspection",
+          inp("n3Date", src(w.inspection_date, j.completed_date || j.scheduled_date),
+              "", "date")) +
+      fld("n3Str", "Structure(s) inspected",
+          inp("n3Str", src(w.structures, carry ? carry.structures : ""),
+              "single family dwelling")) +
+      "</div>" +
+      '<p class="note">The company block, both licence numbers, the address and the ' +
+      "inspector come off the file and print below. " +
+      (t.applicator_no
+        ? "Inspector: <b>" + esc(t.name) + "</b>, certification <b>" +
+          esc(t.applicator_no) + "</b>."
+        : "<b>" + esc(t.name || "Whoever is assigned") + " has no certification " +
+          "number on file</b>, and Section I cannot print without one \u2014 an admin " +
+          "adds it under Settings, People.") + "</p></div>";
+
+var f = src(w.finding, "");
+    h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      "<h2>Section II \u2014 what was found</h2>" +
+      '<div class="row"><label><input type="radio" name="n3f" value="A" id="n3fA"' +
+      (f === "A" ? " checked" : "") + dis + "> <b>A.</b> No visible evidence</label>" +
+      '<label style="margin-left:1rem"><input type="radio" name="n3f" value="B" id="n3fB"' +
+      (f === "B" ? " checked" : "") + dis + "> <b>B.</b> Visible evidence, as follows</label>" +
+      "</div>" +
+      '<p class="note">Box A cannot be certified with anything written below it. ' +
+      "That is refused by the database, not by this screen \u2014 a report saying " +
+      "\u201cno visible evidence\u201d over a line describing live termites would go " +
+      "to a closing saying both.</p>" +
+      '<table class="lst"><tr><th></th><th>Description and location</th></tr>' +
+      [["live", "1. Live insects", "live_insects"],
+       ["dead", "2. Dead insects, parts, frass, shelter tubes, exit holes, staining", "dead_insects"],
+       ["dmg",  "3. Visible damage", "damage"]].map(function (row) {
+        var seenCol = row[0] === "dmg" ? "damage_seen" : row[0] + "_seen";
+        var on = carry ? !!carry[seenCol] : !!w[seenCol];
+        var txt = carry ? carry[row[2]] : w[row[2]];
+        return "<tr><td style=\"white-space:nowrap\"><label>" +
+          '<input type="checkbox" id="n3s_' + row[0] + '"' + (on ? " checked" : "") +
+          dis + "> " + esc(row[1]) + "</label></td>" +
+          '<td><input class="f" id="n3t_' + row[0] + '" value="' +
+          esc(txt == null ? "" : txt) + '" style="margin:0"' + dis + "></td></tr>";
+      }).join("") + "</table></div>";
+
+var rb = src(w.recommend_box, "");
+    h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      "<h2>Section III \u2014 what is recommended</h2>" +
+      '<div class="row"><label><input type="radio" name="n3r" value="none" id="n3rN"' +
+      (rb === "none" ? " checked" : "") + dis + "> No action or treatment</label>" +
+      '<label style="margin-left:1rem"><input type="radio" name="n3r" value="action" id="n3rA"' +
+      (rb === "action" ? " checked" : "") + dis + "> Recommend action, for the control of\u2026</label>" +
+      "</div>" +
+      fld("n3Expl", "If no action and box B was ticked, explain",
+          inp("n3Expl", w.no_action_explain, "why no treatment is needed")) +
+      fld("n3Rec", "The pest to be controlled",
+          inp("n3Rec", w.recommendation, "subterranean termites")) +
+      "</div>";
+
+h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      "<h2>Section IV \u2014 what could not be seen</h2>" +
+      '<p class="note">Write it out, or give key numbers from the printed 1\u201326 ' +
+      "list, or both. A number outside that range and an area ticked with nothing " +
+      "beside it both show on the ninety-day list rather than being refused.</p>" +
+      '<table class="lst"><tr><th></th><th>Written out</th><th>Key numbers</th></tr>' +
+      N33_AREAS.map(function (a) {
+        var o = obs[a[0]] || {};
+        return "<tr><td style=\"white-space:nowrap\"><label>" +
+          '<input type="checkbox" id="n3o_' + a[0] + '"' +
+          (String(o.on) === "true" ? " checked" : "") + dis + "> " + esc(a[1]) +
+          "</label></td>" +
+          '<td><input class="f" id="n3ot_' + a[0] + '" value="' + esc(o.text || "") +
+          '" style="margin:0"' + dis + "></td>" +
+          '<td><input class="f" id="n3ok_' + a[0] + '" value="' +
+          esc((o.keys || []).join(", ")) + '" placeholder="7, 10" ' +
+          'style="margin:0;max-width:7rem"' + dis + "></td></tr>";
+      }).join("") + "</table></div>";
+
+h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+      "<h2>Section V \u2014 comments and attachments</h2>" +
+      fld("n3Com", "Additional comments",
+          inp("n3Com", src(w.comments, (sheetOf(j.id) || {}).notes),
+              "these are an integral part of the report")) +
+      fld("n3Att", "Attachments",
+          inp("n3Att", w.attachments,
+              "the inspection graph, photographs, extra pages")) + "</div>";
+
+    if (certified)
+      h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
+        "<h2>Signatures that came back</h2>" +
+        '<table class="lst"><tr><th></th><th>Name</th><th>Date</th></tr>' +
+        "<tr><td>Seller or owner</td><td>" + esc(w.seller_name || "\u2014") +
+          "</td><td>" + esc(w.seller_signed_on ? fmtDate(w.seller_signed_on) : "\u2014") +
+          "</td></tr>" +
+        "<tr><td>Buyer</td><td>" + esc(w.buyer_name || "\u2014") +
+          "</td><td>" + esc(w.buyer_signed_on ? fmtDate(w.buyer_signed_on) : "\u2014") +
+          "</td></tr></table>" +
+        '<p class="note">Each can be recorded once. The buyer\u2019s acknowledges ' +
+        "receipt of both pages, so a date after the ninety days shows on the list.</p>" +
+        "</div>";
+
+h += n33Page1(co, c, p, j, t, w, obs, carry) + n33Page2();
+
+    app.innerHTML = h;
+
+$("n3Back").addEventListener("click", function () { go("sheet", jobId); });
+    $("n3Save").addEventListener("click", async function () {
+      if (await saveWDI(this)) renderWDI(jobId);
+    });
+    if ($("n3Cert")) $("n3Cert").addEventListener("click", function () { certifyModal(); });
+    if ($("n3Ack")) $("n3Ack").addEventListener("click", function () { ackModal(); });
+    $("n3Prt").addEventListener("click", async function () {
+       
+      if (!certified && !(await saveWDI(null))) return;
+      renderWDI(jobId);
+      setTimeout(function () { window.print(); }, 60);
+    });
+
+    function val(id) { var e = $(id); return e ? e.value.trim() : ""; }
+    function tick(id) { var e = $(id); return !!(e && e.checked); }
+
+    function gather() {
+      var o = {};
+      N33_AREAS.forEach(function (a) {
+        var keys = val("n3ok_" + a[0]).split(",").map(function (x) {
+          return x.replace(/^\s+|\s+$/g, "");
+        }).filter(function (x) { return x !== ""; });
+        o[a[0]] = { on: tick("n3o_" + a[0]) ? "true" : "false",
+                    text: val("n3ot_" + a[0]), keys: keys };
+      });
+      return {
+        property_id: p.id || null,
+        inspection_date: val("n3Date") || null,
+        structures: val("n3Str") || null,
+        finding: tick("n3fA") ? "A" : tick("n3fB") ? "B" : null,
+        live_seen: tick("n3s_live"), dead_seen: tick("n3s_dead"),
+        damage_seen: tick("n3s_dmg"),
+        live_insects: val("n3t_live") || null,
+        dead_insects: val("n3t_dead") || null,
+        damage: val("n3t_dmg") || null,
+        recommend_box: tick("n3rN") ? "none" : tick("n3rA") ? "action" : null,
+        no_action_explain: val("n3Expl") || null,
+        recommendation: val("n3Rec") || null,
+        obstructions: o,
+        comments: val("n3Com") || null,
+        attachments: val("n3Att") || null,
+        inspector_id: j.assigned_to || null
+      };
+    }
+
+    async function saveWDI(btn) {
+      var patch = gather();
+      if (!patch.inspection_date) { toast("When was it inspected?"); return false; }
+      if (btn) btn.disabled = true;
+      try {
+        var r;
+        if (w.id) r = await sb.from("wdi_reports").update(patch).eq("id", w.id).select();
+        else {
+          patch.job_id = jobId;
+          r = await sb.from("wdi_reports").insert(patch).select();
+        }
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That didn\u2019t save. A WDI report is the office\u2019s to write.");
+        await reload(["wdi"]);
+        toast(w.id ? "Saved" : "Report started");
+        return true;
+      } catch (e) { toast(e.message); if (btn) btn.disabled = false; return false; }
+    }
+
+function certifyModal() {
+      if (!t.applicator_no) {
+        toast("Section I needs the inspector\u2019s certification number, and there " +
+              "is none on file for " + (t.name || "this technician") + ". An admin " +
+              "adds it under Settings, People.");
+        return;
+      }
+      openModal("<h3>Certify this report?</h3>" +
+        '<p class="note">Your name and certification number, the company licence ' +
+        "and the address are written onto the report as they stand now, so a later " +
+        "Settings edit cannot change a document already at a closing.</p>" +
+        '<div class="msg warn">Once certified, what was inspected and found cannot ' +
+        "change. An admin can take the certification off to correct it, and that is " +
+        "written on the folder.</div>" +
+        '<label for="cfDate">Date certified</label>' +
+        '<input id="cfDate" class="f" type="date" value="' + todayISO() + '">' +
+        '<div class="row"><button class="primary" id="cfGo" type="button">Certify</button>' +
+        '<button class="act" id="cfNo" type="button">Not yet</button></div>');
+      $("cfNo").addEventListener("click", closeModal);
+      $("cfGo").addEventListener("click", async function () {
+        this.disabled = true;
+        try {
+          var when = $("cfDate").value;
+          if (!when) throw new Error("It needs the date.");
+          var patch = gather();
+          patch.signed_on = when;
+          patch.inspector_id = j.assigned_to || null;
+          patch.inspector_name = t.name || null;
+          patch.inspector_licence = t.applicator_no || null;
+          patch.company_licence = co.business_licence || null;
+          patch.property_address =
+            addrLine(p.address, p.city, co.state || "NJ", p.zip) || null;
+          var r = w.id
+            ? await sb.from("wdi_reports").update(patch).eq("id", w.id).select()
+            : await sb.from("wdi_reports").insert(
+                Object.keys(patch).reduce(function (a, k) { a[k] = patch[k]; return a; },
+                                          { job_id: jobId })).select();
+          if (r.error) throw explain(r.error);
+          if (!(r.data || []).length) throw new Error("That didn\u2019t save.");
+          closeModal();
+          await reload(["wdi"]);
+          toast("Certified.");
+          renderWDI(jobId);
+        } catch (e) { toast(e.message); this.disabled = false; }
+      });
+    }
+
+function ackModal() {
+      openModal("<h3>Record a signature</h3>" +
+        '<p class="note">Each can be recorded once. The buyer\u2019s acknowledges ' +
+        "receipt of both page 1 and page 2.</p>" +
+        '<label for="akWho">Whose</label>' +
+        '<select id="akWho" class="f">' +
+        (w.seller_signed_on ? "" : '<option value="seller">the seller or owner</option>') +
+        (w.buyer_signed_on ? "" : '<option value="buyer">the buyer</option>') +
+        "</select>" +
+        '<label for="akName">Name as signed</label><input id="akName" class="f">' +
+        '<label for="akDate">Date signed</label>' +
+        '<input id="akDate" class="f" type="date" value="' + todayISO() + '">' +
+        '<div class="row"><button class="primary" id="akGo" type="button">Record it</button>' +
+        '<button class="act" id="akNo" type="button">Cancel</button></div>');
+      $("akNo").addEventListener("click", closeModal);
+      $("akGo").addEventListener("click", async function () {
+        this.disabled = true;
+        try {
+          var who = $("akWho").value, nm = $("akName").value.trim(), dt = $("akDate").value;
+          if (!who) throw new Error("Both are already recorded.");
+          if (!nm) throw new Error("Whose signature is it?");
+          if (!dt) throw new Error("It needs the date they signed.");
+          if (dt < w.signed_on)
+            throw new Error("That is before the report was certified.");
+          var patch = {};
+          patch[who + "_name"] = nm;
+          patch[who + "_signed_on"] = dt;
+          var r = await sb.from("wdi_reports").update(patch).eq("id", w.id).select();
+          if (r.error) throw explain(r.error);
+          if (!(r.data || []).length)
+            throw new Error("Nothing moved \u2014 a signature can only be recorded once.");
+          closeModal();
+          await reload(["wdi"]);
+          toast("Recorded.");
+          renderWDI(jobId);
+        } catch (e) { toast(e.message); this.disabled = false; }
+      });
+    }
+  }
+
+function n33Page1(co, c, p, j, t, w, obs, carry) {
+    var cap = function (small, big) {
+      return '<span class="n33-cap">' + small +
+        (big ? " <b>" + big + "</b>" : "") + "</span>";
+    };
+    var rule = function (v, tall) {
+      return '<div class="n33-rule' + (tall ? " tall" : "") + '">' +
+        (v ? esc(v) : "&nbsp;") + "</div>";
+    };
+    var src = function (a, b) { return a != null && a !== "" ? a : b; };
+    var f = w.finding || "";
+    var addr = src(w.property_address, addrLine(p.address, p.city, co.state || "NJ", p.zip));
+
+    var h = '<div class="sheet n33"><div class="n33-frame">';
+
+h += '<div class="n33-row" style="grid-template-columns:1fr auto">' +
+      '<div class="n33-cell" style="font-size:1.02rem;font-weight:800">' +
+      "Wood Destroying Insect Inspection Report</div>" +
+      '<div class="n33-cell" style="font-size:.52rem;max-width:13rem">' +
+      "<b>Notice:</b> Please read important consumer information on " +
+      "<b>page 2.</b></div></div>";
+
+h += '<div class="n33-row co">' +
+      '<div class="n33-cell">' +
+      cap("Section I. General Information", "Inspection Company, Address &amp; Phone") +
+      '<div class="n33-pre" style="margin-top:.15rem;line-height:1.3">' +
+        esc(co.company_name || "") + "<br>" + esc(co.street || "") + "<br>" +
+        esc(addrLine("", co.city, co.state, co.zip)) + "<br>" +
+        esc(co.phone || "") + "</div></div>" +
+      '<div class="n33-cell" style="padding:0">' +
+        '<div class="n33-row two" style="border-bottom:1px solid #111">' +
+          '<div class="n33-cell">' + cap("Company&rsquo;s Pest Control Business Lic. No.") +
+          '<div class="n33-pre" style="text-align:center;font-size:.85rem">' +
+          esc(src(w.company_licence, co.business_licence) || "") + "</div></div>" +
+          '<div class="n33-cell">' + cap("Date of Inspection") +
+          rule(w.inspection_date ? fmtDate(w.inspection_date) : "") + "</div>" +
+        "</div>" +
+        '<div class="n33-row"><div class="n33-cell">' +
+          cap("Address of Property Inspected") + rule(addr) + "</div></div>" +
+      "</div></div>";
+
+    h += '<div class="n33-row wide">' +
+      '<div class="n33-cell">' +
+      cap("Inspector&rsquo;s Name, Signature &amp; Certification, Registration, or Lic. #") +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:.6rem">' +
+      "<div>" + (w.signature
+        ? sigSVG(w.signature, 170)
+        : '<div class="sigline" style="width:10rem"></div>') +
+      '<div style="font-size:.55rem">' + esc(src(w.inspector_name, t.name) || "") +
+      "</div></div>" +
+      '<div class="n33-pre" style="font-size:.85rem">' +
+      esc(src(w.inspector_licence, t.applicator_no) || "") + "</div></div></div>" +
+      '<div class="n33-cell">' + cap("Structure(s) Inspected") +
+      rule(src(w.structures, carry ? carry.structures : "")) + "</div></div>";
+
+h += '<div class="n33-sec">Section II. Inspection Findings ' +
+      '<span style="font-weight:400;font-size:.55rem">This report is indicative of ' +
+      "the condition of the above identified structure(s) on the date of inspection " +
+      "and is not to be construed as a guarantee or warranty against latent, " +
+      "concealed, or future infestations or wood destroying insect damage.</span>" +
+      "</div>" +
+      '<div class="n33-body"><div style="font-weight:700;margin-bottom:.15rem">' +
+      "Based on a careful visual inspection of the readily accessible areas of the " +
+      "structure(s) inspected:</div>" +
+      '<div class="box" style="display:flex;gap:.3rem;align-items:flex-start">' +
+      chkBox(f === "A") + "<span><b>A.</b> <b>No Visible</b> evidence of wood " +
+      "destroying insects was observed.</span></div>" +
+      '<div class="box" style="display:flex;gap:.3rem;align-items:flex-start">' +
+      chkBox(f === "B") + "<span><b>B.</b> <b>Visible</b> evidence of wood " +
+      "destroying insects was observed as follows:</span></div>" +
+      '<div class="n33-ind">' +
+      [[!!w.live_seen, "1. Live insects (description &amp; location):", w.live_insects],
+       [!!w.dead_seen, "2. Dead insects, insect parts, frass, shelter tubes, exit " +
+                       "holes, or staining (description and location):", w.dead_insects],
+       [!!w.damage_seen, "3. <b>Visible</b> damage from wood destroying insects was " +
+                         "noted as follows (description and location):", w.damage]
+      ].map(function (r) {
+        return '<div class="box" style="display:flex;gap:.3rem;align-items:flex-start">' +
+          chkBox(r[0]) + '<span style="flex:1">' + r[1] + " " +
+          '<span style="border-bottom:1px solid #999;display:inline-block;min-width:8rem">' +
+          esc(r[2] || "") + "</span></span></div>" +
+          '<div class="n33-rule">&nbsp;</div>';
+      }).join("") + "</div>" +
+      '<p style="margin:.3rem 0 0;font-size:.55rem"><b><i><u>NOTE: This is not a ' +
+      "structural damage report.</u></i></b> <b>If box B above is checked, it should " +
+      "be understood that some degree of damage, including hidden damage, may be " +
+      "present.</b> If any questions arise regarding damage indicated by this " +
+      "report, it is recommended that the buyer or any interested parties contact a " +
+      "qualified structural professional to determine the extent of damage and the " +
+      "need for repairs.</p></div>";
+
+h += '<div class="n33-sec">Section III. Recommendations</div>' +
+      '<div class="n33-body">' +
+      '<div class="box" style="display:flex;gap:.3rem;align-items:flex-start">' +
+      chkBox(w.recommend_box === "none") +
+      '<span style="flex:1">No action and/or treatment recommended: (Explain if Box B ' +
+      "in Section II is checked): " +
+      '<span style="border-bottom:1px solid #999;display:inline-block;min-width:7rem">' +
+      esc(w.no_action_explain || "") + "</span></span></div>" +
+      '<div class="n33-rule">&nbsp;</div>' +
+      '<div class="box" style="display:flex;gap:.3rem;align-items:flex-start">' +
+      chkBox(w.recommend_box === "action") +
+      '<span style="flex:1">Recommend action(s) and/or treatment(s) for the control ' +
+      "of: " +
+      '<span style="border-bottom:1px solid #999;display:inline-block;min-width:8rem">' +
+      esc(w.recommendation || "") + "</span></span></div>" +
+      '<div class="n33-rule">&nbsp;</div></div>';
+
+h += '<div class="n33-sec">Section IV. Obstructions and Inaccessible Areas</div>' +
+      '<div class="n33-iv"><div>' +
+      '<div style="font-size:.55rem;margin-bottom:.2rem">The following areas of the ' +
+      "structure(s) inspected were obstructed or inaccessible:</div>" +
+      N33_AREAS.map(function (a) {
+        var o = obs[a[0]] || {};
+        var said = [o.text || "", (o.keys || []).join(", ")]
+          .filter(function (x) { return x !== ""; }).join(" \u00b7 ");
+        return '<div class="n33-obs">' +
+          '<div class="box" style="display:flex;gap:.3rem;align-items:center">' +
+          chkBox(String(o.on) === "true") + "<span>" + esc(a[1]) + "</span></div>" +
+          '<div class="n33-rule">' + (said ? esc(said) : "&nbsp;") + "</div></div>";
+      }).join("") + "</div>" +
+      '<div><div class="n33-key"><div class="n33-kttl"><b>The inspector may write ' +
+      "out obstructions or use the following optional key:</b></div><ol>" +
+      N33_KEYS.map(function (k, i) {
+        return "<li><span>" + (i + 1) + ".</span><span>" + esc(k) + "</span></li>";
+      }).join("") + "</ol></div></div></div>";
+
+h += '<div class="n33-sec">Section V. Additional Comments and Attachments ' +
+      '<span style="font-weight:400;font-size:.55rem">(these are an integral part ' +
+      "of the report)</span></div>" +
+      '<div class="n33-lines">' +
+      '<div class="n33-rule">' + esc(w.comments || "") + "</div>" +
+      '<div class="n33-rule">&nbsp;</div><div class="n33-rule">&nbsp;</div>' +
+      '<div class="n33-obs"><div style="font-size:.6rem">Attachments</div>' +
+      '<div class="n33-rule">' + esc(w.attachments || "") + "</div></div></div>";
+
+h += '<div class="n33-row two" style="border-top:1px solid #111">' +
+      '<div class="n33-cell n33-sig">' +
+      "<div>" + cap("Signature of Seller(s)") +
+      '<span style="font-size:.5rem">or Owner(s) if refinancing. Seller discloses to ' +
+      "the buyer all information, to their knowledge, regarding W.D.I. infestation, " +
+      "damage, repair, and treatment history.</span></div>" +
+      '<div style="display:flex;gap:.35rem;align-items:flex-end">' +
+      '<span class="n33-x">X</span><div class="n33-rule" style="flex:1">' +
+      esc(w.seller_name || "") + "</div></div></div>" +
+      '<div class="n33-cell n33-sig">' +
+      "<div>" + cap("Signature of Buyer.") +
+      '<span style="font-size:.5rem">The undersigned hereby acknowledges receipt of ' +
+      "a copy of both page 1 and page 2 of this report and understands the " +
+      "information reported.</span></div>" +
+      '<div style="display:flex;gap:.35rem;align-items:flex-end">' +
+      '<span class="n33-x">X</span><div class="n33-rule" style="flex:1">' +
+      esc(w.buyer_name || "") + "</div></div></div></div>";
+
+    h += "</div>" + n33Foot("Page 1 of 2") + "</div>";
+    return h;
+  }
+
+  function n33Foot(pg) {
+    return '<div class="n33-foot"><div>' + esc(N33_FOOT1) + "<br>" +
+      esc(N33_FOOT2) + '</div><div class="n33-pg">' + esc(pg) + "</div></div>";
+  }
+
+function n33Page2() {
+    var items = [
+      ["About the Inspection:",
+       "A visual inspection was conducted in the readily accessible areas of the " +
+       "structure(s) indicated (see Page 1) including attics and crawlspaces which " +
+       "permitted entry during the inspection. The inspection included probing " +
+       "and/or sounding of unobstructed and accessible areas to determine the " +
+       "presence or absence of visual evidence of wood destroying insects. The WDI " +
+       "inspection firm is not responsible to repair any damage or treat any " +
+       "infestation at the structure(s) inspected, except as may be provided by " +
+       "separate contract. Also, wood destroying insect infestation and/or damage " +
+       "may exist in concealed or inaccessible areas. The inspection firm cannot " +
+       "guarantee that any wood destroying insect infestation and/or damage " +
+       "disclosed by this inspection represents all of the wood destroying insect " +
+       "infestation and/or damage which may exist as of the date of the inspection. " +
+       "<b><i><u>For purposes of this inspection, wood destroying insects include: " +
+       "termites, carpenter ants, carpenter bees, and reinfesting wood boring " +
+       "beetles. This inspection does not include mold, mildew or noninsect wood " +
+       "destroying organisms.</u></i></b> <b><u>This report shall be considered " +
+       "invalid for purposes of securing a mortgage and/or settlement of property " +
+       "transfer if not used within ninety (90) days from the date of inspection. " +
+       "This shall not be construed as a 90-day warranty.</u></b> <b>There is no " +
+       "warranty, express or implied, related to this report unless disclosed as " +
+       "required by state regulations or a written warranty or service agreement is " +
+       "attached.</b>"],
+      ["Treatment Recommendation Guidelines Regarding Subterranean Termites:",
+       "Treatment or corrective action should be recommended if live termites are " +
+       "found. If no evidence of a previous treatment is documented and evidence of " +
+       "infestation is found, even if no live termites are observed, treatment or " +
+       "corrective action by a licensed pest control company should be recommended. " +
+       "Treatment or corrective action may be recommended if evidence of " +
+       "infestation is observed, and a documented treatment occurred previously, " +
+       "unless the structure is under warranty or covered by a service agreement " +
+       "with a licensed pest control company. <b>For other Wood Destroying Insects, " +
+       "please refer to the NPMA suggested guidelines for added guidance on actions " +
+       "and or treatment.</b>"],
+      ["Obstructions and Inaccessible Areas:",
+       "No inspection was made in areas which required the breaking apart or into, " +
+       "dismantling, removal of any object, including but not limited to: moldings, " +
+       "floor coverings, wall coverings, siding, fixed ceilings, insulation, " +
+       "furniture, appliances, and/or personal possessions; nor were areas inspected " +
+       "which were obstructed or inaccessible for physical access on the date of " +
+       "inspection. Your inspector may write out inaccessible areas or use the key " +
+       "in Section IV. Crawl spaces, attics, and/or other areas may be deemed " +
+       "inaccessible if the opening to the area is not large enough to provide " +
+       "physical access for the inspector or if a ladder was required for access. " +
+       "Crawl spaces (or portions thereof) may also be deemed inaccessible if there " +
+       "is less than 24 inches of clearance from the bottom of the floor joists to " +
+       "the surface below. If any area which has been reported as inaccessible is " +
+       "made accessible, the inspection company may be contacted for another " +
+       "inspection. An additional fee may apply."],
+      ["Consumer Maintenance Advisory Regarding Integrated Pest Management for " +
+       "Prevention of Wood Destroying Insects.",
+       "Any structure can be attacked by wood destroying insects. Homeowners should " +
+       "be aware of and try to eliminate conditions which promote insect " +
+       "infestation in and around their structure(s). Factors which may lead to " +
+       "wood destroying insect infestation include: earth to wood contact, foam " +
+       "insulation at foundation in contact with soil, faulty grade, improper " +
+       "drainage, firewood against structure(s), insufficient ventilation, " +
+       "moisture, wood debris in crawlspace, wood mulch or ground cover in contact " +
+       "with the structure, tree branches touching structure(s), landscape timbers " +
+       "and wood decay. Should these or other conditions exist, corrective measures " +
+       "should be taken in order to reduce the chances of infestation of wood " +
+       "destroying insects and the need for treatment."]
+    ];
+    var h = '<div class="sheet n33 n33two"><div class="n33-frame">' +
+      '<div class="n33-body">' +
+      '<div style="font-size:1rem;font-weight:700;line-height:1.2;margin-bottom:.4rem">' +
+      "Important Consumer Information Regarding<br>the Scope and Limitations of the " +
+      "Inspection</div>" +
+      "<p>Please read this entire page as it is part of this report. Please refer to " +
+      "the NPMA Suggested Guidelines for instructions on completing this report. " +
+      "This report is not a guarantee or warranty as to the absence of wood " +
+      "destroying insects nor is it a structural integrity report. The inspector" +
+      "\u2019s training and experience do not qualify the inspector in damage " +
+      "evaluation or any other building construction technology and/or repair.</p>";
+    h += items.map(function (it, i) {
+      return '<div class="n33-item">' + (i + 1) + ". <b>" + it[0] + "</b>" +
+        it[1] + "</div>";
+    }).join("");
+    h += '<div class="n33-item">5. <b>Neither the inspecting company nor the ' +
+      "inspector has had, presently has, or contemplates having any interest in " +
+      "the property inspected.</b></div>";
+    return h + "</div></div>" + n33Foot("Page 2 of 2") + "</div>";
   }
 
 function renderPlan(jobId) {
@@ -6508,7 +8221,7 @@ if (!homes.length && ring) {
     return n == null ? "—" : Number(n).toLocaleString() + " sq ft";
   }
 
-async function measureModal(propId) {
+async function measureModal(propId, done) {
     var p = S.properties.filter(function (x) { return x.id === propId; })[0];
     if (!p) return;
     openModal("<h3>Measure " + esc(p.address) + "</h3>" +
@@ -6612,6 +8325,7 @@ async function measureModal(propId) {
         S.properties = await all(function () { return sb.from("properties").select("*").order("id"); });
         closeModal();
         toast(p.address + " measured.");
+        if (typeof done === "function") done();
       } catch (e) { toast(e.message); this.disabled = false; }
     });
   }
@@ -6656,6 +8370,8 @@ var MC = null;
         esc(monthName(addMonths(mon, 1))) + " ›</button>" +
       '<span style="flex:1"></span>' +
       '<button class="act" id="mcRefresh" type="button">Add it up again</button>' +
+       
+      '<button class="act" id="mcPest" type="button">Pesticide used this year</button>' +
       '<button class="act" id="mcDay" type="button">Back to the Daily Close</button></div>';
 
     if (MC.absent) {
@@ -6745,8 +8461,11 @@ if (r) {
             (moved ? ' <span class="pill">moved</span>' : "") + "</td></tr>";
         }).join("") + "</table>" +
         (drift.length
-          ? '<p class="note">The reported figures do not move. Usually a later payment ' +
-            "against one of this month's invoices.</p>"
+          ? '<p class="note">The reported figures do not move. <b>Money taken</b> drifts ' +
+            "when a later payment lands against one of this month\u2019s invoices, which is " +
+            "ordinary. <b>Work finished</b> and <b>Sales tax</b> drift only if a charge on a " +
+            "job finished inside this month changed \u2014 which a closed month refuses " +
+            "(0050), so if either of those two moved, say so.</p>"
           : '<p class="note">Nothing has changed since it closed.</p>') +
         "</div>";
     }
@@ -6787,6 +8506,9 @@ var over = addMonths(todayISO().slice(0, 8) + "01", 0) > mon;
       });
     });
     if ($("mcDay")) $("mcDay").addEventListener("click", function () { go("close"); });
+    if ($("mcPest")) $("mcPest").addEventListener("click", function () {
+      go("pesticide", new Date().getFullYear());
+    });
     if ($("mcShut")) $("mcShut").addEventListener("click", function () { shutMonth(this); });
      
     if ($("mcRefresh")) $("mcRefresh").addEventListener("click", function () {
@@ -6873,6 +8595,191 @@ async function shutMonth(btn) {
     });
   }
 
+var PU = null;    
+
+  async function loadPesticide(y) {
+    var from = y + "-01-01", to = y + "-12-31", absent = false;
+    var u = await sb.rpc("pesticide_used",      { p_from: from, p_to: to });
+    var g = await sb.rpc("pesticide_used_gaps", { p_from: from, p_to: to });
+     
+    if (u.error) {
+      if (u.error.code === "42501") throw explain(u.error);
+      absent = true;
+    }
+    var recs = [], pct = [];
+    if (!absent) {
+       
+      recs = await all(function () {
+        return sb.from("v_application_records").select("*")
+          .gte("applied_on", from).lte("applied_on", to)
+          .order("applied_on").order("sort_order");
+      });
+      pct = await soft(sb.from("v_percent_written_by_product").select("*")
+                         .order("product_name"),
+                       "v_percent_written_by_product",
+                       "what strength has been written per product \u2014 run 0049");
+    }
+    PU = { year: y, used: u.error ? [] : (u.data || []),
+           gaps: g.error ? [] : (g.data || []),
+           pct: pct, recs: recs, absent: absent, at: new Date() };
+  }
+
+  async function renderPesticide() {
+     
+    if (!isOffice()) return renderDashboard();
+    var y = Number(route.arg) || new Date().getFullYear();
+    if (!PU || PU.year !== y) {
+      app.innerHTML = '<div class="msg">Adding up ' + y + "\u2026</div>";
+      try { await loadPesticide(y); }
+      catch (e) { app.innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>"; return; }
+    }
+
+var qty = function (v, u) {
+      return (v == null || v === "") ? "\u2014" : String(v) + (u ? " " + u : "");
+    };
+    var gapsN = PU.gaps.reduce(function (t, x) { return t + (Number(x.n) || 0); }, 0);
+    var atLeast = gapsN ? "at least " : "";
+
+    var h = "<h1>Pesticide used \u2014 " + y + "</h1>" +
+      '<p class="sub">What the company applied, per product, over the calendar year, ' +
+      "cut on the date of application.</p>";
+
+    h += '<div class="daynav noprint">' +
+      '<button class="act" data-py="' + (y - 1) + '" type="button">\u2039 ' + (y - 1) +
+        "</button>" +
+      '<button class="act" data-py="' + (y + 1) + '" type="button">' + (y + 1) +
+        " \u203a</button>" +
+      '<span style="flex:1"></span>' +
+      '<button class="act" id="puAgain" type="button">Add it up again</button>' +
+      '<button class="act go" id="puPrint" type="button">\ud83d\udda8 Print</button>' +
+      '<button class="act" id="puMonth" type="button">Back to the month</button></div>';
+
+    if (PU.absent) {
+      app.innerHTML = h + '<div class="msg warn"><b>The year cannot be added up yet.</b><br>' +
+        "Run <code>supabase/migrations/0049_a_number_beside_the_words.sql</code> and reload. " +
+        "Everything else works without it.</div>";
+      wirePesticide();
+      return;
+    }
+
+h += '<div class="card"><h2>What could not be added up' +
+      (gapsN ? " \u2014 " + plural(gapsN, "line") : "") + "</h2>";
+    if (!PU.gaps.length) {
+      h += '<div class="msg good">Every line in ' + y + " carries an amount, a unit and a " +
+        "strength that could be read. The figures below are complete.</div>";
+    } else {
+      h += '<div class="msg warn"><b>The figures below are a floor, not a total.</b> ' +
+        "Each of these is a different problem and they are not added together.</div>" +
+        '<table class="lst"><tr><th>What</th><th class="r">Lines</th><th>Which</th></tr>' +
+        PU.gaps.map(function (x) {
+          return "<tr><td>" + esc(x.headline) + '</td><td class="r">' + x.n + "</td>" +
+            "<td>" + esc(x.detail || "") + "</td></tr>";
+        }).join("") + "</table>";
+    }
+    h += "</div>";
+
+h += '<div class="card"><h2>' + (gapsN ? "At least what was applied" : "What was applied") +
+      " \u2014 " + y + "</h2>";
+    if (!PU.used.length) {
+      h += '<div class="empty">No readable amount was recorded in ' + y + ".</div>";
+    } else {
+      h += '<table class="lst"><tr><th>Product</th><th>EPA #</th>' +
+        '<th class="r">Lines</th><th class="r">Visits</th>' +
+        '<th class="r">As written</th><th class="r">Mixture, gallons</th>' +
+        '<th class="r">Registered product, gallons</th><th>First \u2014 last</th></tr>' +
+        PU.used.map(function (x) {
+          return "<tr><td>" + esc(x.product_name) + "</td><td>" + esc(x.epa_number) + "</td>" +
+            '<td class="r">' + x.lines + '</td><td class="r">' + x.visits + "</td>" +
+            '<td class="r">' + esc(qty(x.mixture_qty, x.unit)) + "</td>" +
+            '<td class="r">' + esc(qty(x.mixture_gal, x.mixture_gal == null ? "" : "gal")) +
+            "</td>" +
+            '<td class="r">' + esc(qty(x.product_gal, x.product_gal == null ? "" : "gal")) +
+            '<span class="dates">from ' + x.product_gal_from + " of " + x.lines +
+            " lines</span></td>" +
+            "<td>" + esc(fmtDate(x.first_applied)) + " \u2014 " +
+            esc(fmtDate(x.last_applied)) + "</td></tr>";
+        }).join("") + "</table>" +
+        '<p class="note"><b>There is deliberately no total row.</b> Gallons of one product, ' +
+        "pounds of another and a count of glueboards do not add up to a figure anybody " +
+        "could defend. The mixture is what went through the hose; the registered product " +
+        "is the mixture times its strength \u2014 90 gallons at 0.06% is about " +
+        "0.054 gallons of product, so reporting the mixture as the product overstates it " +
+        "roughly 1,667 times. The <b>from n of m lines</b> is the denominator of the " +
+        "product column: a strength has to be readable for the line to be in it.</p>";
+    }
+    h += "</div>";
+
+if (PU.pct.length) {
+      h += '<div class="card"><h2>What strength has been written</h2>' +
+        '<p class="note">Every distinct strength on file against each product. It asserts ' +
+        "nothing about which one is wrong \u2014 it counts, so a single 6 among forty " +
+        "0.06s reads as the one-off it is.</p>" +
+        '<table class="lst"><tr><th>Product</th><th>As written</th>' +
+        '<th class="r">As a percentage</th><th class="r">Lines</th>' +
+        "<th>First \u2014 last</th></tr>" +
+        PU.pct.map(function (x) {
+          return "<tr><td>" + esc(x.product_name) + "</td><td>" + esc(x.written || "\u2014") +
+            '</td><td class="r">' +
+            (x.as_a_percentage == null ? "could not be read" : esc(String(x.as_a_percentage))) +
+            '</td><td class="r">' + x.lines + "</td><td>" +
+            esc(fmtDate(x.first_used)) + " \u2014 " + esc(fmtDate(x.last_used)) +
+            "</td></tr>";
+        }).join("") + "</table></div>";
+    }
+
+h += '<div class="card"><h2>Every application in ' + y + " \u2014 " +
+      plural(PU.recs.length, "line") + "</h2>" +
+      '<p class="note">One row per product line, which is the grain the record needs. ' +
+      "The words and the reading are side by side so the two can be compared by eye. " +
+      "<b>County is blank on every row</b> \u2014 there is no county anywhere in this " +
+      "database, and it is here so that is found now rather than in front of an " +
+      "inspector.</p>";
+    if (!PU.recs.length) {
+      h += '<div class="empty">No application recorded in ' + y + ".</div>";
+    } else {
+      h += '<div class="evalwrap"><table class="lst"><tr><th>Date</th><th>Address</th>' +
+        "<th>Target</th><th>Where</th><th>Product</th><th>EPA #</th>" +
+        '<th>Strength</th><th>Amount</th><th class="r">Mixture gal</th>' +
+        '<th class="r">Product gal</th><th>Applicator #</th><th>Filed by</th></tr>' +
+        PU.recs.map(function (x) {
+          return "<tr><td>" + esc(fmtDate(x.applied_on)) + "</td><td>" +
+            esc(x.address || "\u2014") +
+            (x.city ? ", " + esc(x.city) : "") + "</td><td>" +
+            esc((x.target_pests || []).join(", ")) + "</td><td>" +
+            esc((x.application_locations || []).join(", ")) + "</td><td>" +
+            esc(x.product_name) + "</td><td>" + esc(x.epa_number || "\u2014") + "</td><td>" +
+            esc(x.strength_written || "\u2014") + "</td><td>" +
+            esc(x.amount_written || "\u2014") + '</td><td class="r">' +
+            esc(qty(x.mixture_gal, "")) + '</td><td class="r">' +
+            esc(qty(x.product_gal, "")) + "</td><td>" +
+            esc(x.applicator_no || "\u2014") + "</td><td>" +
+            esc(x.filed_by || "\u2014") + "</td></tr>";
+        }).join("") + "</table></div>";
+    }
+    h += "</div>";
+
+    app.innerHTML = h;
+    wirePesticide();
+  }
+
+  function wirePesticide() {
+    app.querySelectorAll("[data-py]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        PU = null; go("pesticide", Number(btn.getAttribute("data-py")));
+      });
+    });
+    if ($("puAgain")) $("puAgain").addEventListener("click", function () {
+      PU = null; renderPesticide();
+    });
+    if ($("puMonth")) $("puMonth").addEventListener("click", function () { go("month"); });
+     
+    if ($("puPrint")) $("puPrint").addEventListener("click", function () {
+      Promise.resolve(renderPesticide()).then(function () {
+        setTimeout(function () { window.print(); }, 60);
+      });
+    });
+  }
+
   function renderLists() {
     if (!isAdmin()) {
       app.innerHTML = '<div class="msg bad">Changing what prints on the sheet is an ' +
@@ -6939,16 +8846,45 @@ LIST_KINDS.forEach(function (k) {
         "</div></div>";
     });
 
-h += '<div class="card"><h2>Materials</h2>' +
+var chemMissing = S.products.filter(function (m) {
+      return m.active !== false && !btrimv(m.chemical_name);
+    }).length;
+    var regsUnset = S.products.filter(function (m) {
+      return m.active !== false && m.needs_regs_summary == null;
+    }).length;
+    h += '<div class="card" id="set-materials"><h2>Materials</h2>' +
       '<p class="note">' + plural(S.products.length, "product") +
-      " on the grid. The EPA number prints beside the name.</p>" +
-      '<table class="lst"><tr><th>Product</th><th>EPA registration #</th><th>On the grid</th></tr>' +
+      " on the grid. The EPA number and the chemical name both print \u2014 the " +
+      "chemical name on the Consumer Information Sheet, which cannot be issued " +
+      "without it.</p>" +
+      (chemMissing
+        ? '<div class="msg warn">' + plural(chemMissing, "product") +
+          " in use " + (chemMissing === 1 ? "has" : "have") + " no chemical name yet. " +
+          "Read it off the label \u2014 nothing here guesses one, and a disclosure " +
+          "listing that product cannot be issued until it is typed.</div>"
+        : "") +
+      (regsUnset
+        ? '<div class="msg">' + plural(regsUnset, "product") + " in use " +
+          (regsUnset === 1 ? "has" : "have") + " not been marked termiticide or not. " +
+          "Until they are, the leave-behind is never asked for automatically.</div>"
+        : "") +
+      '<table class="lst"><tr><th>Product</th><th>Chemical name</th>' +
+      "<th>EPA registration #</th><th>Leave-behind</th><th>On the grid</th></tr>" +
       S.products.map(function (m) {
         return "<tr>" +
           '<td><input class="li" data-prod="' + m.id + '" data-col="name" value="' +
             esc(m.name) + '"></td>' +
+          '<td><input class="li" data-prod="' + m.id + '" data-col="chemical_name" value="' +
+            esc(m.chemical_name || "") + '" placeholder="off the label"></td>' +
           '<td><input class="li" data-prod="' + m.id + '" data-col="epa_number" value="' +
             esc(m.epa_number || "") + '" placeholder="none printed"></td>' +
+          '<td><select class="li" data-prod="' + m.id + '" data-col="needs_regs_summary">' +
+            '<option value=""' + (m.needs_regs_summary == null ? " selected" : "") +
+              ">ask</option>" +
+            '<option value="yes"' + (m.needs_regs_summary === true ? " selected" : "") +
+              ">required</option>" +
+            '<option value="no"' + (m.needs_regs_summary === false ? " selected" : "") +
+              ">not needed</option></select></td>" +
           "<td>" + flag("prod", m.id, "active", m.active) + "</td></tr>";
       }).join("") + "</table>" +
       '<div class="acts" style="margin-top:.6rem">' +
@@ -6977,6 +8913,8 @@ var EXPORT_TABLES = [
     "customers", "properties", "calls", "recalls",
     "jobs", "job_lines", "job_crew", "job_sheets", "job_photos",
     "treatment_records", "treatment_chemicals", "wdi_reports", "evaluations",
+     
+    "consumer_sheets", "consumer_sheet_items",
     "invoices", "invoice_adjustments", "payments", "payment_reversals",
     "months_closed", "quotes", "warranties",
     "programs", "program_extras", "program_overrides", "program_letters",
@@ -7036,6 +8974,10 @@ var SET_TARGETS = [
     ["data-area", "areas",               "code"],
     ["data-set",  "settings",            null]
   ];
+   
+  var TRISTATE = ["needs_regs_summary"];
+  function triValue(v) { return v === "yes" ? true : v === "no" ? false : null; }
+  var btrimv = function (v) { return String(v == null ? "" : v).replace(/^\s+|\s+$/g, ""); };
   var NUMERIC = ["price", "sort_order", "route_order", "tax_rate",
                  "slots_per_tech_per_window", "am_from", "am_to", "pm_from", "pm_to",
                  "followup_days", "years_in_business", "program_price",
@@ -7132,8 +9074,11 @@ app.querySelectorAll("input.li,select.li").forEach(function (el) {
           patch[col] = v;
         } else if (col === "sort_order") {
           var o = parseInt(v.replace(/[^0-9]/g, ""), 10);
-          if (isNaN(o)) { toast("That order didn’t read as a number."); return; }
+          if (isNaN(o)) { toast("That order didn\u2019t read as a number."); return; }
           patch.sort_order = o;
+        } else if (TRISTATE.indexOf(col) >= 0) {
+           
+          patch[col] = triValue(v);
         } else patch[col] = v || null;
         el.disabled = true;
         var r = await sb.from(isSvc ? "service_catalog" : "pesticide_products")
@@ -7333,7 +9278,7 @@ function tzOffsetMs(tz, when) {
   async function renderClose(D) {
     app.innerHTML = '<div class="msg">Adding up ' + esc(fmtLong(D)) + "…</div>";
 
-    var pays = [], revs = [], revPays = [];
+    var pays = [], revs = [], revPays = [], owedBack = [];
     var work = [], openToday = [], carriedRaw = [];
     var invBy = {}, balBy = {}, linesBy = {}, sheetBy = {};
     try {
@@ -7346,6 +9291,12 @@ function tzOffsetMs(tz, when) {
       revs = await many(sb.from("payment_reversals")
         .select("id,payment_id,kind,amount,reason,effective_on,created_by")
         .is("undone_at", null).eq("effective_on", D));
+       
+      owedBack = await soft(sb.from("v_refunds_owed").select("*")
+                             .order("overpaid", { ascending: false }),
+                           "v_refunds_owed",
+                           "the list of refunds owed \u2014 run " +
+                           "supabase/migrations/0050_a_charge_that_should_not_be_there.sql");
 
 work = await many(sb.from("jobs").select("*")
         .eq("status", "complete").eq("completed_date", D));
@@ -7534,6 +9485,28 @@ var third = nothingYet ? { lbl: "Nothing to reconcile", val: money(0), cls: " ok
     h += '<p class="note" style="margin:.6rem 0 0">Tax included, both sides. ' +
       "<b>Payments recorded is everything ever collected on those invoices</b>, not just " +
       "today’s money.</p>";
+
+if (owedBack.length) {
+      var owedTotal = r2(owedBack.reduce(function (t, x) {
+        return t + Number(x.overpaid || 0);
+      }, 0));
+      h += '<div class="card"><h2>Refunds owed \u2014 ' + money(owedTotal) + "</h2>" +
+        '<p class="note">More was collected than the invoice comes to, on ' +
+        plural(owedBack.length, "sheet") + ". Not today\u2019s figure and not part of " +
+        "the day above \u2014 this is every one on the book, whenever it happened. " +
+        "Usually a charge that came off after the customer had already paid.</p>" +
+        '<table class="lst"><tr><th>Who</th><th class="r">Invoiced</th>' +
+        '<th class="r">Collected</th><th class="r">Owed back</th></tr>' +
+        owedBack.map(function (x) {
+          return "<tr><td>" + esc(x.customer_name || "?") +
+            (x.completed_date
+              ? ' <span class="dates">finished ' + esc(fmtDate(x.completed_date)) + "</span>"
+              : "") + "</td>" +
+            '<td class="r">' + money(x.total) + "</td>" +
+            '<td class="r">' + money(x.collected) + "</td>" +
+            '<td class="r"><b>' + money(x.overpaid) + "</b></td></tr>";
+        }).join("") + "</table></div>";
+    }
 
     h += '<div id="exp-work" class="expand-body" hidden>' +
       (counted.length
@@ -7967,6 +9940,96 @@ var VOID_REASONS = ["Recorded in error", "Wrong product", "Not actually applied"
         toast(/voided_at|void_reason/.test(e.message)
           ? "Undoing a mis-tapped material needs the latest bit of SQL run first."
           : e.message);
+        btn.disabled = false;
+      }
+    }
+  }
+
+var LINE_VOID_REASONS = ["Ticked by mistake", "Wrong service", "Not carried out"];
+
+  function voidLineModal(row, j, back) {
+    back = back || function () { go("sheet", j.id); };
+    var inv = invOf(j.id), b = balOf(j.id);
+    var sub = r2(inv ? inv.subtotal : 0);
+    var rate = Number(inv ? inv.tax_rate : 0) || 0;
+    var already = r2(inv ? inv.discount : 0);
+    var collected = r2(b ? b.collected : 0);
+    var price = r2(row.price);
+     
+    var net = r2(sub - price - already);
+    if (net < 0) net = 0;
+    var tax = r2(net * rate), tot = r2(net + tax), owed = r2(tot - collected);
+
+    var moneyLine = collected > 0.004
+      ? "They have already paid <b>" + money(collected) + "</b>. Taking this line off " +
+        "leaves the bill at <b>" + money(tot) + "</b>, so " +
+        (owed < -0.004
+          ? "<b>" + money(-owed) + " becomes money to give back</b> \u2014 it shows on the " +
+            "Refunds owed list until somebody actually refunds it, and giving it back is " +
+            "its own record with a name on it."
+          : owed > 0.004
+            ? money(owed) + " is still owed."
+            : "nothing is owed either way.")
+      : "Nothing has been paid on this sheet yet, so this takes <b>" +
+        (price > 0 ? money(price) : "the unpriced line") + "</b> off what they owe. " +
+        "The new total would be <b>" + money(tot) + "</b>.";
+
+    openModal("<h3>Take " + esc(row.service_name) + " off the sheet?</h3>" +
+      '<p class="note">' +
+      (price > 0 ? money(price) : "priced on the job") +
+      " \u00b7 the sheet comes to " + money(sub) + " before tax</p>" +
+      '<div class="msg warn">' + moneyLine +
+      " What was applied on this visit does not change.</div>" +
+      '<p class="note">Not deleted. The line stays on the sheet with a rule through it, ' +
+      "your name and this reason, so a reprint years from now still says what was " +
+      "charged and why it came off.</p>" +
+      '<div class="acts" style="margin-bottom:.3rem">' +
+      LINE_VOID_REASONS.map(function (w, i) {
+        return '<button class="act' + (i === 0 ? " go" : "") + '" data-vl="' + esc(w) +
+          '" type="button">' + esc(w) + "</button>";
+      }).join("") +
+      '<button class="act" id="vlOther" type="button">Something else\u2026</button></div>' +
+      '<div id="vlFree" hidden><label for="vlWhy">What happened?</label>' +
+      '<input id="vlWhy" class="f" placeholder="say what happened">' +
+      '<div class="acts"><button class="act go" id="vlGo" type="button">Take it off</button>' +
+      "</div></div>" +
+      '<div class="row"><button class="act" id="vlNo" type="button">Leave it on</button></div>');
+
+    $("vlNo").addEventListener("click", function () { back(); });
+    $("vlOther").addEventListener("click", function () {
+      $("vlFree").hidden = false;
+      $("vlWhy").focus();
+      this.disabled = true;
+    });
+    $("modal").querySelectorAll("[data-vl]").forEach(function (btn) {
+      btn.addEventListener("click", function () { doVoid(btn.getAttribute("data-vl"), btn); });
+    });
+    $("vlGo").addEventListener("click", function () { doVoid($("vlWhy").value.trim(), this); });
+
+    async function doVoid(why, btn) {
+      btn.disabled = true;
+      try {
+        if (!why) throw new Error("Say what happened, or pick one of the reasons.");
+         
+        var r = await sb.from("job_lines").update({
+          voided_at: new Date().toISOString(), voided_by: S.me.id, void_reason: why
+        }).eq("id", row.id).is("voided_at", null).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That line is still on the sheet. If it is signed or paid, open " +
+            "it for corrections first \u2014 the opening is recorded on the folder.");
+        await reload(["jobs", "money", "attention"]);
+        closeModal();
+        toast(row.service_name + " taken off \u2014 " + why.toLowerCase());
+        back();
+      } catch (e) {
+         
+        var cm = closedMonthMsg(e);
+        toast(cm ? cm
+          : /voided_at|void_reason|voided_by/.test(e.message)
+            ? "Taking a charge off the sheet needs the latest bit of SQL run first \u2014 " +
+              "0050_a_charge_that_should_not_be_there.sql."
+            : e.message);
         btn.disabled = false;
       }
     }
@@ -9320,6 +11383,11 @@ async function renderCustomer(id) {
       (mayEdit
         ? '<button class="act" id="cfBook" type="button">\uff0b Book a job</button>'
         : "") +
+       
+      (mayEdit
+        ? '<button class="act" id="cfCIS" type="button">Consumer Information Sheet' +
+          (cisOf(id).length ? " \u2713" : "") + "</button>"
+        : "") +
       "</div>";
 
     h += '<h1 id="cfHd">' + esc(c.name) + (c.first_name ? " \u00b7 " + esc(c.first_name) : "") + "</h1>" +
@@ -9376,6 +11444,21 @@ h += '<div class="card"><h2>' + plural(ps.length, "address") + " serviced</h2>";
         (p.is_primary ? '<span class="pill ok">their own</span>'
                       : '<span class="pill">' + esc(p.label || "second address") + "</span>") +
         "</div>" +
+         
+        '<div class="dates" style="margin-top:.35rem">' +
+        (p.yard_sq_ft != null
+          ? "Yard <b>" + Number(p.yard_sq_ft).toLocaleString() + " sq ft</b>" +
+            (p.lot_sq_ft != null
+              ? " \u00b7 lot " + Number(p.lot_sq_ft).toLocaleString() : "") +
+            (p.bldg_sq_ft != null
+              ? " \u00b7 building " + Number(p.bldg_sq_ft).toLocaleString() : "") +
+            (p.measure_confidence && p.measure_confidence !== "exact"
+              ? ' <span class="pill bad">' + esc(p.measure_confidence) + "</span>" : "")
+          : '<span class="empty">Not measured</span>') +
+        (mayEdit
+          ? ' <button class="act" data-cfmeasure="' + p.id + '" type="button">' +
+            (p.yard_sq_ft != null ? "Re-measure" : "Measure the yard") + "</button>"
+          : "") + "</div>" +
         '<div class="fcols two" style="margin-top:.5rem">' +
         '<div style="grid-column:1/-1"><label>Street</label>' +
         (mayEdit
@@ -9532,6 +11615,7 @@ h += '<div class="card"><h2>Notes</h2>' +
     app.innerHTML = h;
 
 $("cfBack").addEventListener("click", function () { go("customers"); });
+    if ($("cfCIS")) $("cfCIS").addEventListener("click", function () { go("cis", id); });
     if ($("cfBook"))
       $("cfBook").addEventListener("click", function () { bookModal({ customer_id: id }); });
     if ($("cfBack2")) $("cfBack2").addEventListener("click", function () { markInactive(id, null); });
@@ -9548,6 +11632,11 @@ $("cfBack").addEventListener("click", function () { go("customers"); });
       $("cfEval").addEventListener("click", function () { newEvalModal(id); veilThen(again); });
     if ($("cfAddProp")) $("cfAddProp").addEventListener("click", function () { addPropModal(id); });
 
+app.querySelectorAll("[data-cfmeasure]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        measureModal(b.getAttribute("data-cfmeasure"), function () { renderCustomer(id); });
+      });
+    });
     app.querySelectorAll("[data-nedit]").forEach(function (b) {
       b.addEventListener("click", function () {
         var n = notes.filter(function (x) { return x.id === b.getAttribute("data-nedit"); })[0];
