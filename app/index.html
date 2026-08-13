@@ -372,6 +372,15 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .legalblk{font-size:.5rem;line-height:1.3;color:#333;text-align:justify}
   .waiver{font-size:.54rem;line-height:1.35;margin-top:.25rem}
   .sigline{border-bottom:1px solid #333;height:1.6rem}
+   
+  .padonly{display:none}
+  .penline{display:none}
+   
+  table.matpad{display:none;width:100%;border-collapse:collapse;table-layout:fixed}
+  table.matpad th,table.matpad td{border:1px solid #999;padding:.02rem .12rem;
+    vertical-align:middle}
+  table.matpad th{text-align:left}
+  table.matpad col.pct{width:1.5rem} table.matpad col.amt{width:2.2rem}
   .locked{background:#fff6e5;border:1px solid #d9a93a;color:#4a3a10;font-size:.68rem;
     padding:.3rem .45rem;border-radius:3px;margin:.3rem 0}
    
@@ -605,6 +614,70 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     .n33-obs{grid-template-columns:9.5rem 1fr}
      
     .n33-iv,.n33-obs,.n33-key,.n33-row{page-break-inside:avoid}
+
+@page rsheet{size:8.5in 11in;margin:.35in .3in}
+    body.rspaper{page:rsheet}
+    .sheet.rspad{max-width:none;margin:0;padding:.05in .07in;font-size:.56rem;
+      line-height:1.18}
+    .sheet.rspad .padonly{display:block}
+    .sheet.rspad .co{font-size:.92rem}
+    .sheet.rspad .specials{font-size:.48rem;font-style:italic}
+    .sheet.rspad .rs-sec{margin-top:.12rem;padding-top:.1rem;border-top:1px solid #000}
+    .sheet.rspad .rs-band{font-size:.48rem;padding:.02rem .2rem;margin-bottom:.08rem}
+     
+    .sheet.rspad .rsttl{margin:.14rem 0 .12rem;font-size:.62rem;letter-spacing:.18em}
+     
+    .sheet.rspad .fcols{grid-template-columns:repeat(4,1fr)}
+    .sheet.rspad .fcols.five{grid-template-columns:repeat(5,1fr)}
+    .sheet.rspad .fcols.three{grid-template-columns:1fr 1fr 1.15fr}
+    .sheet.rspad .fcols.two{grid-template-columns:1fr 1fr}
+    .sheet.rspad .custblk{font-size:.56rem!important;line-height:1.3!important}
+    .sheet.rspad .panel{font-size:.52rem;padding:.12rem .3rem;min-width:9.5rem;
+      border-color:#000}
+    .sheet.rspad .box{font-size:.53rem;line-height:1.15;min-height:0;padding:0;
+      margin-bottom:0;gap:.16rem}
+     
+    .sheet.rspad .chk{width:.6rem;height:.6rem;font-size:.46rem}
+     
+    .sheet.rspad .box.inl,.sheet.rspad .methrow .box{display:inline-flex;
+      margin-right:.7rem;vertical-align:top}
+    .sheet.rspad .stdline{font-size:.55rem!important;margin-top:.14rem!important;
+      padding-top:.12rem!important}
+    .sheet.rspad .rs-line{font-size:.52rem;padding:.02rem 0;border-bottom-color:#999}
+    .sheet.rspad .rs-line .vwhy{font-size:.44rem}
+     
+    .sheet.rspad .penline{display:inline-block;width:3.4rem;border-bottom:1px solid #000}
+    .sheet.rspad .penrule{border-bottom:1px solid #000;height:.62rem;margin-top:.12rem}
+    .sheet.rspad .fline{font-size:.54rem;border-bottom-color:#000}
+    .sheet.rspad .fcellv{font-size:.46rem}
+     
+    .sheet.rspad .fnotes{display:none}
+    .sheet.rspad .notesprint{font-size:.52rem;line-height:1.35;white-space:pre-wrap;
+      border-bottom:1px solid #000;min-height:1.5rem}
+     
+    .matpick{display:none}
+    body:not(.compact) .matpad{display:table}
+    .sheet.rspad table.matpad{font-size:.46rem}
+    .sheet.rspad table.matpad th,.sheet.rspad table.matpad td{border-color:#000;
+      padding:.01rem .1rem}
+    .sheet.rspad table.matpad th{border-bottom:1.5px solid #000}
+     
+    .sheet.rspad table.mat{font-size:.54rem}
+    .sheet.rspad table.mat th,.sheet.rspad table.mat td{border-color:#000}
+     
+    .sheet.rspad .matname{min-height:0;padding:0;line-height:1.12;gap:.14rem}
+    .sheet.rspad .matname .epa{font-size:.4rem}
+    .sheet.rspad .legalblk{font-size:.43rem;line-height:1.18}
+    .sheet.rspad .waiver{font-size:.46rem;line-height:1.2;margin-top:.14rem}
+     
+    .sheet.rspad .money{font-size:.55rem;min-width:0!important;max-width:11rem}
+    .sheet.rspad .paylin{font-size:.5rem!important}
+    .sheet.rspad .sigrow{font-size:.52rem!important;margin-top:.35rem!important}
+     
+    .sheet.rspad svg[aria-label="signature"],
+    .sheet.rspad img[alt="signature"]{max-height:.34in;width:auto}
+     
+    .sheet.rspad .foot{font-size:.5rem;color:#000;margin-top:.2rem}
 
     @page{margin:.35in .3in}
 
@@ -1302,6 +1375,8 @@ function renderNav() {
       document.body.classList.remove("hassheetbar");
      
     if (route.name !== "wdi") document.body.classList.remove("npma");
+     
+    if (route.name !== "sheet") document.body.classList.remove("rspaper");
     if (route.name === "dashboard") return renderDashboard();
     if (route.name === "schedule") return renderSchedule();
     if (route.name === "field") return renderField();
@@ -3159,15 +3234,23 @@ document.body.classList.add("hassheetbar");
         (isAdmin() ? "Add them under <b>Settings</b>."
                    : "Ask an admin to add them under Settings.") + "</div>";
 
-h += '<div class="sheet"><div class="hdr">' +
+document.body.classList.add("rspaper");
+
+h += '<div class="sheet rspad"><div class="hdr">' +
       '<div><div class="co">' + esc(co.company_short || "UNITED") + "</div>" +
       '<div style="font-size:.62rem">' + esc(co.company_name || "") + "</div>" +
       '<div style="font-size:.62rem">' + esc(co.street || "") + " · " + esc(co.city || "") +
-      " " + esc(co.zip || "") + "</div></div>" +
+       
+      ", " + esc(co.state || "") + " " + esc(co.zip || "") + "</div></div>" +
       '<div style="text-align:right"><b>' + esc(co.phone || "") + "</b>" +
       '<div style="font-size:.62rem">' + esc(co.website || "") + "</div>" +
       '<div style="font-size:.62rem">' +
-      (co.years_in_business ? esc(co.years_in_business) + " YEARS" : "") + "</div></div></div>";
+      (co.years_in_business ? esc(co.years_in_business) + " YEARS" : "") + "</div>" +
+       
+      '<div class="padonly specials">Like us to find out about our specials!</div>' +
+      "</div></div>" +
+       
+      '<div class="padonly rsttl rs-band">FOR SERVICES RENDERED</div>';
 
 var priorSeen = S.jobs.filter(function (x) {
       return x.customer_id === j.customer_id && x.id !== j.id &&
@@ -3176,13 +3259,15 @@ var priorSeen = S.jobs.filter(function (x) {
     var win = windowOf(j), at = exactTime(j);
     h += '<div class="rs-sec" style="border-top:none;margin-top:.2rem">' +
       '<div style="display:flex;gap:.9rem;align-items:flex-start;flex-wrap:wrap">' +
-      '<div style="flex:1 1 15rem;min-width:0;font-size:.76rem;line-height:1.6">' +
+      '<div class="custblk" style="flex:1 1 15rem;min-width:0;font-size:.76rem;line-height:1.6">' +
         "<div>Date: <b>" + esc(j.scheduled_date ? fmtLong(j.scheduled_date) : "") + "</b></div>" +
         "<div>Customer: <b>" + esc((c.first_name ? c.first_name + " " : "") + (c.name || "")) + "</b></div>" +
         "<div>Address: <b>" + esc(p.address || "") + "</b>" +
         (p.label && !p.is_primary
           ? ' <span style="font-size:.64rem">(' + esc(p.label) + ", not their own house)</span>" : "") + "</div>" +
-        "<div>City: <b>" + esc(p.city || co.city || "") + "</b> &nbsp; State: NJ &nbsp; Zip: " +
+         
+        "<div>City: <b>" + esc(p.city || "") + "</b> &nbsp; State: <b>" +
+        esc(c.state || "") + "</b> &nbsp; Zip: " +
         esc(p.zip || "") + "</div>" +
         "<div>Home Phone: " + esc(c.phone || "") + "</div>" +
       "</div>" +
@@ -3196,7 +3281,8 @@ var priorSeen = S.jobs.filter(function (x) {
         techs().map(function (x) {
           return "<div>" + chkBox(x.id === j.assigned_to) + " " + esc(x.name) + "</div>";
         }).join("") +
-        '<div style="margin-top:.15rem">FT <b>' + esc(p.ft_code || "________") + "</b></div>" +
+         
+        '<div style="margin-top:.15rem">FT&quot; <b>' + esc(p.ft_code || "________") + "</b></div>" +
         '<div style="font-size:.58rem;color:#777;margin-top:.2rem">filing ' +
         esc((p.area_code || "?") + "-" + (p.month_box || "?")) + "</div>" +
       "</div></div></div>";
@@ -3212,7 +3298,11 @@ h += '<div class="rs-sec"><div class="rs-band">Type of service</div>' +
     h += ls.map(function (l) {
       return '<div class="rs-line"><span>' + esc(l.service_name) + "</span>" +
         '<span class="num">' +
-        (Number(l.price) > 0 ? money(l.price) : "priced on the job") + "</span></div>";
+         
+        (Number(l.price) > 0
+          ? money(l.price)
+          : '<span class="noprint">priced on the job</span><span class="penline"></span>') +
+        "</span></div>";
     }).join("");
      
     h += allLinesOf(j.id).filter(function (l) { return l.voided_at; })
@@ -3224,7 +3314,10 @@ h += '<div class="rs-sec"><div class="rs-band">Type of service</div>' +
           (w ? " by " + esc(w.name) : "") + " \u2014 " +
           esc(l.void_reason || "") + "</span></span>" +
           '<span class="num"><s>' +
-          (Number(l.price) > 0 ? money(l.price) : "priced on the job") + "</s></span></div>";
+           
+          (Number(l.price) > 0
+            ? money(l.price)
+            : '<span class="noprint">priced on the job</span>') + "</s></span></div>";
       }).join("");
     h += "</div></div>";
 
@@ -3232,7 +3325,13 @@ var pestList = withHistory(S.opts["pest"] || [], ticked.pest);
     var warList = withHistory(S.opts["warranty-box"] || [], ticked.warranty);
     h += '<div class="rs-sec"><div class="rs-band">Target pest</div>' +
       '<div class="fcols five">' + columns(pestList, 4, "pest") + "<div>" +
-      warList.map(function (w) { return box("warranty", w); }).join("");
+       
+      warList.map(function (w) {
+        var rule = w === "Other" ||
+          (w === "Termite Warranty" && sh.warranty_box !== "Termite Warranty");
+        return box("warranty", w,
+          rule ? esc(w) + '<span class="penline"></span>' : null);
+      }).join("");
     if (sh.warranty_box === "Termite Warranty")
       h += '<input class="fline" id="wterm" inputmode="numeric" placeholder="years" value="' +
         esc(sh.warranty_term_yrs == null ? "" : sh.warranty_term_yrs) + '"' +
@@ -3242,7 +3341,7 @@ var pestList = withHistory(S.opts["pest"] || [], ticked.pest);
     h += "</div></div>";
 
 var std = stdProduct();
-    h += '<div style="margin-top:.35rem;border-top:1px solid #ccc;padding-top:.3rem;font-size:.74rem">' +
+    h += '<div class="stdline" style="margin-top:.35rem;border-top:1px solid #ccc;padding-top:.3rem;font-size:.74rem">' +
       '<div class="box"' + (live && std ? ' data-tick="std" data-val="std" role="button" tabindex="0"' : "") + ">" +
       chkBox(hasStd) +
       "<span><b>¼ Gallon 0.25% Permethrin SFR Around Outside Exterior Foundation. " +
@@ -3260,7 +3359,8 @@ var isRetreat = NEEDS_GROUND.indexOf(j.type) >= 0;
       };
        
       var gbox = function (kind, val, label, on) {
-        return '<div class="box' + (live ? "" : " dead") + '"' +
+         
+        return '<div class="box inl' + (live ? "" : " dead") + '"' +
           (live ? ' data-tick="' + kind + '" data-val="' + esc(val) +
                   '" role="checkbox" aria-checked="' + (on ? "true" : "false") +
                   '" tabindex="0"'
@@ -3312,16 +3412,28 @@ var areaList = withHistory(S.opts["treatment-area"] || [], ticked.area);
     var methodList = withHistory(S.opts["method"] || [], ticked.method);
     h += '<div class="rs-sec"><div class="fcols three">' +
       '<div><div class="rs-band">Treatment areas</div>' +
-      areaList.map(function (a) { return box("area", a); }).join("") + "</div>" +
-      '<div><div class="rs-band">Application method</div>' +
-      methodList.map(function (m) { return box("method", m); }).join("") +
+       
+      areaList.map(function (a) {
+        return a === "Other"
+          ? box("area", a, esc(a) + '<span class="penline"></span>')
+          : box("area", a);
+      }).join("") + "</div>" +
+       
+      '<div><div class="rs-band">Application method</div><div class="methrow">' +
+      methodList.map(function (m) { return box("method", m); }).join("") + "</div>" +
       '<div style="font-size:.58rem;color:#777;margin-top:.45rem;letter-spacing:.06em">' +
       "PROPOSED TREATMENT DATE</div>" +
       '<input class="fline" id="pdate" placeholder="mm/dd/yyyy" value="' +
       esc(sh.proposed_date || "") + '"></div>' +
       '<div><div class="rs-band">Notes</div>' +
       '<textarea class="fnotes" id="snotes" placeholder="what you saw, what you did">' +
-      esc(sh.notes || "") + "</textarea></div></div></div>";
+      esc(sh.notes || "") + "</textarea>" +
+       
+      '<div class="padonly notesprint">' + esc(sh.notes || "") + "</div>" +
+      (sh.notes
+        ? ""
+        : '<div class="padonly penrule"></div><div class="padonly penrule"></div>') +
+      "</div></div></div>";
 
 h += '<div class="rs-sec"><div class="rs-band">Materials used ' +
       "— NJ DEP application record (Reg 7:30-9.10)</div>" +
@@ -3331,6 +3443,17 @@ h += '<div class="rs-sec"><div class="rs-band">Materials used ' +
       "<th>%</th><th>Name / EPA #</th><th>Amount</th></tr>" +
       '<tbody id="matBody">' + matPickRows(chems) + "</tbody></table>" +
       '<table class="mat matused" id="matUsed">' + matUsedRows(chems) + "</table>" +
+       
+      '<table class="matpad"><colgroup>' +
+      '<col class="pct"><col><col class="amt">' +
+      '<col class="pct"><col><col class="amt">' +
+      '<col class="pct"><col><col class="amt">' +
+      '<col class="pct"><col><col class="amt"></colgroup>' +
+      "<tr><th>%</th><th>NAME/EPA #</th><th>AMOUNT</th>" +
+      "<th>%</th><th>NAME/EPA #</th><th>AMOUNT</th>" +
+      "<th>%</th><th>NAME/EPA #</th><th>AMOUNT</th>" +
+      "<th>%</th><th>NAME/EPA #</th><th>AMOUNT</th></tr>" +
+      "<tbody>" + matPadRows(chems) + "</tbody></table>" +
       (tr ? voidedNote(tr.id) : "") +
       '<div style="font-size:.6rem;margin-top:.3rem">Applied by <b>' + esc(t.name || "") + "</b>" +
        
@@ -3484,10 +3607,10 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
           '<button class="act" id="discBtn" type="button">' + discountLabel(inv) +
           "</button></div>"
         : "") +
-      '<div style="display:flex;justify-content:space-between;gap:1rem;margin-top:.4rem;font-size:.7rem">' +
+      '<div class="paylin" style="display:flex;justify-content:space-between;gap:1rem;margin-top:.4rem;font-size:.7rem">' +
       "<div>• <b>Payment due at time of service</b> •</div>" +
-      "<div>Credit Cards Accepted &nbsp;<b>MC · VISA · DISCOVER</b></div></div>" +
-      '<div style="display:flex;justify-content:space-between;gap:1rem;margin-top:.6rem;' +
+      "<div>• <b>Credit Cards Accepted</b> • &nbsp;<b>MASTERCARD · VISA · DISCOVER</b></div></div>" +
+      '<div class="sigrow" style="display:flex;justify-content:space-between;gap:1rem;margin-top:.6rem;' +
       'align-items:flex-end;font-size:.74rem"><div>Customer signature: ' +
       (sh.signed_on
         ? sigSVG(sh.signature, 190) + '<span style="font-size:.58rem;color:#666">signed on site ' +
@@ -3967,6 +4090,31 @@ function matFound(chemRows) {
           return "<s>" + esc(r.product_name) + "</s> taken off" +
             (who ? " by " + esc(who.name) : "") + " — " + esc(r.void_reason || "");
         }).join("<br>") + "</div>";
+    }
+     
+    function matPadRows(chemRows) {
+      var found = matFound(chemRows);
+      var list = S.products.filter(function (x) { return x.active !== false || found(x); });
+      var blocks = chunk(list, 4), deep = 0, i, k, m, r, nm, ep, html = "";
+      for (k = 0; k < blocks.length; k++)
+        if (blocks[k].length > deep) deep = blocks[k].length;
+      for (i = 0; i < deep; i++) {
+        html += "<tr>";
+        for (k = 0; k < 4; k++) {
+          m = blocks[k] ? blocks[k][i] : null;
+          if (!m) { html += "<td></td><td></td><td></td>"; continue; }
+          r = found(m);
+          nm = r ? (r.product_name || m.name) : m.name;
+          ep = r ? r.epa_number : m.epa_number;
+          html += "<td>" + esc((r && r.percent) || "") + "</td>" +
+            '<td><div class="matname' + (r ? " on" : "") + '">' + chkBox(!!r) +
+            "<span>" + esc(nm) +
+            (ep ? '<span class="epa">EPA #' + esc(ep) + "</span>" : "") +
+            "</span></div></td><td>" + esc((r && r.amount) || "") + "</td>";
+        }
+        html += "</tr>";
+      }
+      return html;
     }
     function matUsedRows(chemRows) {
       return '<tr><th style="width:3rem">%</th>' +
