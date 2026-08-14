@@ -8969,6 +8969,10 @@ var MC = null;
     h += '<div class="daynav noprint">' +
       '<button class="act" data-mon="-1" type="button">‹ ' +
         esc(monthName(addMonths(mon, -1))) + "</button>" +
+       
+      '<input type="month" id="mcPick" class="f" aria-label="Go to a month" ' +
+        'style="max-width:9.5rem;display:inline-block;margin:0" value="' +
+        esc(String(mon).slice(0, 7)) + '">' +
       '<button class="act" data-mon="1" type="button">' +
         esc(monthName(addMonths(mon, 1))) + " ›</button>" +
       '<span style="flex:1"></span>' +
@@ -9108,6 +9112,13 @@ var over = addMonths(todayISO().slice(0, 8) + "01", 0) > mon;
         MC = null; renderMonthClose();
       });
     });
+     
+    if ($("mcPick"))
+      $("mcPick").addEventListener("change", function () {
+        if (!/^\d{4}-\d{2}$/.test(this.value)) return;
+        route.mon = this.value + "-01";
+        MC = null; renderMonthClose();
+      });
     if ($("mcDay")) $("mcDay").addEventListener("click", function () { go("close"); });
     if ($("mcPest")) $("mcPest").addEventListener("click", function () {
       go("pesticide", new Date().getFullYear());
@@ -10034,6 +10045,9 @@ var h = "<h1>Daily Close — " + esc(fmtLong(D)) + "</h1>" +
 
     h += '<div class="daynav noprint">' +
       '<button class="act" data-cday="-1" type="button">‹ ' + esc(fmtDate(shiftISO(D, -1))) + "</button>" +
+       
+      '<input type="date" id="cdayPick" class="f" aria-label="Go to a day" ' +
+        'style="max-width:9.5rem;display:inline-block;margin:0" value="' + esc(D) + '">' +
       '<button class="act" data-cday="1" type="button">' + esc(fmtDate(shiftISO(D, 1))) + " ›</button>" +
       (D !== todayISO() ? '<button class="act" data-cday="today" type="button">Back to today</button>' : "") +
       '<span style="flex:1"></span>' +
@@ -10383,6 +10397,13 @@ if ($("cmonth")) $("cmonth").addEventListener("click", function () {
         render(); window.scrollTo(0, 0);
       });
     });
+     
+    if ($("cdayPick"))
+      $("cdayPick").addEventListener("change", function () {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(this.value)) return;
+        route.date = this.value;
+        render(); window.scrollTo(0, 0);
+      });
     $("cprint").addEventListener("click", function () { window.print(); });
     app.querySelectorAll("[data-exp]").forEach(function (b) {
       b.addEventListener("click", function () {
