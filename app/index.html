@@ -929,6 +929,15 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
   var live_    = function () { return S.me && S.me.active !== false; };
   var isOffice = function () { return live_() && (S.me.role === "admin" || S.me.role === "office"); };
   var isAdmin  = function () { return live_() && S.me.role === "admin"; };
+
+var adminNames = function () {
+    var a = (S.people || []).filter(function (p) {
+      return p.role === "admin" && p.active !== false && p.name;
+    }).map(function (p) { return p.name; });
+    if (!a.length) return "an admin";
+    if (a.length === 1) return a[0];
+    return a.slice(0, -1).join(", ") + " or " + a[a.length - 1];
+  };
   var inField  = function () { return live_() && S.me.is_technician; };
 
   var PAGE = 1000;
@@ -1032,7 +1041,22 @@ if (rows.length === PAGE)
         "Section III has to say one or the other: no action, or action recommended for the " +
         "control of something.",
       wdi_recommend_box_known:
-        "Section III is two boxes — no action, or action recommended — and this is neither."
+        "Section III is two boxes — no action, or action recommended — and this is neither.",
+       
+      service_rate_not_zero:
+        "A rate is dollars per square foot and cannot be nought. Type this row’s rate, " +
+        "or clear the cell if there isn’t one yet — nothing else on the row saves until " +
+        "it reads.",
+      quote_basis_rate_not_zero:
+        "An estimate cannot be worked out from a rate of nought. Type the price instead " +
+        "and it is recorded with no measurement behind it, which is what a typed price " +
+        "has always done.",
+      quote_void_needs_reason:
+        "Say why the estimate is being withdrawn. It stays on the folder and the reason " +
+        "is what the folder shows.",
+      wdi_uncertify_needs_reason:
+        "Taking a certification off a report is recorded with who took it off and why. " +
+        "Both go on with it."
     };
     var ckName = /violates check constraint "([^"]+)"/.exec(m);
     if (ckName && Object.prototype.hasOwnProperty.call(CHECK_RULES, ckName[1]))
@@ -4990,6 +5014,10 @@ var N33_FOOT1 =
        
       (certified && !(w.seller_signed_on && w.buyer_signed_on)
         ? '<button class="act" id="n3Ack" type="button">Record a signature</button>'
+        : "") +
+       
+      (certified && isAdmin()
+        ? '<button class="act" id="n3Unc" type="button">Take the certification off</button>'
         : "") + "</div>";
 
     if (MISSING.some(function (m) { return m.what === "wdi_reports"; }))
@@ -5020,7 +5048,21 @@ if (w.expires_on) {
     if (certified)
       h += '<div class="msg warn noprint"><b>Certified ' + esc(fmtDate(w.signed_on)) +
         ".</b> What was inspected and found cannot change. The seller\u2019s and " +
-        "buyer\u2019s signatures can still be recorded.</div>";
+        "buyer\u2019s signatures can still be recorded." +
+         
+        (isAdmin() ? ""
+                   : " To correct it, ask " + esc(adminNames()) + " to take the certification off \u2014 " +
+                     "who took it off and why go on the report.") +
+        "</div>";
+
+if (w.uncertified_at) {
+      var uncBy = personOf(w.uncertified_by);
+      h += '<div class="msg noprint"><b>Certification taken off ' +
+        esc(fmtDate(String(w.uncertified_at).slice(0, 10))) +
+        (uncBy ? " by " + esc(uncBy.name) : "") + "</b>" +
+        (w.uncertify_reason ? " \u2014 " + esc(w.uncertify_reason) + "." : ".") +
+        (certified ? " It has been certified again since." : "") + "</div>";
+    }
 
 var dis = certified ? " disabled" : "";
     var fld = function (id, lbl, ctl) {
@@ -5150,6 +5192,7 @@ $("n3Back").addEventListener("click", function () { go("sheet", jobId); });
     });
     if ($("n3Cert")) $("n3Cert").addEventListener("click", function () { certifyModal(); });
     if ($("n3Ack")) $("n3Ack").addEventListener("click", function () { ackModal(); });
+    if ($("n3Unc")) $("n3Unc").addEventListener("click", function () { uncertifyModal(); });
     $("n3Prt").addEventListener("click", async function () {
        
       if (!certified && !(await saveWDI(null))) return;
@@ -5239,8 +5282,8 @@ function certifyModal() {
         "Settings edit cannot change a document already at a closing.</p>" +
          
         '<div class="msg warn">Once certified, what was inspected and found cannot ' +
-        "change. Correcting it means asking an admin to take the certification " +
-        "off first, and every step of that is written on the folder.</div>" +
+        "change. An admin takes the certification off, it is corrected, and it is " +
+        "certified afresh — with who took it off and why on the report.</div>" +
         '<label for="cfDate">Date certified</label>' +
         '<input id="cfDate" class="f" type="date" value="' + todayISO() + '">' +
         '<div class="row"><button class="primary" id="cfGo" type="button">Certify</button>' +
@@ -5269,6 +5312,38 @@ function certifyModal() {
           closeModal();
           await reload(["wdi"]);
           toast("Certified.");
+          renderWDI(jobId);
+        } catch (e) { toast(e.message); this.disabled = false; }
+      });
+    }
+
+function uncertifyModal() {
+      openModal("<h3>Take the certification off?</h3>" +
+        '<p class="note">The report becomes a draft again and what was inspected and ' +
+        "found can be corrected. Certify it afresh when it is right.</p>" +
+        '<div class="msg warn">Your name, the date and the reason go onto the report ' +
+        "and stay on it, certified again or not.</div>" +
+        '<label for="ucWhy">Why</label>' +
+        '<input id="ucWhy" class="f" placeholder="wrong address · inspection date mistyped">' +
+        '<div class="row"><button class="primary" id="ucGo" type="button">Take it off</button>' +
+        '<button class="act" id="ucNo" type="button">Leave it</button></div>');
+      $("ucWhy").focus();
+      $("ucNo").addEventListener("click", closeModal);
+      $("ucGo").addEventListener("click", async function () {
+        var why = $("ucWhy").value.trim();
+        if (!why) { toast("Say why — it is recorded on the report."); return; }
+        this.disabled = true;
+        try {
+          var r = await sb.from("wdi_reports").update({
+            signed_on: null, signature: null,
+            uncertified_at: new Date().toISOString(),
+            uncertified_by: S.me.id, uncertify_reason: why
+          }).eq("id", w.id).select();
+          if (r.error) throw explain(r.error);
+          if (!(r.data || []).length) throw new Error("That didn’t save.");
+          closeModal();
+          await reload(["wdi"]);
+          toast("The certification is off. The report is a draft again.");
           renderWDI(jobId);
         } catch (e) { toast(e.message); this.disabled = false; }
       });
@@ -7819,6 +7894,9 @@ function quoteAge(q) {
                     : '<button class="primary" id="qBook" type="button">Put it in the book</button>')
           : '<button class="act go" id="qYes" type="button">They said yes</button>') +
         (sold ? "" : '<button class="act" id="qNo" type="button">They said no</button>') +
+         
+        (isOffice()
+          ? '<button class="act" id="qVoid" type="button">Withdraw it</button>' : "") +
         '<button class="act" id="qClose" type="button">Close</button></div>';
       })());
 
@@ -7826,6 +7904,7 @@ function quoteAge(q) {
     if ($("qRang")) $("qRang").addEventListener("click", function () { rangThemModal(q); });
     if ($("qYes"))  $("qYes").addEventListener("click", function () { saidYesModal(q); });
     if ($("qNo"))   $("qNo").addEventListener("click", function () { saidNoModal(q); });
+    if ($("qVoid")) $("qVoid").addEventListener("click", function () { voidQuoteModal(q); });
     if ($("qBook")) $("qBook").addEventListener("click", function () {
       closeModal();
        
@@ -7971,6 +8050,67 @@ var NO_REASONS = ["Too expensive", "Went with somebody else", "Not doing it now"
         S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
         closeModal();
         toast("Recorded as refused.");
+        render();
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
+var VOID_REASONS = ["Raised against the wrong folder", "Priced wrong",
+                      "Duplicate of another estimate", "Accepted by mistake"];
+
+  function voidQuoteModal(q) {
+    if (!q || q.voided_at) return;
+     
+    var bj = q.job_id ? jobById(q.job_id) : null;
+    if (q.job_id && !(bj && bj.status === "cancelled")) {
+      openModal("<h3>Withdraw " + money(q.amount) + "?</h3>" +
+        '<div class="msg warn">The work on this estimate is in the book' +
+        (bj && bj.scheduled_date ? " for " + esc(fmtDate(bj.scheduled_date)) : "") +
+        ", and that job is the only record of what was agreed. The job has to come " +
+        "off the book first — ask " + esc(adminNames()) + ".</div>" +
+        '<div class="row">' +
+        (bj ? '<button class="primary" id="vqJob" type="button">Open the job</button>' : "") +
+        '<button class="act" id="vqNo" type="button">Close</button></div>');
+      $("vqNo").addEventListener("click", closeModal);
+      if ($("vqJob")) $("vqJob").addEventListener("click", function () {
+        closeModal(); go("sheet", bj.id);
+      });
+      return;
+    }
+    openModal("<h3>Withdraw " + money(q.amount) + "?</h3>" +
+      '<p class="note">It stays on the folder, struck through, with your name and the ' +
+      "reason on it. That is the only way one comes off — nobody can delete an " +
+      "estimate, an admin included.</p>" +
+      '<label>Why</label><div class="picklist">' +
+      VOID_REASONS.map(function (r) {
+        return '<button type="button" class="pickrow" data-vqr="' + esc(r) + '"><span>' +
+          esc(r) + "</span></button>";
+      }).join("") + "</div>" +
+      '<label for="vqWhy">Or in your own words</label>' +
+      '<input id="vqWhy" class="f">' +
+      '<div class="row"><button class="primary" id="vqGo" type="button">Withdraw it</button>' +
+      '<button class="act" id="vqNo" type="button">Leave it</button></div>');
+    $("vqWhy").focus();
+    $("vqNo").addEventListener("click", closeModal);
+    $("modal").querySelectorAll("[data-vqr]").forEach(function (b) {
+      b.addEventListener("click", function () { $("vqWhy").value = b.getAttribute("data-vqr"); });
+    });
+    $("vqGo").addEventListener("click", async function () {
+      var why = $("vqWhy").value.trim();
+      if (!why) { toast("Say why — a withdrawn estimate with no reason explains nothing."); return; }
+      this.disabled = true;
+      try {
+         
+        var r = await sb.from("quotes").update({
+          voided_at: new Date().toISOString(), voided_by: S.me.id, void_reason: why
+        }).eq("id", q.id).is("voided_at", null).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That didn’t save — reload and try again.");
+        S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
+        await reload(["attention"]);
+        closeModal();
+        toast("Withdrawn.");
         render();
       } catch (e) { toast(e.message); this.disabled = false; }
     });
@@ -8666,6 +8806,8 @@ async function saveEval(patch) {
                String(name).toLowerCase().replace(/^\s+|\s+$/g, "");
       })[0] || null;
       var rt = rateOf(bk);
+       
+      if (rt === 0) rt = null;
       var ar = bk ? areaFor(p, bk.price_basis) : null;
       if (rt == null) throw new Error("There is no rate in the price book for " + name + ".");
       if (ar == null)
@@ -10422,6 +10564,12 @@ app.querySelectorAll("input.li,select.li").forEach(function (el) {
            
           var rn = readMoney(v);
           if (v !== "" && rn === null) { toast("That didn’t read as a number."); return; }
+           
+          if (col === "price_per_sq_ft" && rn === 0) {
+            toast("A rate is dollars per square foot and cannot be nought. Clear the " +
+                  "cell if there isn’t one yet.");
+            return;
+          }
           patch[col] = v === "" ? null : rn;
         } else if (col === "name") {
           if (!v) { toast("A name is needed."); return; }
@@ -12865,7 +13013,13 @@ async function renderCustomer(id) {
       if (b && !b.charge_withdrawn && !b.voided_at) owed += Number(b.balance) || 0;
     });
     var pg = progOf(id);
-    var qs = S.quotes.filter(function (q) { return q.customer_id === id; });
+     
+    var qs;
+    try {
+      qs = await many(sb.from("quotes").select("*").eq("customer_id", id));
+    } catch (eq) {
+      qs = S.quotes.filter(function (q) { return q.customer_id === id; });
+    }
     var ws = S.warranties.filter(function (w) { return w.customer_id === id; });
     var evs = evalsOf(id);
 
@@ -13074,6 +13228,16 @@ h += '<div class="card"><h2>What is arranged</h2>' +
       (qs.length
         ? '<p class="note" style="margin-top:.6rem">Estimates</p>' +
           qs.map(function (q) {
+             
+            if (q.voided_at) {
+              var vb = personOf(q.voided_by);
+              return '<div class="dates"><s>' + money(q.amount) +
+                (q.description ? " \u00b7 " + esc(q.description) : "") +
+                "</s> \u00b7 withdrawn " +
+                esc(fmtDate(String(q.voided_at).slice(0, 10))) +
+                (vb ? " by " + esc(vb.name) : "") +
+                (q.void_reason ? " \u2014 " + esc(q.void_reason) : "") + "</div>";
+            }
             return '<div class="dates"><a href="#" data-cfq="' + q.id + '">' +
                
               money(q.amount) + " \u00b7 " +
