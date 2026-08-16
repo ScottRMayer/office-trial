@@ -89,6 +89,9 @@
   .item{border:1px solid var(--rule);border-radius:6px;padding:.75rem .85rem;margin-bottom:.55rem;background:var(--card)}
   .item.owed{border-left:4px solid var(--owed)} .item.risk{border-left:4px solid var(--risk)}
   .item.tap{cursor:pointer} .item.tap:hover{border-color:var(--brand)}
+   
+  .item.tap:focus-visible,.lrow.tap:focus-visible,[role="button"]:focus-visible{
+    outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
   .item .top{display:flex;gap:.55rem;align-items:baseline;flex-wrap:wrap}
   .item .nm{font-weight:700}
   .item .amt{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -325,6 +328,10 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
    
   .box.dead{opacity:.55;cursor:default}
   .box.dead:active{background:none}
+   
+  .chkbtn{background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;
+    display:inline-flex;align-items:center;gap:.3rem;cursor:pointer;text-align:left}
+  .chkbtn:disabled{opacity:.55;cursor:default}
   .chk{width:.85rem;height:.85rem;border:1px solid #555;border-radius:2px;flex:0 0 auto;
     display:inline-flex;align-items:center;justify-content:center;font-size:.66rem;line-height:1}
    
@@ -1448,6 +1455,41 @@ function renderNav() {
      
     if (isOffice()) renderDashboard(); else renderField();
   }
+
+function reachable(root) {
+    if (!root || !root.querySelectorAll) return;
+    var rows = root.querySelectorAll(".item.tap, .lrow.tap, [data-job], [data-cust]");
+    for (var i = 0; i < rows.length; i++) {
+      var el = rows[i], t = el.tagName;
+      if (t === "BUTTON" || t === "A" || t === "INPUT" || t === "SELECT" || t === "TEXTAREA") continue;
+      if (el.getAttribute("tabindex") !== null) continue;
+      el.setAttribute("tabindex", "0");
+      if (!el.getAttribute("role")) el.setAttribute("role", "button");
+    }
+  }
+
+  (function () {
+    var watch = function (el) {
+      if (!el || !window.MutationObserver) return;
+      reachable(el);
+      new MutationObserver(function (recs) {
+        for (var i = 0; i < recs.length; i++) {
+          if (recs[i].addedNodes && recs[i].addedNodes.length) { reachable(el); return; }
+        }
+      }).observe(el, { childList: true, subtree: true });
+    };
+    watch($("app"));
+    watch($("modal"));
+     
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter" && e.key !== " " && e.key !== "Spacebar") return;
+      var t = e.target;
+      if (!t || !t.getAttribute || t.getAttribute("role") !== "button") return;
+      if (t.tagName === "BUTTON" || t.tagName === "A") return;
+      e.preventDefault();
+      t.click();
+    });
+  })();
 
 var KINDS = { "unpaid-completed": "money owed", "quiet-quote": "gone quiet",
                 "warranty-no-autorenew": "no auto-renewal", "sold-not-scheduled": "not on the calendar" };
@@ -3407,8 +3449,14 @@ var priorSeen = S.jobs.filter(function (x) {
         "<div>Home Phone: " + esc(c.phone || "") + "</div>" +
       "</div>" +
       '<div class="panel">' +
-        "<div>" + chkBox(false) + " New Customer" +
-        (isOffice() && !priorSeen
+
+"<div>" +
+        (live
+          ? '<button class="chkbtn" id="newCust" type="button" ' +
+            'aria-pressed="' + (sh && sh.new_customer ? "true" : "false") + '">' +
+            chkBox(!!(sh && sh.new_customer)) + " New Customer</button>"
+          : chkBox(!!(sh && sh.new_customer)) + " New Customer") +
+        (isOffice() && !priorSeen && !(sh && sh.new_customer != null)
           ? ' <span class="noprint" style="font-size:.55rem;color:#999">no earlier visit on file</span>'
           : "") + "</div>" +
         "<div>" + chkBox(win === "am") + " AM &nbsp; " + chkBox(win === "pm") + " PM" +
@@ -3826,6 +3874,17 @@ renderSheet(jobId);
         this.disabled = false; return;
       }
       await reload(["jobs"]); toast("Down."); renderSheet(jobId);
+    });
+
+if ($("newCust")) $("newCust").addEventListener("click", async function () {
+      var was = $("newCust").getAttribute("aria-pressed") === "true";
+      this.disabled = true;
+      try {
+        await saveSheet({ new_customer: !was });
+        await reload(["jobs"]);
+        toast(was ? "Not a new customer." : "New customer.");
+        renderSheet(jobId);
+      } catch (e) { toast(e.message); this.disabled = false; }
     });
 
     if ($("regsGo")) $("regsGo").addEventListener("click", async function () {
