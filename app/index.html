@@ -108,6 +108,19 @@
    
   .field button.act,.field a.act,.modal button.act,.modal a.act{
     min-height:2.75rem;font-size:.9rem;padding:.5rem .95rem}
+   
+  a.call{font:inherit;font-size:.8rem;font-weight:600;color:var(--brand);
+    text-decoration:underline;text-underline-offset:3px;padding:.34rem .1rem;
+    display:inline-flex;align-items:center;gap:.25rem;white-space:nowrap}
+  a.call:hover{color:var(--ink)}
+  a.call:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:3px}
+  .callnum{font:inherit;font-size:.8rem;font-weight:600;color:var(--ink-soft);
+    padding:.34rem .1rem;display:inline-flex;align-items:center;gap:.25rem;
+    white-space:nowrap;-webkit-user-select:text;user-select:text;cursor:text}
+  .field a.call,.modal a.call{min-height:2.75rem;font-size:.9rem}
+   
+  button.act.corr{border:1.5px solid var(--risk);color:var(--risk);font-weight:700}
+  button.act.corr:hover{background:var(--risk);border-color:var(--risk);color:#fff}
 
   .dot{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;background:var(--dot);
     margin-right:.35rem;vertical-align:.02rem;flex:0 0 auto}
@@ -151,9 +164,9 @@
     justify-content:center;flex-wrap:wrap;padding:.55rem .8rem;background:var(--card);
     border-top:1px solid var(--rule);box-shadow:0 -2px 10px rgba(0,0,0,.07)}
   .sheetbar button{flex:0 1 auto}
-  body.hassheetbar{padding-bottom:4.2rem}
    
-  @media (max-width:560px){ body.hassheetbar{padding-bottom:6.4rem} }
+  body.hassheetbar{padding-bottom:6.4rem}
+  @media (max-width:560px){ body.hassheetbar{padding-bottom:8.8rem} }
   @media print{ .sheetbar{display:none!important} body.hassheetbar{padding-bottom:0} }
 
   .toast{position:fixed;left:50%;bottom:1.1rem;transform:translateX(-50%);background:var(--ink);
@@ -162,8 +175,20 @@
   .toast.show{opacity:1}
    
   body.hassheetbar .toast{bottom:7rem}
+   
+  @media (max-width:560px){ body.hassheetbar .toast{bottom:8.8rem} }
   .empty{color:var(--ink-soft);font-size:.89rem}
   .stamp{font-size:.75rem;color:var(--ink-soft);margin-top:1.3rem;text-align:center}
+
+.card h2 > button.fold{font:inherit;color:inherit;background:none;border:none;
+    margin:0;padding:.1rem 0;width:100%;text-align:left;cursor:pointer;
+    display:flex;align-items:center;gap:.45rem}
+  .card h2 > button.fold::before{content:"\25be";font-size:.72em;color:var(--ink-soft);
+    flex:0 0 auto}
+  .card.shut h2 > button.fold::before{content:"\25b8"}
+  .card h2 > button.fold:focus-visible{outline:2px solid var(--brand);outline-offset:2px;
+    border-radius:3px}
+  .card.shut{padding-top:.7rem;padding-bottom:.7rem}
 
 table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;overflow-x:auto}
   table.lst th,table.lst td{border-bottom:1px solid var(--rule-soft);padding:.28rem .4rem;text-align:left}
@@ -283,6 +308,10 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   button.figure:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
   button.figure.ok{color:var(--ok)} button.figure.bad{color:var(--owed)}
   button.figure.open{text-decoration-style:dotted}
+   
+  button.figure .cue{font-size:.42em;color:var(--ink-soft);margin-left:.35rem;
+    display:inline-block;vertical-align:.32em}
+  button.figure.open .cue{color:var(--brand);transform:rotate(90deg)}
   .expand-body{margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--rule-soft)}
   .bank{display:grid;gap:.1rem}
   .brow{display:grid;grid-template-columns:1fr auto;gap:.2rem .9rem;
@@ -296,6 +325,7 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   @media print{
     .recon .eq{color:#000}
     button.figure{text-decoration:none;color:#000!important}
+    button.figure .cue{display:none}
     .expand-body[hidden]{display:none}
   }
 
@@ -599,6 +629,10 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
   @media print{
     header,nav,.noprint,.toast,.veil{display:none!important}
     body{background:#fff} main{padding:0;max-width:none}
+     
+    .setbody[hidden]{display:block!important}
+    .card h2 > button.fold::before{display:none}
+    .card h2 > button.fold{display:block;cursor:auto}
     .sheet{border:1px solid #000}
     .rs-sec{page-break-inside:avoid}
     .fcell{border:none} .fnotes{border:none;border-bottom:1px solid #999}
@@ -709,6 +743,16 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     .rs-line.void s{text-decoration:line-through;text-decoration-thickness:1.5px}
   }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+.jumped{animation:jumpflash 1.5s ease-out 1}
+  @keyframes jumpflash{
+    0%,55%{box-shadow:0 0 0 3px var(--brand)}
+    100%{box-shadow:0 0 0 3px transparent}
+  }
+   
+  @media (prefers-reduced-motion:reduce){
+    .jumped{animation:none;outline:3px solid var(--brand);outline-offset:2px}
+  }
 </style>
 
 <div id="gate" class="gate">
@@ -747,7 +791,8 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
 <div class="veil" id="veil"><div class="modal" id="modal" role="dialog" aria-modal="true"></div></div>
 
 <div class="veil lockveil" id="lockveil"><div class="modal" id="lockbox" role="dialog" aria-modal="true"></div></div>
-<div class="toast" id="toast"></div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="supabase-2.45.4.js"></script>
 <script>
@@ -836,6 +881,21 @@ function money(n) {
   function toast(m) {
     var t = $("toast"); t.textContent = m; t.classList.add("show");
     clearTimeout(t._t); t._t = setTimeout(function () { t.classList.remove("show"); }, 2800);
+  }
+
+var CAN_DIAL = (function () {
+    try { return !window.matchMedia || window.matchMedia("(pointer: coarse)").matches; }
+    catch (e) { return true; }
+  })();
+  function callLink(phone) {
+    var p = String(phone == null ? "" : phone).replace(/^\s+|\s+$/g, "");
+    if (!p) return "";
+     
+    return CAN_DIAL
+      ? '<a class="call" href="tel:' + esc(p.replace(/[^0-9+]/g, "")) +
+        '" aria-label="Call ' + esc(p) + '"><span aria-hidden="true">☎</span> ' +
+        esc(p) + "</a>"
+      : '<span class="callnum"><span aria-hidden="true">☎</span> ' + esc(p) + "</span>";
   }
 
 var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [], opts: {},
@@ -1731,7 +1791,8 @@ if (S.wdiStatus.length) {
       (S.attention.length
         ? '<div id="owed">' + owed.map(attnHTML).join("") + '</div><div id="risk">' +
           risk.map(attnHTML).join("") + "</div>"
-        : '<p class="empty">Nothing needs following up.</p>') +
+         
+        : '<div class="msg good">Nothing needs following up.</div>') +
       "</div>";
 
 h += '<div class="card" id="boxes"><h2>Who needs a call</h2>' +
@@ -1881,8 +1942,7 @@ var stale = S.jobs.filter(function (j) {
               (b.p.ft_code ? " · " + esc(b.p.ft_code) : "") + "</div>" +
               '<div class="acts">' +
               (b.c.phone
-                ? '<a class="act go" href="tel:' + esc(String(b.c.phone).replace(/[^0-9+]/g, "")) +
-                  '">Call ' + esc(b.c.phone) + "</a>"
+                ? callLink(b.c.phone)
                 : '<span class="pill warn">no phone on file</span>') +
               '<button class="act" data-noans="' + esc(b.p.id) + '" type="button">No answer</button>' +
               '<button class="act" data-outcome="' + esc(b.p.id) +
@@ -2019,7 +2079,7 @@ async function saveOutcome(b, outcome, note) {
     var c = custById(a.customer_id);
     var ar = c ? areaOf((propsOf(c.id)[0] || {}).area_code) : null;
     var acts = [];
-    if (c && c.phone) acts.push('<a class="act" href="tel:' + esc(String(c.phone).replace(/[^0-9+]/g, "")) + '">Call</a>');
+    if (c && c.phone) acts.push(callLink(c.phone));
     if (a.kind === "quiet-quote" || a.kind === "sold-not-scheduled") {
       acts.push('<button class="act go" data-quote="' + a.record_id + '">The estimate…</button>');
     }
@@ -2606,7 +2666,7 @@ function jobModal(jobId) {
 
     h += '<div class="acts">' +
       '<a class="act go" href="https://maps.google.com/?q=' + mapQ + '" target="_blank" rel="noopener">Directions</a>' +
-      (c && c.phone ? '<a class="act" href="tel:' + esc(String(c.phone).replace(/[^0-9+]/g, "")) + '">Call ' + esc(c.phone) + "</a>" : "") +
+      (c && c.phone ? callLink(c.phone) : "") +
       '<button class="act" data-act="sheet">Render sheet</button>' +
       "</div>";
 
@@ -3403,6 +3463,10 @@ document.body.classList.add("hassheetbar");
     var h = '<div class="sheetbar noprint">' +
       '<button class="act" id="back" type="button">‹ Back</button>' +
       '<button class="act go" id="prt" type="button">🖨 Print</button>' +
+       
+      (locked && isOffice()
+        ? '<button class="act corr" id="unlock" type="button">Open for corrections</button>'
+        : "") +
       '<button class="act" id="cmp" type="button">' +
       (compact ? "Printing: just what was used" : "Printing: every box, like the pad") +
       "</button>" +
@@ -3434,8 +3498,8 @@ document.body.classList.add("hassheetbar");
         (isOffice()
            
           ? "To correct anything else it has to be opened first, and that gets " +
-            'recorded.</div><div class="acts noprint" style="margin:-.4rem 0 .8rem">' +
-            '<button class="act" id="unlock" type="button">Open this sheet for corrections</button></div>'
+            "recorded. <b>Open for corrections</b> is on the bar at the foot of " +
+            "the screen.</div>"
           : "To correct anything else, ring the office — they have to open it.</div>");
     else if (sh.unlocked_at)
       h += '<div class="msg noprint">This sheet was opened for corrections ' +
@@ -10046,7 +10110,9 @@ var hasOrder = S.catalog.some(function (s) { return s.sort_order !== undefined; 
 
 LIST_KINDS.forEach(function (k) {
       var vals = S.opts[k[0]] || [];
-      h += '<div class="card"' + (k[0] === "pest" ? ' id="set-sheet"' : "") +
+       
+      h += '<div class="card" id="' +
+        (k[0] === "pest" ? "set-sheet" : "set-list-" + esc(k[0])) + '"' +
         "><h2>" + esc(k[1]) + "</h2>" +
         '<p class="note">' + esc(k[2]) + " — " + vals.length + "</p>" +
         '<div class="chips">' + vals.map(function (v) {
@@ -10109,6 +10175,7 @@ var chemMissing = S.products.filter(function (m) {
 
     app.innerHTML = h;
     wireLists();
+    foldSettings();
   }
    
   function flag(what, id, col, on) {
@@ -10206,9 +10273,68 @@ var SET_TARGETS = [
    
   var RATE_CELLS = ["price_per_sq_ft", "price_minimum"];
 
+var SET_OPEN_KEY = "ut_set_open";
+  function foldSettings() {
+    var last = "";
+    try { last = localStorage.getItem(SET_OPEN_KEY) || ""; } catch (e) {}
+     
+    if (!last) last = "set-people";
+    app.querySelectorAll(".card[id]").forEach(function (card) {
+      if (card.id.slice(0, 4) !== "set-") return;
+       
+      var head = card.querySelector("h2");
+      if (!head || head.parentNode !== card) return;
+      var body = document.createElement("div");
+      body.className = "setbody";
+      body.id = card.id + "-body";
+       
+      while (head.nextSibling) body.appendChild(head.nextSibling);
+      card.appendChild(body);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "fold";
+      btn.setAttribute("aria-controls", body.id);
+      while (head.firstChild) btn.appendChild(head.firstChild);
+      head.appendChild(btn);
+       
+      card._fold = function (open) {
+        body.hidden = !open;
+        btn.setAttribute("aria-expanded", open ? "true" : "false");
+        card.classList.toggle("shut", !open);
+      };
+      card._fold(card.id === last);
+      btn.addEventListener("click", function () {
+        var open = body.hidden;
+        card._fold(open);
+        try {
+          if (open) localStorage.setItem(SET_OPEN_KEY, card.id);
+          else if (localStorage.getItem(SET_OPEN_KEY) === card.id)
+            localStorage.removeItem(SET_OPEN_KEY);
+        } catch (e) {}
+      });
+    });
+  }
+  function openOneFold(id) {
+    var card = $(id);
+    if (card && card._fold) card._fold(true);
+  }
+   
+  function openFold(id) {
+    openOneFold(id);
+     
+    if (id === "set-sheet")
+      LIST_KINDS.forEach(function (k) { openOneFold("set-list-" + esc(k[0])); });
+    try { localStorage.setItem(SET_OPEN_KEY, id); } catch (e) {}
+  }
+
   function wireLists() {
     app.querySelectorAll("[data-jump]").forEach(function (b) {
-      b.addEventListener("click", function () { jumpTo(b.getAttribute("data-jump")); });
+       
+      b.addEventListener("click", function () {
+        var to = b.getAttribute("data-jump");
+        openFold(to);
+        jumpTo(to);
+      });
     });
      
     if ($("pwGo"))
@@ -10652,7 +10778,8 @@ var h = "<h1>Daily Close — " + esc(fmtLong(D)) + "</h1>" +
       '<span style="flex:1"></span>' +
       '<span class="empty" style="font-size:.78rem">Sheets come back the next day — ' +
       "close the day they belong to.</span>" +
-      '<button class="act" id="cmonth" type="button">Close the month…</button>' +
+       
+      '<button class="act" id="cmonth" type="button">Month end for sales tax…</button>' +
       '<button class="act" id="cprint" type="button">🖨 Print</button></div>';
 
 var third = nothingYet ? { lbl: "Nothing to reconcile", val: money(0), cls: " ok" }
@@ -10663,7 +10790,11 @@ var third = nothingYet ? { lbl: "Nothing to reconcile", val: money(0), cls: " ok
       (balanced || nothingYet ? "var(--ok)" : "var(--owed)") + '">' +
       '<div class="recon">' +
         '<div><div class="lbl">Work completed</div>' +
-          '<button class="figure" data-exp="work" type="button">' + money(completed) + "</button>" +
+           
+          '<button class="figure" data-exp="work" type="button" aria-controls="exp-work" ' +
+          'aria-expanded="false" aria-label="Work completed ' + money(completed) +
+          ', show the jobs behind it">' + money(completed) +
+          '<span class="cue" aria-hidden="true">▸</span></button>' +
            
           '<div class="what">' + plural(counted.length, "job") + " finished this day" +
           (excluded.length ? ", " + excluded.length + " not counted" : "") +
@@ -10671,24 +10802,35 @@ var third = nothingYet ? { lbl: "Nothing to reconcile", val: money(0), cls: " ok
           "</div></div>" +
         '<div class="eq">' + (balanced || nothingYet ? "=" : "≠") + "</div>" +
         '<div><div class="lbl">Payments recorded</div>' +
-          '<button class="figure" data-exp="paid" type="button">' + money(recorded) + "</button>" +
+          '<button class="figure" data-exp="paid" type="button" aria-controls="exp-paid" ' +
+          'aria-expanded="false" aria-label="Payments recorded ' + money(recorded) +
+          ', show the payments behind it">' + money(recorded) +
+          '<span class="cue" aria-hidden="true">▸</span></button>' +
           '<div class="what">against those same jobs</div></div>' +
         '<div class="gap"></div>' +
         '<div style="text-align:right">' +
         (third
           ? '<div class="lbl">' + third.lbl + "</div>" +
-            '<button class="figure' + third.cls + '" data-exp="gap" type="button">' +
-            third.val + "</button>"
+            '<button class="figure' + third.cls + '" data-exp="gap" type="button" ' +
+            'aria-controls="exp-gap" aria-expanded="false" aria-label="' + third.lbl +
+            ' ' + third.val + ', show what is outstanding">' + third.val +
+            '<span class="cue" aria-hidden="true">▸</span></button>'
            
           : (unaccounted > 0.004
               ? '<div class="lbl">⚠ Unaccounted</div>' +
-                '<button class="figure bad" data-exp="gap" type="button">' +
-                money(unaccounted) + "</button>"
+                '<button class="figure bad" data-exp="gap" type="button" ' +
+                'aria-controls="exp-gap" aria-expanded="false" aria-label="Unaccounted ' +
+                money(unaccounted) + ', show the jobs with no payment recorded">' +
+                money(unaccounted) +
+                '<span class="cue" aria-hidden="true">▸</span></button>'
               : "") +
             (overpaid > 0.004
               ? '<div class="lbl" style="margin-top:.3rem">⚠ Over-collected</div>' +
-                '<button class="figure bad" data-exp="over" type="button">' +
-                money(overpaid) + "</button>"
+                '<button class="figure bad" data-exp="over" type="button" ' +
+                'aria-controls="exp-over" aria-expanded="false" aria-label="Over-collected ' +
+                money(overpaid) + ', show the sheets that were overpaid">' +
+                money(overpaid) +
+                '<span class="cue" aria-hidden="true">▸</span></button>'
               : "") +
             (unaccounted <= 0.004 && overpaid <= 0.004 && noInvoice.length
               ? '<div class="lbl">⚠ Cannot be reconciled</div>' +
@@ -10919,9 +11061,7 @@ var flagged = counted.filter(function (x) { return x.bal && Number(x.bal.balance
               '<button class="act" data-sheet="' + x.j.id + '" type="button">Open the sheet</button>' +
               '<button class="act" data-notowed="' + x.inv.id +
                 '" type="button">Not asking for it…</button>' +
-              (c && c.phone
-                ? '<a class="act" href="tel:' + esc(String(c.phone).replace(/[^0-9+]/g, "")) +
-                  '">Call ' + esc(c.phone) + "</a>" : "") +
+              (c && c.phone ? callLink(c.phone) : "") +
             "</div></div>";
         }).join("") + "</div>";
 
@@ -11029,6 +11169,7 @@ if ($("cmonth")) $("cmonth").addEventListener("click", function () {
         if (!box) return;
         box.hidden = !box.hidden;
         b.classList.toggle("open", !box.hidden);
+        b.setAttribute("aria-expanded", box.hidden ? "false" : "true");
       });
     });
     app.querySelectorAll("[data-pay]").forEach(function (b) {
@@ -11882,7 +12023,10 @@ h += '<label>What are they having done?</label>' +
                 '<span class="pickamt">' +
                 (Number(sv.price) > 0 ? money(sv.price) : "on the job") + "</span></label>";
             }).join("")
-          : '<div class="empty">The price book is empty.</div>') + "</div>";
+          : '<div class="empty">The price book is empty. ' +
+            (isAdmin() ? "Add them under <b>Settings</b>."
+                       : "Ask an admin to add them under Settings.") +
+            "</div>") + "</div>";
 
       h += '<label for="bktype">What kind of job?</label><select id="bktype" class="f">' +
         JOB_TYPES.map(function (t) {
@@ -12216,7 +12360,16 @@ function jumpTo(id) {
     var bar = $("bar");
     var over = (bar && bar.offsetHeight ? bar.offsetHeight : 0) + 10;
     var y = e.getBoundingClientRect().top + window.pageYOffset - over;
-    window.scrollTo({ top: y < 0 ? 0 : y, behavior: "smooth" });
+     
+    var still = false;
+    try { still = window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+    catch (err) {}
+    window.scrollTo({ top: y < 0 ? 0 : y, behavior: still ? "auto" : "smooth" });
+    e.classList.remove("jumped");
+    void e.offsetWidth;
+    e.classList.add("jumped");
+    clearTimeout(e._jt);
+    e._jt = setTimeout(function () { e.classList.remove("jumped"); }, 1500);
   }
 
 function openModal(html) {
@@ -12741,10 +12894,7 @@ async function renderCustomer(id) {
       '<div class="acts noprint" style="margin-bottom:.8rem">' +
       '<button class="act" id="cfBack" type="button">\u2039 Customers</button>' +
        
-      (c.phone
-        ? '<a class="act" href="tel:' + esc(String(c.phone).replace(/[^0-9+]/g, "")) +
-          '">Call ' + esc(c.phone) + "</a>"
-        : "") +
+      (c.phone ? callLink(c.phone) : "") +
        
       (mayEdit
         ? '<button class="act" id="cfBook" type="button">\uff0b Book a job</button>'
@@ -12909,6 +13059,11 @@ h += '<div class="card"><h2>What is arranged</h2>' +
       (mayEdit ? '<button class="act" id="cfQuote" type="button">\uff0b An estimate</button>' : "") +
       (mayEdit ? '<button class="act" id="cfEval" type="button">\uff0b Crawl space form</button>' : "") +
       "</div>" +
+       
+      (!pg && !qs.length && !evs.length && !ws.length
+        ? '<p class="empty" style="margin-top:.6rem">Nothing arranged yet.' +
+          (mayEdit ? " Use the buttons above." : "") + "</p>"
+        : "") +
       (pg
         ? '<p class="note" style="margin-top:.6rem"><b>' +
           plural((pg.months || []).length, "visit") + "</b> a year \u00b7 " +
@@ -12952,7 +13107,8 @@ h += '<div class="card"><h2>What is arranged</h2>' +
 
 h += '<div class="card"><h2>Every job</h2>';
     h += !jobs.length
-      ? '<p class="empty">Nothing on file yet.</p>'
+      ? '<p class="empty">No jobs for this customer yet.' +
+        (mayEdit ? " Use <b>Book a job</b> above." : "") + "</p>"
       : jobs.map(function (j) {
           var b = balOf(j.id), t = personOf(j.assigned_to);
           var when = j.completed_date || j.scheduled_date;
