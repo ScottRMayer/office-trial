@@ -940,6 +940,43 @@ if (rows.length === PAGE)
         .replace(/^Payment Reversals/, "That correction")
         .replace(/^Payments/, "That payment") +
         (isAdmin() ? "" : " Only an admin can reopen a month."));
+     
+    var CHECK_RULES = {
+      tax_rate_sane:
+        "The sales tax rate is a fraction, not a percentage — 6.625% is typed 0.06625 — " +
+        "and it has to be between 0 and 0.20.",
+      invoice_tax_rate_sane:
+        "That invoice carries its own tax rate, snapshotted when it was raised, and it has " +
+        "to be a fraction between 0 and 0.20 — 6.625% is 0.06625.",
+      service_price_not_negative:
+        "A price cannot be less than nothing. 0 is allowed and means the technician writes " +
+        "it in on site.",
+      job_price_not_negative:
+        "A job’s price cannot be less than nothing. It is the sum of the lines on the sheet.",
+      line_price_not_negative:
+        "A line on the sheet cannot be priced below nothing. 0 is allowed and prints blank " +
+        "for the technician to write in.",
+      property_crawl_sane:
+        "A crawl space has to be between 0 and 5,000,000 square feet.",
+      property_measures_sane:
+        "A lot, building or paving size has to be between 0 and 5,000,000 square feet.",
+      wdi_signed_says_which:
+        "Section II has to say which box: A, no visible evidence, or B, evidence as follows.",
+      wdi_b_needs_a_subfinding:
+        "Box B says the evidence follows and none of the three lines is ticked. Tick what " +
+        "was seen, or tick box A.",
+      wdi_a_saw_nothing:
+        "Box A says nothing was seen, and there is something written on the three lines " +
+        "under it. Clear those, or tick box B.",
+      wdi_signed_recommends:
+        "Section III has to say one or the other: no action, or action recommended for the " +
+        "control of something.",
+      wdi_recommend_box_known:
+        "Section III is two boxes — no action, or action recommended — and this is neither."
+    };
+    var ckName = /violates check constraint "([^"]+)"/.exec(m);
+    if (ckName && Object.prototype.hasOwnProperty.call(CHECK_RULES, ckName[1]))
+      return new Error(CHECK_RULES[ckName[1]]);
     if (/failed to fetch/i.test(m)) return new Error("Couldn’t reach the database. Check the connection.");
     return new Error(m);
   }
