@@ -59,7 +59,12 @@
   .results button:hover,.results button:focus-visible{background:var(--brand-w);outline:none}
   .who{font-size:.82rem;color:var(--ink-soft);white-space:nowrap}
   .who b{color:var(--ink)}
-  nav{display:flex;gap:.25rem;overflow-x:auto;margin-top:.5rem}
+   
+  nav{display:flex;gap:.25rem;overflow-x:auto;margin-top:.5rem;
+    -webkit-overflow-scrolling:touch;
+    mask-image:linear-gradient(to right,#000 calc(100% - 1.6rem),transparent);
+    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 1.6rem),transparent)}
+  @media (min-width:721px){ nav{mask-image:none;-webkit-mask-image:none} }
   nav button{font:inherit;font-size:.86rem;font-weight:600;white-space:nowrap;
     padding:.35rem .75rem;border-radius:20px;border:1px solid transparent;
     background:none;color:var(--ink-soft);cursor:pointer}
@@ -76,6 +81,9 @@
   .card .note{color:var(--ink-soft);font-size:.84rem;margin:0 0 .85rem}
 
   .buckets{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-bottom:.9rem}
+   
+  .bucket[data-jump]{cursor:pointer}
+  .bucket[data-jump]:active{background:var(--paper)}
   .bucket{border:1px solid var(--rule);border-radius:6px;background:var(--card);padding:.95rem 1.05rem}
   .bucket.owed{border-left:5px solid var(--owed)} .bucket.risk{border-left:5px solid var(--risk)}
   .bucket .lbl{font-size:.67rem;letter-spacing:.11em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)}
@@ -214,7 +222,8 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .chip .x:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
   .addrow{display:flex;gap:.4rem;align-items:center}
   .addrow input{flex:1}
-  button.gear{font:inherit;font-size:1rem;line-height:1;background:none;border:none;
+   
+  button.gear{font:inherit;font-size:1.35rem;line-height:1;background:none;border:none;
     cursor:pointer;color:var(--ink-soft);padding:.1rem .25rem;border-radius:4px}
   button.gear:hover{color:var(--brand);background:var(--brand-w)}
   button.gear:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
@@ -1791,20 +1800,20 @@ function nextBox() {
 var h = missingBanner() + "<h1>Dashboard</h1>" +
       '<p class="sub">Calls to make: ' + esc(span) + "</p>";
 
-    h += '<div class="buckets">' +
-      '<div class="bucket owed"><div class="lbl">Money already owed</div><div class="amt">' +
+var money3 = '<div class="buckets">' +
+      '<div class="bucket owed" data-jump="owed"><div class="lbl">Money already owed</div><div class="amt">' +
         money(sum(owed)) + '</div><div class="what">' +
         plural(owed.length, "completed job") + " with payment not collected</div>" +
         (owed.length ? '<button class="expand" type="button" data-jump="owed">Show me which ↓</button>' : "") +
       "</div>" +
-      '<div class="bucket risk"><div class="lbl">Revenue at risk</div><div class="amt">' +
+      '<div class="bucket risk" data-jump="risk"><div class="lbl">Revenue at risk</div><div class="amt">' +
         money(sum(risk)) + '</div><div class="what">' +
         plural(risk.length, "quote or warranty", "quotes and warranties") +
         " that could still be accepted or refused</div>" +
         (risk.length ? '<button class="expand" type="button" data-jump="risk">Show me which ↓</button>' : "") +
       "</div>" +
        
-      '<div class="bucket call"><div class="lbl">Calls to make</div><div class="amt">' +
+      '<div class="bucket call" data-jump="boxes"><div class="lbl">Calls to make</div><div class="amt">' +
         boxes.length + '</div><div class="what">' +
         (late.length ? late.length + " overdue · " : "") +
         nowB.length + " due this month · " + nextB.length + " to book ahead for " +
@@ -1981,6 +1990,7 @@ var stale = S.jobs.filter(function (j) {
           : "") + "</div>";
     }
 
+    h += money3;           
     h += '<div class="acts" style="justify-content:center;margin-top:.4rem">' +
       '<button class="act go" id="dashBook" type="button">＋ Book a job</button></div>';
 
