@@ -80,7 +80,9 @@
   .card h2{font-family:ui-serif,Georgia,serif;font-size:1.12rem;font-weight:600;margin:0 0 .1rem}
   .card .note{color:var(--ink-soft);font-size:.84rem;margin:0 0 .85rem}
 
-  .buckets{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-bottom:.9rem}
+.buckets{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));
+    margin-bottom:.9rem}
+  @media (max-width:900px){ .buckets{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
 .bucket[data-jump],.bucket[data-drawer],.bucket[data-goletters]{cursor:pointer}
   .bucket[data-drawer]:active,.bucket[data-goletters]:active,
@@ -123,6 +125,11 @@
       scroll-snap-type:x proximity;padding-bottom:.2rem}
     .week7 .d7{flex:0 0 4.1rem;scroll-snap-align:start}
     .card.watch .wline{flex-wrap:wrap;gap:.15rem}
+     
+    .buckets{grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+    .bucket{padding:.7rem .75rem}
+    .bucket .amt{font-size:1.5rem}
+    .bucket .what{font-size:.68rem}
   }
   .bucket{border:1px solid var(--rule);border-radius:6px;background:var(--card);padding:.95rem 1.05rem}
   .bucket.owed{border-left:5px solid var(--owed)} .bucket.risk{border-left:5px solid var(--risk)}
@@ -215,6 +222,19 @@
     justify-content:center;flex-wrap:wrap;padding:.55rem .8rem;background:var(--card);
     border-top:1px solid var(--rule);box-shadow:0 -2px 10px rgba(0,0,0,.07)}
   .sheetbar button{flex:0 1 auto}
+   
+  .sheetbar .barsep{align-self:center;font-size:.6rem;letter-spacing:.1em;
+    text-transform:uppercase;font-weight:700;color:var(--ink-soft);
+    padding-left:.6rem;border-left:1px solid var(--rule);margin-left:.15rem}
+  .sheetbar button.doc{font-size:.76rem;padding:.26rem .55rem;opacity:.92}
+   
+  label.pick{display:flex;gap:.55rem;align-items:flex-start;text-transform:none;
+    letter-spacing:normal;font-size:.9rem;font-weight:400;color:var(--ink);
+    border:1px solid var(--rule);border-radius:5px;padding:.6rem .7rem;
+    margin-bottom:.5rem;cursor:pointer}
+  label.pick:has(input:checked){border-color:var(--brand);background:var(--paper)}
+  label.pick input{margin-top:.2rem;flex:0 0 auto}
+  label.pick .note{display:block;margin:.15rem 0 0;font-size:.78rem}
    
   body.hassheetbar{padding-bottom:6.4rem}
   @media (max-width:560px){ body.hassheetbar{padding-bottom:8.8rem} }
@@ -3973,6 +3993,30 @@ var chkBox = function (on) {
     return '<span class="chk' + (on ? " on" : "") + '">' + (on ? "✓" : "") + "</span>";
   };
 
+function printModeModal(jobId, then) {
+    var compactNow = lsGet("ut_sheet_compact") === "1";
+    openModal("<h3>Print this sheet</h3>" +
+      '<p class="note">The record is the same either way. This is only how much of ' +
+      "the materials pad goes on the paper.</p>" +
+      '<label class="pick"><input type="radio" name="pmode" value="1"' +
+        (compactNow ? " checked" : "") + "> <span><b>Just what was used</b><br>" +
+        '<span class="note">The products on this visit, and nothing else. ' +
+        "Shorter, and it is what the customer's copy is for.</span></span></label>" +
+      '<label class="pick"><input type="radio" name="pmode" value="0"' +
+        (compactNow ? "" : " checked") + "> <span><b>The whole materials pad</b><br>" +
+        '<span class="note">Every box, the way the paper pad is laid out. ' +
+        "Use this when somebody will write on it by hand.</span></span></label>" +
+      '<div class="row"><button class="primary" id="pmGo" type="button">Print</button>' +
+      '<button class="act" id="pmNo" type="button">Cancel</button></div>');
+    $("pmNo").addEventListener("click", closeModal);
+    $("pmGo").addEventListener("click", function () {
+      var picked = document.querySelector('input[name="pmode"]:checked');
+      lsSet("ut_sheet_compact", picked && picked.value === "1" ? "1" : "0");
+      closeModal();
+      then();
+    });
+  }
+
   function renderSheet(jobId) {
     var j = jobById(jobId);
     if (!j) { app.innerHTML = '<div class="msg bad">That job isn’t here.</div>'; return; }
@@ -4051,23 +4095,22 @@ document.body.classList.add("hassheetbar");
       (locked && isOffice()
         ? '<button class="act corr" id="unlock" type="button">Open for corrections</button>'
         : "") +
-      '<button class="act" id="cmp" type="button">' +
-      (compact ? "Printing: just what was used" : "Printing: the whole materials pad") +
-      "</button>" +
+
+(isOffice() ? '<span class="barsep" aria-hidden="true">Documents</span>' : "") +
        
       (isOffice()
-        ? '<button class="act" id="plan" type="button">' +
+        ? '<button class="act doc" id="plan" type="button">' +
           (planOf(jobId) ? "Service Plan ✓" : "Service Plan") + "</button>"
         : "") +
        
       (isOffice()
-        ? '<button class="act" id="cisBtn" type="button">' +
+        ? '<button class="act doc" id="cisBtn" type="button">' +
           (cisCovers(j.customer_id, j.property_id, j.completed_date || j.scheduled_date)
             ? "Information Sheet \u2713" : "Information Sheet") + "</button>"
         : "") +
        
       (isOffice()
-        ? '<button class="act" id="wdiBtn" type="button">' +
+        ? '<button class="act doc" id="wdiBtn" type="button">' +
           (wdiOf(jobId) ? "NPMA-33 \u2713" : "NPMA-33") + "</button>"
         : "") +
       "</div>";
@@ -4489,12 +4532,10 @@ wireSnaps(jobId);
     });
     $("prt").addEventListener("click", function () {
 
-renderSheet(jobId);
-      setTimeout(function () { window.print(); }, 60);
-    });
-    $("cmp").addEventListener("click", function () {
-      lsSet("ut_sheet_compact", compact ? "0" : "1");
-      renderSheet(jobId);
+printModeModal(jobId, function () {
+        renderSheet(jobId);
+        setTimeout(function () { window.print(); }, 60);
+      });
     });
     if ($("plan")) $("plan").addEventListener("click", function () { go("plan", jobId); });
     if ($("cisBtn")) $("cisBtn").addEventListener("click", function () { go("cis", j.customer_id); });
