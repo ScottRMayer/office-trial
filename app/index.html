@@ -777,9 +777,10 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
         <button class="primary" id="otpGo" type="button">Sign me in</button>
       </div>
     </div>
-    <p class="note" style="margin:.6rem 0 0">No password to remember. On a phone,
-      use the code — a link opens your browser and signs you in there, not in this
-      app. Either lasts an hour and works once.</p>
+    
+    <p class="note" style="margin:.6rem 0 0">On a phone, <b>use your password</b>.
+      A link opens your browser and signs you in there, not in this app. The code
+      box works if your email carries one.</p>
   </div>
 </div>
 
@@ -1251,11 +1252,11 @@ async function signInWithCode() {
         throw new Error(r.error.message);
        
       if ($("codeBox")) $("codeBox").hidden = false;
-      if ($("otp")) $("otp").focus();
       $("gateMsg").innerHTML = '<div class="msg"><b>Check your email.</b><br>' +
-        "If " + esc(email) + " is one of ours, it has a link and a six-digit " +
-        "code. <b>On a phone, type the code below</b> — a link opens your " +
-        "browser and signs you in there, not in this app. Either lasts an hour.</div>";
+        "If " + esc(email) + " is one of ours, a sign-in link is on its way. " +
+        "<b>If this is the app rather than a browser, the link will sign you " +
+        "into your browser instead of here</b> — use your password, or type " +
+        "the code below if the email carries one.</div>";
     } catch (e) {
       $("gateMsg").innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>";
     } finally { b.disabled = false; }
