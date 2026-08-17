@@ -1930,31 +1930,33 @@ var h = missingBanner() + "<h1>Dashboard</h1>" +
 var wlGaps = "", dwGaps = "", wlWdi = "", dwWdi = "", wlWdiUrgent = false;
     var wlStale = "", dwStale = "";
 
-function tile(key, cls, label, big, what, n) {
+function tile(key, cls, label, big, what, n, calm) {
       return '<div class="bucket ' + cls + (n ? "" : " calm") + '" data-drawer="' + key +
         '" aria-expanded="false"><div class="lbl">' + esc(label) + '</div><div class="amt">' +
         big + '</div><div class="what">' + what + "</div>" +
         '<div class="expand" aria-hidden="true">' +
-        (n ? "Show me which \u2193" : "Nothing to do here") + "</div></div>";
+        (n ? "See which \u2193" : esc(calm)) + "</div></div>";
     }
 
     var money3 = '<div class="buckets">' +
-      tile("owed", "owed", "Money already owed", money(sum(owed)),
+      tile("owed", "owed", "Money owed", money(sum(owed)),
         owed.length ? plural(owed.length, "completed job") + " with payment not collected"
-                    : "Every finished job has been paid for", owed.length) +
+                    : "Every finished job has been paid for", owed.length,
+        "Nothing owed") +
        
       tile("risk", "risk", "Quotes and warranties waiting", money(sum(risk)),
         risk.length ? plural(risk.length, "quote or warranty", "quotes and warranties") +
                       " that could still be accepted or refused"
-                    : "No quote or warranty is waiting on anybody", risk.length) +
+                    : "No quote or warranty is waiting on anybody", risk.length,
+        "Nothing waiting") +
        
       tile("boxes", "call", "Calls to make", boxes.length,
         boxes.length
           ? (late.length ? late.length + " overdue \u00b7 " : "") +
             nowB.length + " due this month \u00b7 " + nextB.length +
-            " to book ahead for " + esc(mLabel(nextW))
-          : "Everybody due up to " + esc(mLabel(nextW)) + " is already booked",
-        boxes.length) +
+            " to schedule for " + esc(mLabel(nextW))
+          : "Everyone due through " + esc(mLabel(nextW)) + " is on the calendar",
+        boxes.length, "All booked") +
        
       (S.programs.length
         ? (function () {
@@ -1968,8 +1970,8 @@ function tile(key, cls, label, big, what, n) {
               ' schedule letters"><div class="lbl">The ' + ly + ' schedule letters</div>' +
               '<div class="amt">' + (pl.length ? pl.length : "0") + "</div>" +
               '<div class="what">' +
-              (pl.length ? "posted \u00b7 " + ack.length + " called back"
-                         : "none posted for " + ly + " yet \u00b7 " +
+              (pl.length ? "posted \u00b7 " + ack.length + " confirmed"
+                         : "No letters posted for " + ly + " yet \u00b7 " +
                            plural(S.programs.length, "customer") + " on the programme") +
               "</div>" +
               '<div class="expand" aria-hidden="true">Lay out ' + ly + " \u2192</div></div>";
@@ -2027,7 +2029,7 @@ if (S.wdiStatus.length) {
       });
       var urgent = S.wdiStatus.filter(function (x) { return x.urgency === 1; }).length;
        
-      wlWdi = plural(S.wdiStatus.length, "thing") + " to see to" +
+      wlWdi = plural(S.wdiStatus.length, "report") + " to deal with" +
         (urgent ? " · " + urgent + " past the ninety days" : "");
       wlWdiUrgent = !!urgent;
       dwWdi = '<div class="drawer" id="dw-wdi" hidden>' +
@@ -2072,14 +2074,14 @@ var dwOwed = '<div class="drawer" id="dw-owed" hidden>' +
       "</div>";
 
 var dwBoxes = '<div class="drawer" id="dw-boxes" hidden>' +
-      '<p class="note">Due a visit, not on the calendar yet.</p>' +
+      '<p class="note">Due for a visit — not on the calendar yet.</p>' +
       '<div class="acts noprint" style="margin-bottom:.3rem">' +
       '<button class="act" id="dashLabels" type="button">Postcard labels…</button></div>' +
       (boxes.length
         ? boxGroup("Overdue — their month has already gone by", late, "owed") +
           boxGroup("Due this month", nowB, "") +
-          boxGroup("Book ahead for " + mLabel(nextW) + " — ring these now", nextB, "risk")
-        : '<div class="msg good">Everybody whose month has come round, up to ' +
+          boxGroup("Schedule for " + mLabel(nextW) + " — call these now", nextB, "risk")
+        : '<div class="msg good">Everyone whose month has come round, up to ' +
           esc(mLabel(nextW)) + ", is already on the calendar. Nobody to ring.</div>") +
       "</div>";
 
@@ -2100,7 +2102,8 @@ var stale = S.jobs.filter(function (j) {
                                                                 : Number(j.price) || 0);
       }, 0);
        
-      wlStale = plural(stale.length, "job") + " · " + money(owedOn) + " of work";
+      wlStale = plural(stale.length, "job") + " · " + money(owedOn) +
+        " in unfinished work";
       dwStale = '<div class="drawer" id="dw-stale" hidden>' +
         '<table class="lst"><tr><th>Was due</th><th>Who</th><th>Why</th>' +
         "<th></th></tr>" +
@@ -2227,7 +2230,7 @@ app.querySelectorAll("[data-drawer]").forEach(function (b) {
         b.setAttribute("aria-expanded", shut ? "true" : "false");
         var cap = b.querySelector(".expand");
         if (cap && cap.textContent.indexOf("Nothing") < 0)
-          cap.textContent = shut ? "Hide these ↑" : "Show me which ↓";
+          cap.textContent = shut ? "Hide ↑" : "See which ↓";
       });
     });
      
@@ -7487,7 +7490,7 @@ h += (function () {
         '<div class="acts noprint" style="margin-bottom:.5rem">' + yy.map(function (yr) {
           return '<button class="act" type="button" data-lyr="' + yr + '">' + yr +
             " · " + by[yr].posted + " posted, " + by[yr].called +
-            " called back</button>";
+            " confirmed</button>";
         }).join("") + "</div>";
     })();
 
@@ -7527,7 +7530,7 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
       '<div class="bucket call"><div class="lbl">Ready to post</div><div class="amt">' +
         ready.length + '</div><div class="what">dates settled</div></div>' +
       '<div class="bucket"><div class="lbl">Posted</div><div class="amt">' + sent.length +
-        '</div><div class="what">' + ack.length + " called back</div></div>" +
+        '</div><div class="what">' + ack.length + " confirmed</div></div>" +
        
       '<div class="bucket' + (inBook.done < inBook.want ? " risk" : "") + '">' +
         '<div class="lbl">In the book</div><div class="amt">' + inBook.done + "</div>" +
@@ -7568,7 +7571,7 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
           var vs = visitsFor(r.customer_id);
           var blocked = Number(r.needs_dates) > 0 || !!r.inactive_reason;
           var status = r.acknowledged_on
-            ? '<span class="pill ok">called back ' + esc(fmtShort(r.acknowledged_on)) + "</span>"
+            ? '<span class="pill ok">confirmed ' + esc(fmtShort(r.acknowledged_on)) + "</span>"
             : (r.sent_at
                 ? '<span class="pill">posted</span>'
                 : (blocked ? '<span class="pill bad">not ready</span>'
@@ -10446,13 +10449,13 @@ var MC = null;
     if (!isOffice()) return renderDashboard();
     var mon = route.mon;
     if (!MC || MC.mon !== mon) {
-      app.innerHTML = '<div class="msg">Adding up ' + esc(monthName(mon)) + "…</div>";
+      app.innerHTML = '<div class="msg">Calculating ' + esc(monthName(mon)) + "…</div>";
       try { await loadMonthClose(mon); }
       catch (e) { app.innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>"; return; }
     }
 
     var h = "<h1>" + esc(monthName(mon)) + "</h1>" +
-      '<p class="sub">Everything the month reported, and what is not settled yet.</p>';
+      '<p class="sub">What the month reported, and what is still outstanding.</p>';
 
     h += '<div class="daynav noprint">' +
       '<button class="act" data-mon="-1" type="button">‹ ' +
@@ -10464,7 +10467,7 @@ var MC = null;
       '<button class="act" data-mon="1" type="button">' +
         esc(monthName(addMonths(mon, 1))) + " ›</button>" +
       '<span style="flex:1"></span>' +
-      '<button class="act" id="mcRefresh" type="button">Add it up again</button>' +
+      '<button class="act" id="mcRefresh" type="button">Recalculate</button>' +
        
       '<button class="act" id="mcPest" type="button">Pesticide used in ' +
         esc(mon.slice(0, 4)) + "</button>" +
@@ -10513,7 +10516,7 @@ var split = num(f.cash_total) + num(f.check_total) + num(f.card_total) + num(f.o
       "<tr><td>Check</td><td class=\"r\">" + money(f.check_total) + "</td></tr>" +
       "<tr><td>Card</td><td class=\"r\">" + money(f.card_total) + "</td></tr>" +
       (num(f.other_total) > 0.004 || num(f.other_total) < -0.004
-        ? "<tr><td>Something else — to be mailed, or another method</td>" +
+        ? "<tr><td>Other — mailed, or another method</td>" +
           '<td class="r">' + money(f.other_total) + "</td></tr>"
         : "") +
       '<tr><td><b>Altogether</b></td><td class="r"><b>' + money(split) + "</b></td></tr>" +
@@ -10528,9 +10531,10 @@ var split = num(f.cash_total) + num(f.check_total) + num(f.card_total) + num(f.o
 
 h += '<div class="card"><h2>Not settled yet</h2>';
     if (MC.itemsFailed) {
-      h += '<div class="msg warn"><b>What is outstanding could not be read.</b> The ' +
+      h += '<div class="msg warn"><b>The list of outstanding items could not be ' +
+        'loaded.</b> The ' +
         "three figures above are unaffected — this is the separate list of what is " +
-        "not settled. Add it up again, and say so if it stays.</div>";
+        "not settled. Recalculate, and tell me if it stays.</div>";
     } else if (!MC.items.length) {
       h += '<div class="empty">Nothing outstanding. Every job finished, every sheet ' +
         "closed, every payment collected.</div>";
@@ -10586,7 +10590,7 @@ var over = addMonths(todayISO().slice(0, 8) + "01", 0) > mon;
     } else {
       if (!over) {
         h += '<div class="msg warn">' + esc(monthName(mon)) + " is not over yet. You can " +
-          "still close it, but anything taken between now and the end of the month would " +
+          "still close it, but anything paid between now and the end of the month will " +
           "be refused until you reopened it.</div>";
       }
       h += '<p class="note">Closing freezes the three figures above. Payments, ' +
@@ -10651,7 +10655,8 @@ async function shutMonth(btn) {
           }).join("<br>") +
           "<br>Closing does not cancel any of it. It carries on into the months after.</div>"
         : MC.itemsFailed
-          ? '<div class="msg warn"><b>What is outstanding could not be read</b> — the ' +
+          ? '<div class="msg warn"><b>The list of outstanding items could not be ' +
+            'loaded</b> — the ' +
             "three figures above are still right, but you would be closing without " +
             "having seen what is unsettled.</div>"
           : '<div class="msg good">Nothing is outstanding in this month.</div>') +
@@ -10751,7 +10756,7 @@ var PU = null;
     if (!isOffice()) return renderDashboard();
     var y = Number(route.arg) || new Date().getFullYear();
     if (!PU || PU.year !== y) {
-      app.innerHTML = '<div class="msg">Adding up ' + y + "\u2026</div>";
+      app.innerHTML = '<div class="msg">Calculating ' + y + "\u2026</div>";
       try { await loadPesticide(y); }
       catch (e) { app.innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>"; return; }
     }
@@ -10775,7 +10780,7 @@ var qty = function (v, u) {
       '<button class="act" data-py="' + (y + 1) + '" type="button">' + (y + 1) +
         " \u203a</button>" +
       '<span style="flex:1"></span>' +
-      '<button class="act" id="puAgain" type="button">Add it up again</button>' +
+      '<button class="act" id="puAgain" type="button">Recalculate</button>' +
       '<button class="act go" id="puPrint" type="button">\ud83d\udda8 Print</button>' +
       '<button class="act" id="puMonth" type="button">Back to the month</button></div>';
 
@@ -10792,7 +10797,7 @@ h += '<div class="card"><h2>What could not be added up' +
     if (PU.gapsFailed) {
       h += '<div class="msg warn"><b>This list could not be read.</b> There may be ' +
         "lines in " + y + " that were not added up, so treat every figure below as " +
-        "a floor. Add it up again, and say so if it stays.</div>";
+        "a floor. Recalculate, and tell me if it stays.</div>";
     } else if (!PU.gaps.length) {
       h += '<div class="msg good">Every line in ' + y + " carries an amount, a unit and a " +
         "strength that could be read. The figures below are complete.</div>";
@@ -11009,7 +11014,7 @@ var chemMissing = S.products.filter(function (m) {
     }).length;
     h += '<div class="card" id="set-materials"><h2>Materials</h2>' +
       '<p class="note">' + plural(S.products.length, "product") +
-      " on the grid. The EPA number and the chemical name both print \u2014 the " +
+      " on file. The EPA number and the chemical name both print \u2014 the " +
       "chemical name on the Consumer Information Sheet, which cannot be issued " +
       "without it.</p>" +
       (chemMissing
@@ -11040,12 +11045,13 @@ var chemMissing = S.products.filter(function (m) {
           '<td><input class="li" data-prod="' + m.id + '" data-col="epa_number" value="' +
             esc(m.epa_number || "") + '" placeholder="none printed"></td>' +
           '<td><select class="li" data-prod="' + m.id + '" data-col="needs_regs_summary">' +
+             
             '<option value=""' + (m.needs_regs_summary == null ? " selected" : "") +
-              ">ask</option>" +
+              ">Ask (not decided)</option>" +
             '<option value="yes"' + (m.needs_regs_summary === true ? " selected" : "") +
-              ">required</option>" +
+              ">Required (leave a copy)</option>" +
             '<option value="no"' + (m.needs_regs_summary === false ? " selected" : "") +
-              ">not needed</option></select></td>" +
+              ">Not needed (baits exempt)</option></select></td>" +
           "<td>" + flag("prod", m.id, "active", m.active) + "</td></tr>";
       }).join("") + "</tbody></table>" +
       '<div class="acts" style="margin-top:.6rem">' +
@@ -11569,7 +11575,7 @@ function tzOffsetMs(tz, when) {
   }
 
   async function renderClose(D) {
-    app.innerHTML = '<div class="msg">Adding up ' + esc(fmtLong(D)) + "…</div>";
+    app.innerHTML = '<div class="msg">Calculating ' + esc(fmtLong(D)) + "…</div>";
 
     var pays = [], revs = [], revPays = [], owedBack = [];
     var work = [], openToday = [], carriedRaw = [];
@@ -13464,9 +13470,9 @@ function payModal(invoiceId) {
       '<div id="ctxn" style="display:none"><label for="ptxn">Transaction ID from the terminal ' +
       '<span class="empty">(leave empty if the office runs it later)</span></label>' +
       '<input id="ptxn" class="f" placeholder="on the Authorize.Net screen after it runs"></div>' +
-      '<label for="amt">How much did they hand over?</label>' +
+      '<label for="amt">How much did they pay?</label>' +
       '<input id="amt" class="f" inputmode="decimal" value="' + Number(b.balance).toFixed(2) + '">' +
-      '<p class="note">Type less if they paid part. Once recorded it cannot be ' +
+      '<p class="note">Type less if they paid part of it. Once recorded it cannot be ' +
       "changed — only the office can reverse it. " +
       (jobDone
         ? "The job is complete, so the record is already filed; recording money " +
