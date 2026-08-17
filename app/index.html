@@ -7351,7 +7351,7 @@ function workCard() {
       row("Follow up a quiet quote after", "followup_days", st.followup_days, "14", "days") +
        
       (function () {
-        var kinds = [["flat", "a price I type"], ["amount", "so much off the one-off"],
+        var kinds = [["flat", "a fixed price"], ["amount", "so much off the one-off"],
                      ["percent", "a percentage off the one-off"]];
         var kind = st.program_discount_kind || "flat";
         var base = (S.catalog || []).filter(function (c) {
