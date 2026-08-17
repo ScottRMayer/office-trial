@@ -372,6 +372,7 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   table.mat{width:100%;border-collapse:collapse;font-size:.66rem}
   table.mat th,table.mat td{border:1px solid #bbb;padding:.1rem .25rem;text-align:left}
   table.mat th{background:#f0f0f0;font-size:.58rem}
+   
   canvas.sig{width:100%;max-width:24rem;height:8rem;border:1px dashed #999;border-radius:4px;
     background:#fff;touch-action:none;display:block}
   .foot{display:flex;justify-content:space-between;font-size:.56rem;color:#666;margin-top:.5rem;gap:.5rem;flex-wrap:wrap}
@@ -480,6 +481,8 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
     font-variant-numeric:tabular-nums;padding-left:.8rem}
   @media (max-width:560px){
     .plan .pfld{grid-template-columns:1fr} .plan .psigs{grid-template-columns:1fr}
+     
+    canvas.sig{max-width:none;height:12rem}
   }
    
   .n33{background:#fff;color:#111;font-family:ui-sans-serif,Arial,Helvetica,sans-serif;
@@ -769,18 +772,8 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
       <button class="act" id="magic" type="button">Email me a link instead</button>
     </div>
     
-    <div id="codeBox" hidden style="margin-top:.7rem">
-      <label for="otp">Or the six-digit code from that email</label>
-      <input id="otp" class="f" inputmode="numeric" autocomplete="one-time-code"
-             maxlength="8" placeholder="123456">
-      <div class="acts" style="margin-top:.5rem">
-        <button class="primary" id="otpGo" type="button">Sign me in</button>
-      </div>
-    </div>
-    
-    <p class="note" style="margin:.6rem 0 0">On a phone, <b>use your password</b>.
-      A link opens your browser and signs you in there, not in this app. The code
-      box works if your email carries one.</p>
+        <p class="note" style="margin:.6rem 0 0">On a phone, <b>use your password</b>.
+      A link signs you into your browser, not into this app.</p>
   </div>
 </div>
 
@@ -1183,11 +1176,6 @@ var IDLE_MS = 20 * 60 * 1000;
 
 $("signin").addEventListener("click", doSignIn);
   $("magic").addEventListener("click", sendMagicLink);
-   
-  if ($("otpGo")) $("otpGo").addEventListener("click", signInWithCode);
-  if ($("otp")) $("otp").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") signInWithCode();
-  });
   $("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") doSignIn(); });
   $("email").addEventListener("keydown", function (e) { if (e.key === "Enter") $("pw").focus(); });
    
@@ -1208,33 +1196,7 @@ $("signin").addEventListener("click", doSignIn);
     });
   });
 
-async function signInWithCode() {
-    var b = $("otpGo"); if (!b) return;
-    var email = $("email").value.trim();
-    var code = ($("otp").value || "").replace(/[^0-9]/g, "");
-    if (!email) {
-      $("gateMsg").innerHTML = '<div class="msg bad">Type your email address too, so we ' +
-        "know whose code it is.</div>"; return;
-    }
-    if (code.length < 6) {
-      $("gateMsg").innerHTML = '<div class="msg bad">The code is six digits.</div>'; return;
-    }
-    b.disabled = true;
-    $("gateMsg").innerHTML = '<div class="msg">Signing in…</div>';
-    try {
-      var r = await sb.auth.verifyOtp({ email: email, token: code, type: "email" });
-      if (r.error) throw new Error(r.error.message);
-       
-      lsDel("ut_locked");
-      await start();
-    } catch (e) {
-      $("gateMsg").innerHTML = '<div class="msg bad">' + esc(e.message) +
-        "<br>Codes last an hour and work once. Ask for a fresh one if in doubt.</div>";
-      b.disabled = false;
-    }
-  }
-
-  async function sendMagicLink() {
+async function sendMagicLink() {
     var b = $("magic"); b.disabled = true;
     var email = $("email").value.trim();
     if (!email) {
@@ -1251,7 +1213,6 @@ async function signInWithCode() {
       if (r.error && !/signups not allowed|user not found|security purposes/i.test(r.error.message))
         throw new Error(r.error.message);
        
-      if ($("codeBox")) $("codeBox").hidden = false;
       $("gateMsg").innerHTML = '<div class="msg"><b>Check your email.</b><br>' +
         "If " + esc(email) + " is one of ours, a sign-in link is on its way. " +
         "<b>If this is the app rather than a browser, the link will sign you " +
@@ -3844,6 +3805,10 @@ var areaList = withHistory(S.opts["treatment-area"] || [], ticked.area);
 
 h += '<div class="rs-sec"><div class="rs-band">Materials used ' +
       "— NJ DEP application record (Reg 7:30-9.10)</div>" +
+       
+      '<div class="noprint" style="margin:.2rem 0 .3rem">' +
+        '<input id="matFind" class="f" type="search" placeholder="Find a product…" ' +
+        'aria-label="Find a product" style="font-size:.8rem"></div>' +
       '<table class="matpick"><colgroup><col class="pct"><col><col class="amt">' +
       '<col class="pct"><col><col class="amt"></colgroup>' +
       "<tr><th>%</th><th>Name / EPA #</th><th>Amount</th>" +
@@ -4566,7 +4531,23 @@ function matFound(chemRows) {
             }).join("")
           : '<tr><td colspan="3" style="color:#666">No pesticide applied on this visit.</td></tr>');
     }
-    function wireMaterials() {
+     
+  function wireMatFind() {
+    var box = $("matFind"), body = $("matBody");
+    if (!box || !body) return;
+    box.addEventListener("input", function () {
+      var q = (box.value || "").trim().toLowerCase();
+      var rows = body.querySelectorAll("tr");
+      for (var i = 0; i < rows.length; i++) {
+        if (!q) { rows[i].hidden = false; continue; }
+        var on = rows[i].querySelector(".matname.on");
+        var txt = (rows[i].textContent || "").toLowerCase();
+        rows[i].hidden = !on && txt.indexOf(q) < 0;
+      }
+    });
+  }
+
+  function wireMaterials() {
       var tb = $("matBody"); if (!tb) return;
       tb.querySelectorAll("[data-mat]").forEach(function (el) {
         var fire = function () {
