@@ -1833,7 +1833,36 @@ function reachable(root) {
     });
   })();
 
-var KINDS = { "unpaid-completed": "money owed", "quiet-quote": "gone quiet",
+var GAPS = {
+    "sign still up":
+      "Warning sign not recorded as removed",
+    "sign down inside 24 hours":
+      "Warning sign removed inside 24 hours",
+    "no sign recorded":
+      "No warning sign recorded",
+    "regulations not handed over":
+      "Regulations summary not handed over",
+    "no Consumer Information Sheet on file":
+      "No Consumer Information Sheet on file",
+    "applied outside the 14 days":
+      "Applied outside the 14-day window",
+    "a product the sheet did not name":
+      "A product the sheet did not name",
+    "tear-off not returned":
+      "Disclosure tear-off not returned"
+  };
+  function gapLabel(g) { return GAPS[g] || g; }
+
+var STATUS = { "scheduled": "Scheduled", "complete": "Complete",
+                 "cancelled": "Cancelled", "rained-out": "Rained out",
+                 "no-access": "Nobody home" };
+  function statusLabel(v) { return STATUS[v] || v; }
+
+  var METHODS = { "cash": "Cash", "check": "Cheque", "card": "Card",
+                  "to-be-mailed": "To be mailed", "other": "Other" };
+  function methodLabel(v) { return METHODS[v] || v; }
+
+  var KINDS = { "unpaid-completed": "money owed", "quiet-quote": "gone quiet",
                 "warranty-no-autorenew": "no auto-renewal", "sold-not-scheduled": "not on the calendar" };
 
 var MONTHS = ["January","February","March","April","May","June","July","August",
@@ -1990,13 +2019,13 @@ if (S.gaps.length) {
         return byKind[a].u - byKind[b].u || byKind[b].n - byKind[a].n;
       });
        
-      wlGaps = plural(S.gaps.length, "thing") + " to put right" +
-        (kinds.length ? " · worst is " + esc(kinds[0]) : "");
+      wlGaps = plural(S.gaps.length, "item") + " to resolve" +
+        (kinds.length ? " · most urgent: " + esc(gapLabel(kinds[0])) : "");
       dwGaps = '<div class="drawer" id="dw-gaps" hidden>' +
         '<p class="note">Nothing here can be dismissed.</p>' +
         kinds.map(function (k) {
           var g = byKind[k];
-          return '<div style="margin:.5rem 0 .2rem"><b>' + esc(k) + "</b> " +
+          return '<div style="margin:.5rem 0 .2rem"><b>' + esc(gapLabel(k)) + "</b> " +
             '<span class="empty">' + g.n + "</span></div>" +
             '<table class="lst">' +
             g.rows.slice(0, 6).map(function (r) {
@@ -2093,6 +2122,7 @@ var stale = S.jobs.filter(function (j) {
     }).sort(function (a, b) { return a.scheduled_date < b.scheduled_date ? -1 : 1; });
 
     if (stale.length) {
+       
       var WHY = { "rained-out": "Rained out", "no-access": "Nobody home",
                   "scheduled": "Scheduled, not done" };
        
@@ -2282,7 +2312,7 @@ app.querySelectorAll("[data-drawer]").forEach(function (b) {
                 : '<span class="pill warn">no phone on file</span>') +
               '<button class="act" data-noans="' + esc(b.p.id) + '" type="button">No answer</button>' +
               '<button class="act" data-outcome="' + esc(b.p.id) +
-              '" type="button">How it went…</button>' +
+              '" type="button">Record the outcome…</button>' +
               '<button class="act go" data-book="' + esc(b.c.id) + "|" + esc(b.p.id) +
               '" type="button">Book it</button>' +
             '<button class="act" data-cust="' + esc(b.c.id) + '" type="button">Open customer</button>' +
@@ -2341,7 +2371,7 @@ var OUTCOMES = [
         return '<button type="button" class="pickrow" data-oc="' + o[0] + '"><span>' +
           esc(o[1]) + '</span><span class="pickamt">' + esc(o[2]) + "</span></button>";
       }).join("") + "</div>" +
-      '<label for="ocNote">Anything worth keeping (optional)</label>' +
+      '<label for="ocNote">Notes (optional)</label>' +
       '<input id="ocNote" class="f" placeholder="ring after six · husband is ill">' +
       '<div class="row"><button class="act" id="ocNo" type="button">Cancel</button></div>');
     $("ocNo").addEventListener("click", closeModal);
@@ -2954,7 +2984,7 @@ var waiting = isOffice()
         }).join("") + "</div>";
 
     if (carried.length) {
-      h += '<div class="card" style="border-left:4px solid var(--risk)"><h2>Still carrying</h2>' +
+      h += '<div class="card" style="border-left:4px solid var(--risk)"><h2>Sheets not yet returned</h2>' +
 
         carried.map(function (j) {
           var c = custById(j.customer_id), pr = propOfJob(j);
@@ -3019,12 +3049,13 @@ var waiting = isOffice()
       b.addEventListener("click", function () { route.tech = b.dataset.tech; renderField(); });
     });
     app.querySelectorAll("[data-job]").forEach(function (b) {
-      b.addEventListener("click", function () { jobModal(b.dataset.job); });
+       
+      b.addEventListener("click", function () { jobModal(b.dataset.job, true); });
     });
     wireTake(); wirePoolFold();
   }
 
-function jobModal(jobId) {
+function jobModal(jobId, field) {
     var j = jobById(jobId); if (!j) { toast("That job has moved — reload."); return; }
     var c = custById(j.customer_id), p = propOfJob(j), b = balOf(j.id), inv = invOf(j.id);
     var sh = sheetOf(j.id), tr = trOf(j.id);
@@ -3055,7 +3086,7 @@ function jobModal(jobId) {
         (Number(b.collected) > 0 ? " · " + money(b.collected) + " in · " + money(b.balance) + " owed" : "") : "") +
       "</div></div>";
 
-if (isOffice()) {
+if (isOffice() && !field) {
       var win = windowOf(j);
       h += '<div class="acts" style="margin-top:.9rem">' +
         '<span class="minilbl">Doing it</span>' +
@@ -3145,7 +3176,7 @@ var others = techs().filter(function (t) { return t.id !== j.assigned_to; });
     }
 
 h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size:.86rem">' +
-      "What happened here before</summary>" +
+      "Earlier visits to this address</summary>" +
       '<div id="hxBox" style="margin-top:.5rem"><p class="empty">Reading the file\u2026</p></div>' +
       "</details>";
 
@@ -3405,7 +3436,7 @@ function addServiceModal(j) {
     S.menu.forEach(function (m) { (groups[m.sheet_group || "Other"] = groups[m.sheet_group || "Other"] || []).push(m); });
     openModal("<h3>Add a service</h3>" +
       '<p class="note">The price comes from the price book.</p>' +
-      '<label for="svc">What are you doing?</label><select id="svc" class="f">' +
+      '<label for="svc">Service</label><select id="svc" class="f">' +
       Object.keys(groups).map(function (g) {
         return '<optgroup label="' + esc(g) + '">' +
           groups[g].map(function (m) { return '<option value="' + m.id + '">' + esc(m.name) + "</option>"; }).join("") +
@@ -3467,7 +3498,7 @@ if (!sup.applicator_no) {
       return;
     }
 
-    openModal("<h3>What did you apply?</h3>" +
+    openModal("<h3>Record the treatment</h3>" +
       '<p class="note">Prints under <b>' + esc(sup.applicator_no || "no certification number") + "</b>" +
       (S.me.works_under ? " (" + esc(sup.name) + "’s), applied by you." : ".") + "</p>" +
       '<label>Target pests</label><div id="pests" class="grid4" style="display:grid;' +
@@ -3477,7 +3508,7 @@ if (!sup.applicator_no) {
           (chosen.p.indexOf(x) >= 0 ? " on" : "") + '">' + (chosen.p.indexOf(x) >= 0 ? "✓" : "") +
           "</span>" + esc(x) + "</div>";
       }).join("") + "</div>" +
-      '<label>Where did you treat?</label><div id="locs" style="display:grid;' +
+      '<label>Areas treated</label><div id="locs" style="display:grid;' +
       'grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));margin-bottom:.8rem">' +
       areasL.map(function (x) {
         return '<div class="box" data-a="' + esc(x) + '"><span class="chk' +
@@ -4709,7 +4740,7 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
              
             mCond.innerHTML = "Last recorded at this address on " +
               esc(fmtLong(r0.as_at)) + ": " + esc(got.join(" \u00b7 ")) +
-              '. <button class="act" id="condTake" type="button">Still true here</button>' +
+              '. <button class="act" id="condTake" type="button">Still applies</button>' +
               " Nothing is on this record until you tap it.";
             if ($("condTake")) $("condTake").addEventListener("click", function (e) {
               tickWrite(e.target, function () {
@@ -6718,7 +6749,7 @@ var head = IMP.head, sample = IMP.rows.slice(0, 3);
 
 if (IMP.report) {
       var r = IMP.report;
-      h += '<div class="card"><h2>What would happen</h2>' +
+      h += '<div class="card"><h2>What this import would do</h2>' +
         '<div class="buckets" style="margin-bottom:.6rem">' +
         '<div class="bucket call"><div class="lbl">New customers</div>' +
         '<div class="amt">' + r.create.length + "</div>" +
@@ -7114,19 +7145,19 @@ function peopleCard() {
       "belong to; changing it is how these four move onto their real addresses at " +
       "go-live.</p>" +
       '<div class="acts" style="margin-top:.7rem">' +
-      '<button class="act go" id="addUser" type="button">＋ Somebody new</button></div>' +
+      '<button class="act go" id="addUser" type="button">＋ Add a person</button></div>' +
       "</div>";
     return h;
   }
 
 function newUserModal() {
-    openModal("<h3>Somebody new</h3>" +
+    openModal("<h3>Add a person</h3>" +
       '<p class="note">They get an email and choose their own password. Nobody ' +
       "types one here, and nobody sends one.</p>" +
       '<label for="nuName">Name</label><input id="nuName" class="f" placeholder="how the office says it">' +
       '<label for="nuEmail">Their email</label>' +
       '<input id="nuEmail" class="f" type="email" autocomplete="off" spellcheck="false">' +
-      '<label for="nuRole">What they can do</label><select id="nuRole" class="f">' +
+      '<label for="nuRole">Permissions</label><select id="nuRole" class="f">' +
       ROLES.map(function (r) {
         return '<option value="' + r[0] + '"' + (r[0] === "tech" ? " selected" : "") + ">" +
           esc(r[1]) + "</option>";
@@ -11944,7 +11975,7 @@ h += '<div class="card"><h2>What should go to the bank — ' + money(drawer) + "
           plural(promised.length, "payment") + " written down but not in yet — " +
           money(sum(promised)) + ".</b><br>" +
           promised.map(function (p) {
-            return esc(who(p.customer_id)) + " · " + esc(p.method);
+            return esc(who(p.customer_id)) + " · " + esc(methodLabel(p.method));
           }).join("<br>") +
           "<br>A card number on a sheet is not money until the card is run, so these are " +
           "not in the deposit.</div>";
@@ -12003,7 +12034,7 @@ h += '<div class="card"><h2>Money in (' + inDrawer.length + ")</h2>" +
             var back = r2(reversed.reduce(function (t, x) { return t + Number(x.r.amount || 0); }, 0));
             return '<div class="item"><div class="top">' +
               '<span class="nm">' + esc(who(p.customer_id)) + "</span>" +
-              '<span class="pill ok">' + esc(p.method) +
+              '<span class="pill ok">' + esc(methodLabel(p.method)) +
                 (p.check_number ? " #" + esc(p.check_number) : "") + "</span>" +
               (p.recorded_offline ? '<span class="pill">taken offline</span>' : "") +
                
@@ -12414,7 +12445,7 @@ function closedMonthMsg(e) {
   function issueModal(p, D) {
     var c = custById(p.customer_id);
     openModal("<h3>Payment issue — " + esc(c ? c.name : "") + "</h3>" +
-      '<p class="note">' + money(p.amount_collected) + " by " + esc(p.method) +
+      '<p class="note">' + money(p.amount_collected) + " by " + esc(methodLabel(p.method)) +
       (p.check_number ? " #" + esc(p.check_number) : "") + ", taken " +
       esc(fmtDate(String(p.collected_at).slice(0, 10))) +
       ". The payment is not edited; this records what happened to it.</p>" +
@@ -12862,7 +12893,7 @@ function undoReversalModal(rv, p) {
     var said = personOf(rv.created_by);
     openModal("<h3>" + esc(revLabel(rv.kind)) + " — " + money(rv.amount) + "</h3>" +
       '<p class="note">' + esc(c ? c.name : "customer not loaded") +
-      (p ? " · against " + money(p.amount_collected) + " by " + esc(p.method) +
+      (p ? " · against " + money(p.amount_collected) + " by " + esc(methodLabel(p.method)) +
            (p.check_number ? " #" + esc(p.check_number) : "") + " taken " +
            esc(fmtDate(String(p.collected_at).slice(0, 10)))
          : "") +
@@ -12935,7 +12966,7 @@ if (!c) {
           '<input id="bkq" class="f" placeholder="Type a name or an address…" autocomplete="off">' +
           '<div id="bkhits" class="picklist"></div>' +
           '<div class="acts" style="margin:-.4rem 0 .8rem">' +
-          '<button class="act" id="bkNew" type="button">＋ Somebody new</button></div>';
+          '<button class="act" id="bkNew" type="button">＋ New customer</button></div>';
       } else {
         h += '<div class="msg" style="margin-bottom:.8rem"><b>' + esc(c.name) +
           (c.first_name ? " · " + esc(c.first_name) : "") + "</b>" +
@@ -13040,7 +13071,7 @@ h += '<label for="bkwho">Who does it?</label><select id="bkwho" class="f">' +
                   '<span class="pickamt">' + esc(c.phone || "") + "</span></button>";
               }).join("")
             : (t ? '<div class="empty" style="padding:.4rem .5rem">Nobody by that. ' +
-                   "Use <b>Somebody new</b>.</div>" : "");
+                   "Use <b>New customer</b>.</div>" : "");
           $("bkhits").querySelectorAll("[data-pick]").forEach(function (b) {
             b.addEventListener("click", function () { chosen = b.getAttribute("data-pick"); redraw(); });
           });
@@ -13146,7 +13177,7 @@ var lines = picked.map(function (el, i) {
 function newCustomerModal(then) {
     var core = S.areas.filter(function (a) { return !a.out_of_area; });
     var out = S.areas.filter(function (a) { return a.out_of_area; });
-    openModal("<h3>Somebody new</h3>" +
+    openModal("<h3>New customer</h3>" +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
       '<div><label for="ncname">Last name</label><input id="ncname" class="f"></div>' +
       '<div><label for="ncfirst">How they are addressed</label>' +
@@ -13252,7 +13283,7 @@ if (billAddr && billAddr !== svcAddr) {
 function renderCustomers() {
     var h = "<h1>Customers</h1><p class=\"sub\">" + plural(S.customers.length, "customer") + "</p>" +
       '<div class="acts" style="margin-bottom:.9rem">' +
-      '<button class="act go" id="custNew" type="button">＋ Somebody new</button>' +
+      '<button class="act go" id="custNew" type="button">＋ New customer</button>' +
       '<button class="act" id="custBook" type="button">＋ Book a job</button></div>';
      
     var invByJob = {}, balByInv = {}, owedBy = {};
@@ -13283,7 +13314,7 @@ function renderCustomers() {
     }).join("");
      
     if (!S.customers.length)
-      h += '<div class="empty">Nobody on file yet. Use <b>Somebody new</b> above.</div>';
+      h += '<div class="empty">No customers on file yet. Use <b>New customer</b> above.</div>';
     app.innerHTML = h + stamp();
     app.querySelectorAll("[data-cust]").forEach(function (b) {
       b.addEventListener("click", function () { go("customer", b.dataset.cust); });
@@ -13504,7 +13535,7 @@ function payModal(invoiceId) {
         box.className = "msg warn";
         box.innerHTML = "<b>Written down, not in yet:</b><br>" +
           pr.map(function (p, i) {
-            return esc(p.method) + " · " + money(p.amount_collected) +
+            return esc(methodLabel(p.method)) + " · " + money(p.amount_collected) +
               " (" + esc(fmtDate(String(p.collected_at).slice(0, 10))) + ") " +
               '<button class="act" data-arrived="' + i + '" type="button">Arrived / processed</button> ' +
               '<button class="act" data-nocome="' + i + '" type="button">Not coming</button>';
@@ -13528,7 +13559,7 @@ function completePayment(p) {
     var isCard = p.method === "card";
     openModal("<h3>" + (isCard ? "The card was run" : "It arrived") + " — " +
         money(p.amount_collected) + "</h3>" +
-      '<p class="note">Written down as ' + esc(p.method) + " on " +
+      '<p class="note">Written down as ' + esc(methodLabel(p.method)) + " on " +
         esc(fmtDate(String(p.collected_at).slice(0, 10))) +
         ". If a different amount came — or it isn’t coming at all — use " +
         "<b>Not coming</b> on the invoice instead, and record what actually " +
@@ -13576,7 +13607,7 @@ function completePayment(p) {
    
   function cancelPromise(p) {
     openModal("<h3>Not coming — " + money(p.amount_collected) + "</h3>" +
-      '<p class="note">Written down as ' + esc(p.method) + " on " +
+      '<p class="note">Written down as ' + esc(methodLabel(p.method)) + " on " +
         esc(fmtDate(String(p.collected_at).slice(0, 10))) +
         ". Cancelling can’t be undone — whatever DID come gets recorded as " +
         "its own payment.</p>" +
@@ -14122,7 +14153,7 @@ var hJobs = '<div class="card"><h2>Every job</h2>';
                   ? "" : " " + String(when).slice(0, 4))
               : "no date") + "</span>" +
             '<span class="pill' + (j.status === "complete" ? " ok" : "") + '">' +
-            esc(j.status) + "</span>" +
+            esc(statusLabel(j.status)) + "</span>" +
             (b && Number(b.balance) > 0.004
               ? '<span class="pill warn">' + money(b.balance) + " owed</span>" : "") +
             '<span class="amt">' + (b ? money(b.total) : "\u2014") + "</span></div>" +
