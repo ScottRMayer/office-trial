@@ -92,6 +92,12 @@
    
   button.act.tiny{font-size:.66rem;padding:.14rem .42rem;margin-left:.15rem}
   .meas[hidden]{display:none}
+   
+  .phoneonly{display:none!important}
+  @media (max-width:560px){
+    .deskonly{display:none!important}
+    .phoneonly{display:inline-block!important}
+  }
 
 .buckets{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));
     margin-bottom:.9rem}
@@ -2588,8 +2594,9 @@ h += '<div class="daynav noprint">' +
       '<button class="act" data-step="-1" type="button">‹ ' +
         (span === "month" ? "Prev" : span === "week" ? "Last week" : esc(fmtDate(shiftISO(d, -1)))) + "</button>" +
        
-      '<input type="date" id="goDay" class="f" aria-label="Go to a day" ' +
+      '<input type="date" id="goDay" class="f deskonly" aria-label="Go to a day" ' +
         'style="max-width:9.5rem;display:inline-block;margin:0" value="' + esc(d) + '">' +
+      '<button class="act phoneonly" id="goDayBtn" type="button">Pick a day…</button>' +
       '<button class="act" data-step="1" type="button">' +
         (span === "month" ? "Next" : span === "week" ? "Next week" : esc(fmtDate(shiftISO(d, 1)))) + " ›</button>" +
       '<button class="act" data-step="0" type="button">Today</button>' +
@@ -2605,12 +2612,32 @@ h += '<div class="daynav noprint">' +
 
     if ($("bookBtn"))
       $("bookBtn").addEventListener("click", function () { bookModal({ date: route.date }); });
-     
+
+function goToTypedDay(v) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
+      route.date = v;
+      renderSchedule(); window.scrollTo(0, 0);
+      return true;
+    }
     if ($("goDay"))
-      $("goDay").addEventListener("change", function () {
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(this.value)) return;
-        route.date = this.value;
-        renderSchedule(); window.scrollTo(0, 0);
+      $("goDay").addEventListener("change", function () { goToTypedDay(this.value); });
+    if ($("goDayBtn"))
+      $("goDayBtn").addEventListener("click", function () {
+        openModal("<h3>Which day?</h3>" +
+          '<label for="gdPick">Day</label>' +
+          '<input type="date" id="gdPick" class="f" value="' + esc(d) + '">' +
+          '<div class="row"><button class="primary" id="gdGo" type="button">Go there</button>' +
+          '<button class="act" id="gdNo" type="button">Cancel</button></div>');
+        $("gdNo").addEventListener("click", closeModal);
+         
+        $("gdPick").addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { e.preventDefault(); $("gdGo").click(); }
+        });
+        $("gdGo").addEventListener("click", function () {
+          var v = $("gdPick").value;
+          if (!goToTypedDay(v)) { toast("That is not a day."); return; }
+          closeModal();
+        });
       });
     app.querySelectorAll("[data-span]").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -2931,7 +2958,8 @@ var waiting = isOffice()
             '<div class="top"><span class="nm">' +
             (exactTime(j) ? esc(exactTime(j)) + " · " : "") +
             esc(c ? c.name : "?") + "</span>" +
-            '<span class="pill">' + esc(windowName(windowOf(j))) + "</span>" + chips.join(" ") +
+             
+            '<span class="pill">' + esc(windowName(windowOf(j))) + "</span>" +
              
             '<span class="amt">' +
             (b ? (Number(b.total) > 0 ? money(b.total) : "priced on the job") : "—") +
@@ -2940,7 +2968,10 @@ var waiting = isOffice()
             (pr && !pr.is_primary ? " — <b>" + esc(pr.label || "second address") + ", not their own house</b>" : "") +
             "</div>" +
             '<div class="dates">' + esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) +
-            " · " + esc(hoursText(slotsOf(j))) + "</div>" +
+            " · " + esc(hoursText(slotsOf(j))) +
+            (chips.length ? ' <span class="chips">' + chips.join(" ") + "</span>" : "") +
+            "</div>" +
+             
             (j.notes ? '<div class="dates">From the office: <b>' + esc(j.notes) + "</b></div>" : "") +
             "</div>";
         }).join("");
