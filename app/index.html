@@ -6695,7 +6695,7 @@ var head = IMP.head, sample = IMP.rows.slice(0, 3);
       '<p class="note">' + esc(IMP.source) + " · " + plural(IMP.rows.length, "row") +
       " · " + plural(head.length, "column") + ". Guesses are made from the headings — " +
       "correct any that are wrong.</p>" +
-      '<table class="lst"><tr><th>We need</th><th>Column in your file</th>' +
+      '<table class="lst"><tr><th>Field</th><th>Column in your file</th>' +
       "<th>First few values</th></tr>" +
       IMP_FIELDS.map(function (f) {
         var sel = IMP.map[f[0]];
@@ -8622,10 +8622,10 @@ function quoteAge(q) {
           : "") +
         (q.notes ? '<p class="note">' + esc(q.notes) + "</p>" : "") +
         '<div class="row">' +
-        (sold ? "" : '<button class="primary" id="qRang" type="button">I rang them</button>') +
+        (sold ? "" : '<button class="primary" id="qRang" type="button">Called them</button>') +
         (sold
           ? (inBook ? ""    
-                    : '<button class="primary" id="qBook" type="button">Put it in the book</button>')
+                    : '<button class="primary" id="qBook" type="button">Add it to the schedule</button>')
           : '<button class="act go" id="qYes" type="button">They said yes</button>') +
         (sold ? "" : '<button class="act" id="qNo" type="button">They said no</button>') +
          
@@ -8874,7 +8874,7 @@ function newQuoteModal(cid, pre) {
         : "") +
       (byArea.length
         ? '<label for="nqSvc">Priced by the square foot?</label>' +
-          '<select id="nqSvc" class="f"><option value="">No \u2014 a price I type</option>' +
+          '<select id="nqSvc" class="f"><option value="">No \u2014 type a price</option>' +
           byArea.map(function (s) {
             return '<option value="' + esc(s.id) + '"' +
               (pre.svc === s.id ? " selected" : "") + ">" + esc(s.name) + " \u2014 " +
@@ -12435,7 +12435,7 @@ function closedMonthMsg(e) {
        
       '<div id="rvWd" hidden><label class="box" style="margin:.2rem 0 .5rem">' +
       '<span class="chk on" id="rvWdChk">✓</span>' +
-      "<span>…and we are not asking for it again</span></label>" +
+      "<span>…and payment is not being pursued</span></label>" +
       '<p class="note" style="margin:-.3rem 0 .75rem">Ticked, the charge is withdrawn: the ' +
       "work stays on their record and the money does not go back onto what they owe. " +
       "Unticked, what they owe goes back up by that much and it shows as money owed.</p>" +
@@ -13506,7 +13506,7 @@ function payModal(invoiceId) {
           pr.map(function (p, i) {
             return esc(p.method) + " · " + money(p.amount_collected) +
               " (" + esc(fmtDate(String(p.collected_at).slice(0, 10))) + ") " +
-              '<button class="act" data-arrived="' + i + '" type="button">It arrived / I ran it</button> ' +
+              '<button class="act" data-arrived="' + i + '" type="button">Arrived / processed</button> ' +
               '<button class="act" data-nocome="' + i + '" type="button">Not coming</button>';
           }).join("<br>");
         sel.parentNode.insertBefore(box, sel.previousElementSibling || sel);
