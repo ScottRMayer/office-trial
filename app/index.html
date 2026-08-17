@@ -79,6 +79,19 @@
     padding:1rem 1.1rem;margin-bottom:.9rem}
   .card h2{font-family:ui-serif,Georgia,serif;font-size:1.12rem;font-weight:600;margin:0 0 .1rem}
   .card .note{color:var(--ink-soft);font-size:.84rem;margin:0 0 .85rem}
+   
+  .card h3.sub2{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;
+    font-weight:700;color:var(--ink-soft);margin:.9rem 0 .5rem}
+  .card h3.sub2:first-of-type{margin-top:.35rem}
+   
+  .card.answers{display:flex;flex-wrap:wrap;gap:.4rem 2rem;padding:.75rem 1.1rem}
+  .card.answers .ans{display:flex;flex-direction:column;min-width:9rem}
+  .card.answers .k{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;
+    font-weight:700;color:var(--ink-soft)}
+  .card.answers .v{font-size:.95rem;font-weight:600}
+   
+  button.act.tiny{font-size:.66rem;padding:.14rem .42rem;margin-left:.15rem}
+  .meas[hidden]{display:none}
 
 .buckets{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));
     margin-bottom:.9rem}
@@ -13767,21 +13780,25 @@ var nextJ = null, lastJ = null, k;
       if (jb.status !== "complete" && jb.status !== "cancelled" && jb.scheduled_date &&
           jb.scheduled_date >= todayISO()) nextJ = jb;
     }
+     
     if (nextJ || lastJ)
-      h += '<p class="note">' +
-        (nextJ ? "<b>Next visit</b> " + esc(fmtDate(nextJ.scheduled_date)) +
-                 " " + esc(String(nextJ.scheduled_date).slice(0, 4))
-               : "<b>Nothing booked</b>") +
+      h += '<div class="card answers">' +
+        '<div class="ans"><span class="k">Next visit</span><span class="v">' +
+        (nextJ ? esc(fmtDate(nextJ.scheduled_date)) + " " +
+                 esc(String(nextJ.scheduled_date).slice(0, 4))
+               : "nothing booked") + "</span></div>" +
+        '<div class="ans"><span class="k">Last treated</span><span class="v">' +
         (lastJ
-          ? " \u00b7 last treated " + esc(fmtDate(lastJ.completed_date)) +
-            " " + esc(String(lastJ.completed_date).slice(0, 4)) +
+          ? esc(fmtDate(lastJ.completed_date)) + " " +
+            esc(String(lastJ.completed_date).slice(0, 4)) +
             (function () {
               var nm = linesOf(lastJ.id).map(function (l) { return l.service_name; }).join(" + ");
               return nm ? " \u2014 " + esc(nm) : "";
             })()
-          : " \u00b7 never treated") + "</p>";
+          : "never treated") + "</span></div></div>";
 
-var hWho = '<div class="card"><h2>Who they are</h2>' +
+var hWho = '<div class="card"><h2>Contact</h2>' +
+      '<h3 class="sub2">How to reach them</h3>' +
       '<div class="fcols two">' +
       fld("Last name \u2014 how it is filed", "name", c.name, "", "Required.") +
       fld("How they are addressed", "first_name", c.first_name, "Mrs. Anne") +
@@ -13791,7 +13808,7 @@ var hWho = '<div class="card"><h2>Who they are</h2>' +
           "A year, not a date \u2014 the mailing list only ever held the year.") +
       "</div>" +
        
-      '<h2 style="margin-top:1rem">Where the post goes</h2>' +
+      '<h3 class="sub2">Where the post goes</h3>' +
       '<p class="note">The bill and the schedule letter go here. For an owner living ' +
       "at the address serviced this is the same place, and changing it changes both. " +
       "For a rental it is the owner\u2019s address and the serviced address below stays " +
@@ -13818,9 +13835,18 @@ var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses")
         '"></span><span class="nm">' + esc(p.address || "no street") + "</span>" +
         (p.is_primary ? '<span class="pill ok">their own</span>'
                       : '<span class="pill">' + esc(p.label || "second address") + "</span>") +
+         
+        '<span class="pill">' +
+        esc((ar && ar.name) || p.area_code || "no community") +
+        (p.month_box ? " \u00b7 " + esc(MONTHS[Number(p.month_box) - 1]) : "") +
+        "</span>" +
+         
+        '<button class="act tiny" type="button" data-pmeas="' + p.id +
+        '" aria-expanded="false">Measurements</button>' +
         "</div>" +
 
-'<div class="dates" style="margin-top:.35rem">' +
+'<div class="meas" id="pm_' + p.id + '" hidden>' +
+        '<div class="dates" style="margin-top:.35rem">' +
         (p.yard_sq_ft != null
           ? "Yard <b>" + Number(p.yard_sq_ft).toLocaleString() + " sq ft</b>" +
             (p.lot_sq_ft != null
@@ -13861,6 +13887,7 @@ var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses")
               : "") +
             "</div>"
           : "") +
+        "</div>" +                        
         '<div class="fcols two" style="margin-top:.5rem">' +
         '<div style="grid-column:1/-1"><label>Street</label>' +
         (mayEdit
@@ -14063,6 +14090,17 @@ $("cfBack").addEventListener("click", function () { go("customers"); });
       $("cfQuote").addEventListener("click", function () { newQuoteModal(id); veilThen(again); });
     if ($("cfEval"))
       $("cfEval").addEventListener("click", function () { newEvalModal(id); veilThen(again); });
+     
+    app.querySelectorAll("[data-pmeas]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var box = $("pm_" + b.getAttribute("data-pmeas"));
+        if (!box) return;
+        var shut = box.hidden;
+        box.hidden = !shut;
+        b.setAttribute("aria-expanded", shut ? "true" : "false");
+        b.textContent = shut ? "Hide measurements" : "Measurements";
+      });
+    });
     if ($("cfAddProp")) $("cfAddProp").addEventListener("click", function () { addPropModal(id); });
 
 app.querySelectorAll("[data-cfmeasure]").forEach(function (b) {
