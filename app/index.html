@@ -1935,7 +1935,7 @@ function tile(key, cls, label, big, what, n, calm) {
         '" aria-expanded="false"><div class="lbl">' + esc(label) + '</div><div class="amt">' +
         big + '</div><div class="what">' + what + "</div>" +
         '<div class="expand" aria-hidden="true">' +
-        (n ? "See which \u2193" : esc(calm)) + "</div></div>";
+        (n ? "View details \u2193" : esc(calm)) + "</div></div>";
     }
 
     var money3 = '<div class="buckets">' +
@@ -1974,7 +1974,7 @@ function tile(key, cls, label, big, what, n, calm) {
                          : "No letters posted for " + ly + " yet \u00b7 " +
                            plural(S.programs.length, "customer") + " on the programme") +
               "</div>" +
-              '<div class="expand" aria-hidden="true">Lay out ' + ly + " \u2192</div></div>";
+              '<div class="expand" aria-hidden="true">Print and post ' + ly + " \u2192</div></div>";
           })()
         : "") +
       "</div>";
@@ -2076,7 +2076,7 @@ var dwOwed = '<div class="drawer" id="dw-owed" hidden>' +
 var dwBoxes = '<div class="drawer" id="dw-boxes" hidden>' +
       '<p class="note">Due for a visit — not on the calendar yet.</p>' +
       '<div class="acts noprint" style="margin-bottom:.3rem">' +
-      '<button class="act" id="dashLabels" type="button">Postcard labels…</button></div>' +
+      '<button class="act" id="dashLabels" type="button">Print postcard labels</button></div>' +
       (boxes.length
         ? boxGroup("Overdue — their month has already gone by", late, "owed") +
           boxGroup("Due this month", nowB, "") +
@@ -2094,7 +2094,7 @@ var stale = S.jobs.filter(function (j) {
 
     if (stale.length) {
       var WHY = { "rained-out": "Rained out", "no-access": "Nobody home",
-                  "scheduled": "Never got to it" };
+                  "scheduled": "Scheduled, not done" };
        
       var owedOn = stale.reduce(function (t, j) {
         var bb = balOf(j.id);
@@ -2128,7 +2128,7 @@ var stale = S.jobs.filter(function (j) {
           : "") + "</div>";
     }
 
-var book = '<div class="card"><h2>The book</h2>' +
+var book = '<div class="card"><h2>The schedule</h2>' +
       '<p class="note">Today and the six days after it. Tap a day to open it.</p>' +
       '<div class="week7">';
     for (var wd = 0; wd < 7; wd++) {
@@ -2230,7 +2230,7 @@ app.querySelectorAll("[data-drawer]").forEach(function (b) {
         b.setAttribute("aria-expanded", shut ? "true" : "false");
         var cap = b.querySelector(".expand");
         if (cap && cap.textContent.indexOf("Nothing") < 0)
-          cap.textContent = shut ? "Hide ↑" : "See which ↓";
+          cap.textContent = shut ? "Hide ↑" : "View details ↓";
       });
     });
      
@@ -2947,7 +2947,7 @@ var waiting = isOffice()
             techs().map(function (t) {
               return '<button class="act' + (t.id === S.me.id ? " go" : "") + '" data-take="' +
                 j.id + "|" + t.id + '" type="button">' +
-                (t.id === S.me.id ? "I’ll take it" : esc(t.name.split(" ")[0])) + "</button>";
+                (t.id === S.me.id ? "Assign to me" : esc(t.name.split(" ")[0])) + "</button>";
             }).join("") +
             '<button class="act" data-job="' + j.id + '" type="button">Look at it</button>' +
             "</div></div>";
@@ -4916,7 +4916,7 @@ function unlockModal() {
       var COLS = { pest: "target_pests", area: "application_locations",
                    dug: "disrupted_locations", method: "method" };
       var col = COLS[kind] || null;
-      if (!col) throw new Error("That box isn\u2019t wired to a column \u2014 tell me.");
+      if (!col) throw new Error("That box is not connected to a field. Report it — nothing was saved.");
        
       var now = trOf(j.id);
       if (!now) {
@@ -7505,11 +7505,11 @@ h += (function () {
         : "") +
       (unposted.length && unposted.length < ready.length
         ? ' <button class="act" id="printNew" type="button">Print the ' +
-          unposted.length + " not posted</button>"
+          unposted.length + " not yet posted</button>"
         : "") +
       (ready.length
-        ? ' <button class="act" id="bookYear" type="button">Put ' + y +
-          " in the book</button>"
+        ? ' <button class="act" id="bookYear" type="button">Add ' + y +
+          " to the schedule</button>"
         : "") + "</div>";
 
 var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reason; });
@@ -7533,7 +7533,7 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
         '</div><div class="what">' + ack.length + " confirmed</div></div>" +
        
       '<div class="bucket' + (inBook.done < inBook.want ? " risk" : "") + '">' +
-        '<div class="lbl">In the book</div><div class="amt">' + inBook.done + "</div>" +
+        '<div class="lbl">Scheduled</div><div class="amt">' + inBook.done + "</div>" +
         '<div class="what">of ' + plural(inBook.want, "settled visit") +
         (inBook.done < inBook.want ? " — the rest are only on paper" : "") +
         "</div></div></div>";
@@ -7697,7 +7697,7 @@ function bookYearModal(ready) {
       return x.name === "Pest Control Service - Pre-Scheduled Program";
     })[0] || null;
 
-    openModal("<h3>Put " + y + " in the book</h3>" +
+    openModal("<h3>Add " + y + " to the schedule</h3>" +
       '<p class="note">Every settled date becomes a job in the schedule. Nobody is ' +
       "assigned — they go in the pool.</p>" +
       '<div class="buckets" style="margin-bottom:.6rem">' +
@@ -10534,7 +10534,7 @@ h += '<div class="card"><h2>Not settled yet</h2>';
       h += '<div class="msg warn"><b>The list of outstanding items could not be ' +
         'loaded.</b> The ' +
         "three figures above are unaffected — this is the separate list of what is " +
-        "not settled. Recalculate, and tell me if it stays.</div>";
+        "not settled. Recalculate. If it persists, report it.</div>";
     } else if (!MC.items.length) {
       h += '<div class="empty">Nothing outstanding. Every job finished, every sheet ' +
         "closed, every payment collected.</div>";
@@ -10797,7 +10797,7 @@ h += '<div class="card"><h2>What could not be added up' +
     if (PU.gapsFailed) {
       h += '<div class="msg warn"><b>This list could not be read.</b> There may be ' +
         "lines in " + y + " that were not added up, so treat every figure below as " +
-        "a floor. Recalculate, and tell me if it stays.</div>";
+        "a floor. Recalculate. If it persists, report it.</div>";
     } else if (!PU.gaps.length) {
       h += '<div class="msg good">Every line in ' + y + " carries an amount, a unit and a " +
         "strength that could be read. The figures below are complete.</div>";
@@ -10938,11 +10938,11 @@ var hasOrder = S.catalog.some(function (s) { return s.sort_order !== undefined; 
     h += peopleCard() + youCard() + areasCard() + workCard() + closedCard();
 
     h += '<div class="card" id="set-prices"><h2>Types of service</h2>' +
-      '<p class="note">In the order they print. No price prints as a blank to write in. ' +
-      "A rate a square foot only ever offers a figure on the estimate screen \u2014 " +
-      "it never prices a booked job line, which still takes the price on the left. " +
-      "Least is the smallest the job can come to however small the measurement is; " +
-      "0 or blank both mean there is no least.</p>" +
+       
+      '<p class="note">In print order. A blank price prints as a rule to write on. ' +
+      "A rate per square foot offers a figure on the estimate screen only \u2014 it " +
+      "never prices a booked job line, which uses the price on the left. Least is the " +
+      "minimum charge regardless of measurement; 0 or blank means no minimum.</p>" +
       '<table class="lst"><tr>' + (hasOrder ? '<th class="r">Order</th>' : "") +
       "<th>Service</th><th>Group</th><th class=\"r\">Price</th>" +
       "<th>Priced by</th><th class=\"r\">Rate a sq ft</th><th class=\"r\">Least</th>" +
@@ -12749,7 +12749,7 @@ function draw() {
       }
       if (mode) return drawReason();
       openModal(head() +
-        '<div class="msg"><b>The work happened. We are not asking to be paid.</b><br>' +
+        '<div class="msg"><b>The work was done. Payment is not being pursued.</b><br>' +
         "It stays on their record as work done, comes off what they owe, and is out of the " +
         "month’s takings." +
         (got > 0.004
