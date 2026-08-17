@@ -1385,7 +1385,7 @@ async function sendMagicLink() {
 
   async function start() {
     gate.style.display = "none"; bar.style.display = ""; app.style.display = "";
-    app.innerHTML = '<div class="msg">Loading the book…</div>';
+    app.innerHTML = '<div class="msg">Loading…</div>';
     try {
       await hydrate();
       route.name = isOffice() ? "dashboard" : "field";
@@ -3665,7 +3665,7 @@ var SIG = { cv: null, strokes: [] };
     $("sgNo").addEventListener("click", function () { jobModal(j.id); });
     $("sgGo").addEventListener("click", async function () {
       if (!SIG.strokes.filter(function (s) { return s.length >= 4; }).length) {
-        toast("Have them sign in the box first."); return;
+        toast("Ask the customer to sign in the box first."); return;
       }
       this.disabled = true;
       var saved = false;
@@ -4591,7 +4591,7 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
         ? sigSVG(sh.signature, 190) + '<span style="font-size:.58rem;color:#666">signed on site ' +
           esc(sh.signed_on) + "</span>"
         : '<span style="display:inline-block;border-bottom:1px solid #333;width:150px">&nbsp;</span>') +
-      "</div><div>United Rep: <b>" + esc(t.name || "") + "</b>" +
+      "</div><div>Technician: <b>" + esc(t.name || "") + "</b>" +
       (crewNames(j, j.assigned_to).length
         ? " and <b>" + esc(crewNames(j, j.assigned_to).join(", ")) + "</b>" : "") +
       "</div></div></div>";
@@ -9772,7 +9772,7 @@ function signEvalModal(ev) {
     $("seNo").addEventListener("click", closeModal);
     $("seGo").addEventListener("click", async function () {
       if (!SIG.strokes.filter(function (s) { return s.length >= 4; }).length) {
-        toast("Have them sign in the box first."); return;
+        toast("Ask the customer to sign in the box first."); return;
       }
       this.disabled = true;
       var saved = false;
@@ -12726,7 +12726,7 @@ var VOID_INV_REASONS = ["Raised by mistake", "Billed on another sheet",
     var leave = back || closeModal;
 
     function head() {
-      return "<h3>Not asking for this money — " + esc(c ? c.name : "") + "</h3>" +
+      return "<h3>Stop pursuing payment — " + esc(c ? c.name : "") + "</h3>" +
         '<p class="note">' +
         (j && j.scheduled_date ? esc(fmtDate(j.scheduled_date)) + " · " : "") +
         money(inv.total) + " invoiced" +
