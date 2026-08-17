@@ -811,6 +811,12 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     try { localStorage.removeItem(k); } catch (e) {}
   };
 
+var signinRedirect = function () {
+    if (location.protocol !== "http:" && location.protocol !== "https:") return null;
+    var p = location.pathname.replace(/[^/]*$/, "");
+    return location.origin + (p.charAt(p.length - 1) === "/" ? p : p + "/");
+  };
+
   var $ = function (id) { return document.getElementById(id); };
   var gate = $("gate"), bar = $("bar"), app = $("app");
 
@@ -1130,7 +1136,7 @@ var IDLE_MS = 20 * 60 * 1000;
       $("lkMsg").innerHTML = '<div class="msg">Sending…</div>';
       var r = await sb.auth.signInWithOtp({
         email: S.me.email || "",
-        options: { shouldCreateUser: false, emailRedirectTo: location.href.split("#")[0] }
+        options: { shouldCreateUser: false, emailRedirectTo: signinRedirect() }
       });
       $("lkMsg").innerHTML = r.error
         ? '<div class="msg bad">' + esc(r.error.message) + "</div>"
@@ -1197,7 +1203,7 @@ async function sendMagicLink() {
     try {
       var r = await sb.auth.signInWithOtp({
         email: email,
-        options: { shouldCreateUser: false, emailRedirectTo: location.href.split("#")[0] }
+        options: { shouldCreateUser: false, emailRedirectTo: signinRedirect() }
       });
        
       if (r.error && !/signups not allowed|user not found|security purposes/i.test(r.error.message))
