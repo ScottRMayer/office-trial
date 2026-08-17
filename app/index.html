@@ -130,6 +130,9 @@
   button.act.corr{border:1.5px solid var(--risk);color:var(--risk);font-weight:700}
   button.act.corr:hover{background:var(--risk);border-color:var(--risk);color:#fff}
 
+  .swat{width:1.9rem;height:1.6rem;padding:0;border:1px solid var(--line);
+    border-radius:.3rem;background:none;vertical-align:middle;margin-right:.25rem;
+    cursor:pointer}
   .dot{display:inline-block;width:.55rem;height:.55rem;border-radius:50%;background:var(--dot);
     margin-right:.35rem;vertical-align:.02rem;flex:0 0 auto}
   .pill{display:inline-block;font-size:.65rem;letter-spacing:.05em;text-transform:uppercase;
@@ -257,7 +260,12 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .wday{border:1px solid var(--rule);border-radius:6px;background:var(--card);
     padding:.4rem .45rem;min-height:7rem;cursor:pointer}
   .wday:hover{border-color:var(--brand)}
-  .wday.istoday{border-color:var(--brand);box-shadow:inset 0 0 0 1px var(--brand)}
+   
+  .wday.istoday,.mcell.istoday{position:relative}
+  .wday.istoday::after,.mcell.istoday::after{content:"today";position:absolute;
+    top:.1rem;right:.2rem;font-size:.52rem;font-weight:800;letter-spacing:.06em;
+    text-transform:uppercase;color:var(--brand);pointer-events:none}
+  .wday.istoday{border-color:var(--brand);box-shadow:inset 0 0 0 2px var(--brand)}
   .wday.picked{background:var(--brand-w)}
   .whdr{font-size:.74rem;color:var(--ink-soft);display:flex;gap:.3rem;align-items:baseline;
     padding-bottom:.3rem;margin-bottom:.3rem;border-bottom:1px solid var(--rule-soft)}
@@ -1125,8 +1133,14 @@ var IDLE_MS = 20 * 60 * 1000;
       '<input id="lkPw" class="f" type="password" autocomplete="current-password">' +
       '<div id="lkMsg"></div>' +
       '<div class="row"><button class="primary" id="lkGo" type="button">Unlock</button>' +
-       
-      '<button class="act" id="lkLink" type="button">Email me a link</button>' +
+
+(function () {
+        var installed = false;
+        try { installed = window.matchMedia("(display-mode: standalone)").matches
+                          || window.navigator.standalone === true; } catch (e) {}
+        return installed ? "" :
+          '<button class="act" id="lkLink" type="button">Email me a link</button>';
+      })() +
       '<button class="act" id="lkOut" type="button">Sign out</button></div>';
     var unlock = function () {
       screenLocked = false;
@@ -2456,7 +2470,7 @@ h += '<div class="daynav noprint">' +
         renderSchedule(); window.scrollTo(0, 0);
       });
     });
-    wireTake();
+    wireTake(); wirePoolFold();
   }
 
 function dayBook(d) {
@@ -2477,9 +2491,15 @@ function dayBook(d) {
         '<span class="pill' + (used > room ? " warn" : "") + '">' +
         used + " of " + room + "</span></div>";
 
-if (pool.length)
-        h += '<div class="techcol pool"><h3>Not given to anybody yet (' + pool.length + ")</h3>" +
-          pool.map(function (j) { return slotRow(j, true); }).join("") + "</div>";
+if (pool.length) {
+        var poolShut = lsGet("ut_pool_shut") === "1";
+        h += '<div class="techcol pool"><h3><button class="fold" id="poolFold" ' +
+          'type="button" aria-expanded="' + (poolShut ? "false" : "true") + '">' +
+          (poolShut ? "▸" : "▾") + ' Not given to anybody yet (' + pool.length +
+          ")</button></h3>" +
+          (poolShut ? "" : pool.map(function (j) { return slotRow(j, true); }).join("")) +
+          "</div>";
+      }
 
       h += '<div class="book" style="grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))">';
       T.forEach(function (t) {
@@ -2524,7 +2544,8 @@ var noWin = all.filter(function (j) { return !windowOf(j); });
       sizeLabel(j, route.date).map(function (x) {
         return ' <span class="pill">' + esc(x) + "</span>";
       }).join("") +
-       
+
+'<div class="dates"><b>' + esc((p && p.address) || "no address on file") + "</b></div>" +
       '<div class="dates">' + esc((linesOf(j.id)[0] || {}).service_name || typeLabel(j.type)) +
       (techsOnJob(j).length > 1 ? " · both of them" : "") + "</div></span>" +
       '<span style="text-align:right">' +
@@ -2766,7 +2787,7 @@ var waiting = isOffice()
     app.querySelectorAll("[data-job]").forEach(function (b) {
       b.addEventListener("click", function () { jobModal(b.dataset.job); });
     });
-    wireTake();
+    wireTake(); wirePoolFold();
   }
 
 function jobModal(jobId) {
@@ -3041,7 +3062,16 @@ async function setCrew(j, techId, on, btn) {
     }
   }
 
-function wireTake() {
+function wirePoolFold() {
+    var b = $("poolFold");
+    if (!b) return;
+    b.addEventListener("click", function () {
+      lsSet("ut_pool_shut", b.getAttribute("aria-expanded") === "true" ? "1" : "0");
+      render();
+    });
+  }
+
+  function wireTake() {
     app.querySelectorAll("[data-take]").forEach(function (b) {
       b.addEventListener("click", function (e) {
         e.stopPropagation();
@@ -6928,7 +6958,11 @@ function areasCard() {
           "<td><b>" + esc(a.code) + "</b></td>" +
           '<td><input class="li" data-area="' + esc(a.code) + '" data-col="name" value="' +
             esc(a.name) + '"></td>' +
+           
           '<td><span class="dot" style="background:' + esc(a.dot_color || "var(--dot)") + '"></span>' +
+            '<input class="swat" type="color" data-swat="' + esc(a.code) + '" ' +
+            'aria-label="Pick a colour for ' + esc(a.name) + '" value="' +
+            esc(/^#[0-9a-fA-F]{6}$/.test(a.dot_color || "") ? a.dot_color : "#888888") + '">' +
             '<input class="li" style="max-width:5.5rem" data-area="' + esc(a.code) +
             '" data-col="dot_color" value="' + esc(a.dot_color || "") + '" placeholder="none"></td>' +
           "<td>" + flag("area", a.code, "out_of_area", a.out_of_area) + "</td>" +
@@ -10631,10 +10665,16 @@ var chemMissing = S.products.filter(function (m) {
           (regsUnset === 1 ? "has" : "have") + " not been marked termiticide or not. " +
           "Until they are, the leave-behind is never asked for automatically.</div>"
         : "") +
+       
+      '<input id="setMatFind" class="f" type="search" placeholder="Find a product…" ' +
+        'autocomplete="off" aria-label="Find a product">' +
       '<table class="lst"><tr><th>Product</th><th>Chemical name</th>' +
       "<th>EPA registration #</th><th>Leave-behind</th><th>On the grid</th></tr>" +
+      '<tbody id="setMatBody">' +
       S.products.map(function (m) {
-        return "<tr>" +
+        return '<tr data-find="' +
+          esc(((m.name || "") + " " + (m.chemical_name || "") + " " +
+               (m.epa_number || "")).toLowerCase()) + '">' +
           '<td><input class="li" data-prod="' + m.id + '" data-col="name" value="' +
             esc(m.name) + '"></td>' +
           '<td><input class="li" data-prod="' + m.id + '" data-col="chemical_name" value="' +
@@ -10649,7 +10689,7 @@ var chemMissing = S.products.filter(function (m) {
             '<option value="no"' + (m.needs_regs_summary === false ? " selected" : "") +
               ">not needed</option></select></td>" +
           "<td>" + flag("prod", m.id, "active", m.active) + "</td></tr>";
-      }).join("") + "</table>" +
+      }).join("") + "</tbody></table>" +
       '<div class="acts" style="margin-top:.6rem">' +
       '<button class="act go" id="addProd" type="button">＋ Add a product</button></div></div>';
 
@@ -10812,6 +10852,29 @@ var SET_OPEN_KEY = "ut_set_open";
   }
 
   function wireLists() {
+     
+    if ($("setMatFind"))
+      $("setMatFind").addEventListener("input", function () {
+        var q = this.value.trim().toLowerCase(), body = $("setMatBody");
+        if (!body) return;
+        body.querySelectorAll("tr").forEach(function (tr) {
+          tr.style.display = !q || (tr.getAttribute("data-find") || "").indexOf(q) >= 0
+            ? "" : "none";
+        });
+      });
+     
+    app.querySelectorAll("[data-swat]").forEach(function (sw) {
+      sw.addEventListener("change", function () {
+        var box = app.querySelector('input.li[data-area="' + sw.getAttribute("data-swat") +
+          '"][data-col="dot_color"]');
+        if (!box) return;
+        box.value = sw.value;
+        var ev;
+        try { ev = new Event("change", { bubbles: true }); }
+        catch (e) { ev = document.createEvent("HTMLEvents"); ev.initEvent("change", true, false); }
+        box.dispatchEvent(ev);
+      });
+    });
     app.querySelectorAll("[data-jump]").forEach(function (b) {
        
       b.addEventListener("click", function () {
