@@ -103,15 +103,15 @@
     margin-bottom:.9rem}
   @media (max-width:900px){ .buckets{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
-.bucket[data-jump],.bucket[data-drawer],.bucket[data-goletters]{cursor:pointer}
-  .bucket[data-drawer]:active,.bucket[data-goletters]:active,
-  .bucket[data-jump]:active{background:var(--paper)}
+.bucket[data-drawer],.bucket[data-goletters]{cursor:pointer}
+  .bucket[data-drawer]:active,.bucket[data-goletters]:active{background:var(--paper)}
   .bucket[data-drawer],.bucket[data-goletters]{-webkit-tap-highlight-color:rgba(0,0,0,.08)}
   .bucket[data-drawer]:focus-visible,.bucket[data-goletters]:focus-visible{
     outline:2px solid var(--brand);outline-offset:2px}
    
   .bucket.calm{border-left-color:var(--rule)}
-  .bucket.calm .amt{color:var(--ink-soft);font-weight:600}
+  .bucket.calm.owed .amt,.bucket.calm.risk .amt,.bucket.calm.call .amt,
+  .bucket.calm.lets .amt,.bucket.calm .amt{color:var(--ink-soft);font-weight:600}
   .bucket.lets{border-left:5px solid var(--brand)}
   .bucket.call{border-left:5px solid var(--brand)}
 
@@ -509,6 +509,9 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
     min-height:2.75rem;padding:.25rem 0}
   .matname:active{background:#dce8e0}
   .matname.on{background:#eaf1ed;font-weight:700}
+   
+  .matname.nomatch{opacity:.32}
+  .matname.nomatch .epa{opacity:.7}
   .matname .epa{display:block;color:#777;font-size:.52rem;font-weight:400}
   .legalblk{font-size:.5rem;line-height:1.3;color:#333;text-align:justify}
   .waiver{font-size:.54rem;line-height:1.35;margin-top:.25rem}
@@ -1745,8 +1748,18 @@ function goBack(fallback) {
       MISSING.map(function (m) {
         return "<code>" + esc(m.what) + "</code> is missing, so " + esc(m.disables) + ".";
       }).join("<br>") +
-      "<br>Everything else works. Run the SQL and reload.</div>";
+       
+      '<br>Everything else works. Run the SQL, then ' +
+      '<button class="act" id="misReload" type="button">reload now</button></div>';
   }
+   
+  function wireMissing(root) {
+    var b = (root || document).querySelector("#misReload");
+    if (!b || b.getAttribute("data-bound")) return;
+    b.setAttribute("data-bound", "1");
+    b.addEventListener("click", function () { location.reload(); });
+  }
+
   function render() {
      
     if (route.name !== "sheet" && route.name !== "plan" && route.name !== "eval" &&
@@ -1779,7 +1792,8 @@ function goBack(fallback) {
 function reachable(root) {
     if (!root || !root.querySelectorAll) return;
      
-      var rows = root.querySelectorAll(".item.tap, .lrow.tap, [data-job], [data-cust], [data-drawer], [data-goletters], [data-goday]");
+    var rows = root.querySelectorAll(".item.tap, .lrow.tap, [data-job], [data-cust]," +
+      " [data-drawer], [data-goletters], [data-goday]");
     for (var i = 0; i < rows.length; i++) {
       var el = rows[i], t = el.tagName;
       if (t === "BUTTON" || t === "A" || t === "INPUT" || t === "SELECT" || t === "TEXTAREA") continue;
@@ -1792,10 +1806,12 @@ function reachable(root) {
   (function () {
     var watch = function (el) {
       if (!el || !window.MutationObserver) return;
-      reachable(el);
+      reachable(el); wireMissing(el);
       new MutationObserver(function (recs) {
         for (var i = 0; i < recs.length; i++) {
-          if (recs[i].addedNodes && recs[i].addedNodes.length) { reachable(el); return; }
+          if (recs[i].addedNodes && recs[i].addedNodes.length) {
+            reachable(el); wireMissing(el); return;
+          }
         }
       }).observe(el, { childList: true, subtree: true });
     };
@@ -1921,7 +1937,8 @@ function tile(key, cls, label, big, what, n) {
       tile("owed", "owed", "Money already owed", money(sum(owed)),
         owed.length ? plural(owed.length, "completed job") + " with payment not collected"
                     : "Every finished job has been paid for", owed.length) +
-      tile("risk", "risk", "Revenue at risk", money(sum(risk)),
+       
+      tile("risk", "risk", "Quotes and warranties waiting", money(sum(risk)),
         risk.length ? plural(risk.length, "quote or warranty", "quotes and warranties") +
                       " that could still be accepted or refused"
                     : "No quote or warranty is waiting on anybody", risk.length) +
@@ -2128,10 +2145,11 @@ var book = '<div class="card"><h2>The book</h2>' +
 h += money3 + dwOwed + dwRisk + dwBoxes + book;
 
     if (wlGaps || wlWdi || wlStale)
-      h += '<div class="card watch"><h2>Watchlist</h2>' +
+      h += '<div class="card watch"><h2>Needs attention</h2>' +
         (wlGaps
           ? '<div class="wline" data-drawer="gaps" aria-expanded="false">' +
-            '<span class="wnm">The sheet says, and the file does not</span>' +
+             
+            '<span class="wnm">Sheets filled, forms not filed</span>' +
             '<span class="pill warn">' + esc(wlGaps) + "</span></div>" + dwGaps
           : "") +
         (wlWdi
@@ -2397,12 +2415,16 @@ async function saveOutcome(b, outcome, note) {
        
       acts.push('<button class="act go" data-pay="' + a.record_id + '">Record payment</button>');
       acts.push('<button class="act" data-remind="' + a.record_id + '">Send reminder</button>');
-      acts.push('<button class="act" data-notowed="' + a.record_id + '">Not asking for it…</button>');
+       
+      acts.push('<button class="act" data-notowed="' + a.record_id + '">Won’t collect…</button>');
       if (a.job_id) acts.push('<button class="act" data-sheet="' + a.job_id + '">The sheet</button>');
     }
     acts.push('<button class="act" data-note="' + a.customer_id + '">Add a note</button>');
     acts.push('<button class="act" data-snooze="' + a.kind + "|" + a.record_id + '">Snooze</button>');
-    acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|" + (a.amount || 0) + '">Dealt with…</button>');
+
+acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|" +
+      (a.amount || 0) + '" data-dismissnm="' + esc(a.customer_name || "") +
+      '">Mark as handled…</button>');
     return '<div class="item ' + (a.bucket === "owed" ? "owed" : "risk") + '">' +
       '<div class="top"><span class="dot" style="background:' + esc((ar && ar.dot_color) || "var(--dot)") + '"></span>' +
       '<span class="nm">' + esc(a.customer_name) + '</span><span class="pill">' +
@@ -2422,7 +2444,7 @@ async function saveOutcome(b, outcome, note) {
         b.addEventListener("click", function () { fn(b); });
       });
     };
-    on("[data-jump]", function (b) { jumpTo(b.dataset.jump); });
+     
     on("[data-gapjob]", function (b) { go("sheet", b.getAttribute("data-gapjob")); });
     on("[data-gapcust]", function (b) { go("cis", b.getAttribute("data-gapcust")); });
     on("[data-wdijob]", function (b) { go("wdi", b.getAttribute("data-wdijob")); });
@@ -2432,7 +2454,9 @@ async function saveOutcome(b, outcome, note) {
     on("[data-note]", function (b) { noteModal(b.dataset.note); });
     on("[data-quote]", function (b) { quoteModal(b.dataset.quote); });
     on("[data-snooze]", function (b) { snoozeModal(b.dataset.snooze); });
-    on("[data-dismiss]", function (b) { dismissModal(b.dataset.dismiss); });
+    on("[data-dismiss]", function (b) {
+      dismissModal(b.dataset.dismiss, b.getAttribute("data-dismissnm") || "");
+    });
     on("[data-sheet]", function (b) { go("sheet", b.dataset.sheet); });
     on("[data-restale]", function (b) {
       var j = jobById(b.dataset.restale);
@@ -3132,7 +3156,7 @@ h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size
           : '<span class="pill ok">nothing owed</span>') +
        
       (isOffice() && b && !b.voided_at && !b.charge_withdrawn
-        ? '<button class="act" data-act="notowed">Not asking for it…</button>'
+        ? '<button class="act" data-act="notowed">Won’t collect…</button>'
         : "") +
        
       (canDiscount(inv)
@@ -5059,10 +5083,17 @@ function matFound(chemRows) {
       var q = (box.value || "").trim().toLowerCase();
       var rows = body.querySelectorAll("tr");
       for (var i = 0; i < rows.length; i++) {
-        if (!q) { rows[i].hidden = false; continue; }
-        var on = rows[i].querySelector(".matname.on");
-        var txt = (rows[i].textContent || "").toLowerCase();
-        rows[i].hidden = !on && txt.indexOf(q) < 0;
+        var cells = rows[i].querySelectorAll(".matname");
+        var anyHit = false, c;
+         
+        for (c = 0; c < cells.length; c++) {
+          var on = cells[c].className.indexOf("on") >= 0;
+          var hit = !q || on || (cells[c].textContent || "").toLowerCase().indexOf(q) >= 0;
+          if (hit) anyHit = true;
+          if (hit) cells[c].classList.remove("nomatch");
+          else cells[c].classList.add("nomatch");
+        }
+        rows[i].hidden = !!q && !anyHit;
       }
     });
   }
@@ -7556,8 +7587,9 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
             '<td class="r">' + money(r.total) +
               '<div class="why">' + money(r.subtotal) + " + " + money(r.tax) + " tax</div></td>" +
             "<td>" + status + "</td>" +
+             
             '<td class="r"><button class="act" data-see="' + r.customer_id + '" type="button">' +
-              "Read it</button>" +
+              "Preview</button>" +
               (blocked ? "" :
                 (r.sent_at
                   ? (r.acknowledged_on ? ""
@@ -10482,7 +10514,8 @@ var split = num(f.cash_total) + num(f.check_total) + num(f.card_total) + num(f.o
       '<tr><td><b>Altogether</b></td><td class="r"><b>' + money(split) + "</b></td></tr>" +
       "</table>" +
       (Math.abs(split - num(f.collected_total)) > 0.004
-        ? '<div class="msg bad"><b>The split does not add up to the total taken.</b> ' +
+        ? '<div class="msg bad"><b>Cash, check and card don’t add up to the ' +
+          "total collected.</b> " +
           "That is " + money(num(f.collected_total)) + " taken against " + money(split) +
           " accounted for. Tell me — this should not be possible.</div>"
         : '<p class="note">Adds up to the money taken, to the cent.</p>') +
@@ -11933,7 +11966,7 @@ var flagged = counted.filter(function (x) { return x.bal && Number(x.bal.balance
               '<button class="act go" data-pay="' + x.inv.id + '" type="button">Record payment</button>' +
               '<button class="act" data-sheet="' + x.j.id + '" type="button">Open the sheet</button>' +
               '<button class="act" data-notowed="' + x.inv.id +
-                '" type="button">Not asking for it…</button>' +
+                '" type="button">Won’t collect…</button>' +
               (c && c.phone ? callLink(c.phone) : "") +
             "</div></div>";
         }).join("") + "</div>";
@@ -12510,9 +12543,14 @@ var rows;
                money(sub) + " is " + money(Math.round(sub * 10) / 100) + ".";
 
     openModal("<h3>Take money off — " + esc(c ? c.name : "") + "</h3>" +
+       
       '<p class="note">Service fee <b>' + money(sub) + "</b> before tax" +
       (already > 0 ? " · " + money(already) + " already off" : "") +
-      (collected > 0 ? " · " + money(collected) + " already in" : "") + "</p>" +
+      " · <b>" + money(Number(inv.total) || 0) + "</b> with tax" +
+      (collected > 0 ? " · " + money(collected) + " already in" : "") +
+      (bal && Number(bal.balance) > 0.004
+        ? " · <b>" + money(bal.balance) + " owed</b>"
+        : collected > 0 ? " · nothing owed" : "") + "</p>" +
       (room > 0.004
         ? '<label for="dcAmt">How much comes off</label>' +
           '<input id="dcAmt" class="f" inputmode="decimal" placeholder="45.50 or 10%">' +
@@ -12574,7 +12612,9 @@ if ($("dcAmt")) {
           (d.pct == null ? "" : d.pct + "% of " + money(sub) + " is ") +
           "<b>" + money(d.amount) + "</b> off · " + money(tot) + " with tax · " +
           (owed > 0.004 ? money(owed) + " still owed"
-            : owed < -0.004 ? "<b>" + money(-owed) + " to give back</b>"
+            : owed < -0.004 ? "<b>" + money(-owed) + " to give back</b> — it shows on " +
+              "the Refunds owed list on the Daily Close until somebody actually refunds " +
+              "it, which is its own record with a name on it"
             : "nothing owed");
       };
       $("dcAmt").addEventListener("input", preview);
@@ -12777,7 +12817,7 @@ function drawReason() {
         closeModal();
         toast(mode === "void"
           ? "Voided — " + money(inv.total) + " was never owed."
-          : "Not asking for it — " + money(nowOwed) + " off what they owe.");
+          : "Won’t collect — " + money(nowOwed) + " off what they owe.");
          
         if (back) back(); else render();
       } catch (e) {
@@ -13658,10 +13698,17 @@ function completePayment(p) {
     });
   }
 
-  function dismissModal(key) {
+function dismissModal(key, who) {
     var bits = key.split("|");
-    openModal("<h3>Dealt with</h3>" +
-      '<p class="note">It returns by itself if the amount changes.</p>' +
+    var amt = Number(bits[2]) || 0;
+    openModal("<h3>Off the list" + (who ? " — " + esc(who) : "") + "</h3>" +
+      '<p class="note">' + esc(KINDS[bits[0]] || bits[0]) +
+      (amt > 0.004 ? " · " + money(amt) : "") +
+       
+      " · stops showing on the dashboard.</p>" +
+      '<p class="note">It comes back on its own if the figure goes <b>up</b> — a new ' +
+      "charge, a chargeback. It does <b>not</b> come back if the figure goes down, so if " +
+      "part of it is paid later the rest stays off this list.</p>" +
       '<label for="dr">Why is it off the list?</label><select id="dr" class="f">' +
       '<option value="paid">They’ve paid</option><option value="scheduled">It’s scheduled</option>' +
       '<option value="customer-declined">The customer declined</option>' +
@@ -13679,7 +13726,7 @@ function completePayment(p) {
           created_by: S.me.id }).select();
         if (r.error) throw explain(r.error);
         await reload(["attention"]); closeModal(); render();
-        toast("Off the list — it returns by itself if the amount changes");
+        toast("Off the list — back on its own only if the figure goes up");
       } catch (e) { toast(e.message); this.disabled = false; }
     });
   }
