@@ -800,6 +800,17 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
   "use strict";
   var SUPABASE_URL = "https://lhochuvilhezyzxaxfof.supabase.co";
   var SUPABASE_KEY = "sb_publishable_U9tybL07OdDPYpl6QX-YPw_b-2msWi1";
+   
+  var lsGet = function (k) {
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  };
+  var lsSet = function (k, v) {
+    try { localStorage.setItem(k, v); } catch (e) {}
+  };
+  var lsDel = function (k) {
+    try { localStorage.removeItem(k); } catch (e) {}
+  };
+
   var $ = function (id) { return document.getElementById(id); };
   var gate = $("gate"), bar = $("bar"), app = $("app");
 
@@ -2336,7 +2347,7 @@ h += '<div class="daynav noprint">' +
       b.addEventListener("click", function () {
         route.span = b.getAttribute("data-span");
          
-        localStorage.setItem("ut_span", route.span);
+        lsSet("ut_span", route.span);
         renderSchedule(); window.scrollTo(0, 0);
       });
     });
@@ -2357,7 +2368,7 @@ h += '<div class="daynav noprint">' +
       b.addEventListener("click", function (e) {
         if (e.target.closest("[data-job]")) return;        
         route.date = b.getAttribute("data-open");
-        route.span = "day"; localStorage.setItem("ut_span", "day");
+        route.span = "day"; lsSet("ut_span", "day");
         renderSchedule(); window.scrollTo(0, 0);
       });
     });
@@ -3435,7 +3446,7 @@ var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
     var locked = recordLocked || linesLocked;
     var live = !recordLocked;
      
-    var compact = localStorage.getItem("ut_sheet_compact") === "1";
+    var compact = lsGet("ut_sheet_compact") === "1";
     document.body.classList.toggle("compact", compact);
 
     var ticked = {
@@ -3968,7 +3979,7 @@ renderSheet(jobId);
       setTimeout(function () { window.print(); }, 60);
     });
     $("cmp").addEventListener("click", function () {
-      localStorage.setItem("ut_sheet_compact", compact ? "0" : "1");
+      lsSet("ut_sheet_compact", compact ? "0" : "1");
       renderSheet(jobId);
     });
     if ($("plan")) $("plan").addEventListener("click", function () { go("plan", jobId); });
@@ -10451,7 +10462,7 @@ var SET_OPEN_KEY = "ut_set_open";
         try {
           if (open) localStorage.setItem(SET_OPEN_KEY, card.id);
           else if (localStorage.getItem(SET_OPEN_KEY) === card.id)
-            localStorage.removeItem(SET_OPEN_KEY);
+            lsDel(SET_OPEN_KEY);
         } catch (e) {}
       });
     });
