@@ -1598,10 +1598,35 @@ function renderNav() {
         : "");
     if ($("gear")) $("gear").addEventListener("click", function () { go("lists"); });
   }
-  function go(name, arg) {
-    route.name = name; route.arg = arg || null;
+   
+  var NAV = [];
+  function navSnap() {
+    return { name: route.name, arg: route.arg, date: route.date,
+             tech: route.tech, span: route.span, mon: route.mon };
+  }
+  function navRestore(s) {
+    route.name = s.name; route.arg = s.arg; route.date = s.date;
+    route.tech = s.tech; route.span = s.span; route.mon = s.mon;
     renderNav(); render(); window.scrollTo(0, 0);
   }
+
+  function go(name, arg) {
+    NAV.push(navSnap());
+    route.name = name; route.arg = arg || null;
+     
+    try { history.pushState({ ut: NAV.length }, "", location.href); } catch (e) {}
+    renderNav(); render(); window.scrollTo(0, 0);
+  }
+
+function goBack(fallback) {
+    if (NAV.length) { history.back(); return; }
+    if (typeof fallback === "function") fallback();
+  }
+
+  window.addEventListener("popstate", function () {
+    if (!NAV.length) return;           
+    navRestore(NAV.pop());
+  });
 
   function missingBanner() {
     if (!MISSING.length) return "";
@@ -4024,7 +4049,9 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
     app.innerHTML = h;
 
 wireSnaps(jobId);
-    $("back").addEventListener("click", function () { go(isOffice() ? "schedule" : "field"); });
+    $("back").addEventListener("click", function () {
+      goBack(function () { go(isOffice() ? "schedule" : "field"); });
+    });
     $("prt").addEventListener("click", function () {
 
 renderSheet(jobId);
@@ -4750,7 +4777,9 @@ app.querySelectorAll("[data-cwant]").forEach(function (b) {
       });
     });
 
-    $("ciBack").addEventListener("click", function () { go("customer", cid); });
+    $("ciBack").addEventListener("click", function () {
+      goBack(function () { go("customer", cid); });
+    });
     $("ciNew").addEventListener("click", function () { cisNewModal(cid, ps); });
     if ($("ciPrt")) $("ciPrt").addEventListener("click", function () {
       setTimeout(function () { window.print(); }, 60);
@@ -5862,7 +5891,9 @@ h += '<div class="psigs">' +
 
     app.innerHTML = h;
 
-$("plBack").addEventListener("click", function () { go("sheet", jobId); });
+$("plBack").addEventListener("click", function () {
+      goBack(function () { go("sheet", jobId); });
+    });
     $("plSave").addEventListener("click", async function () {
       if (await savePlan(this)) renderPlan(jobId);
     });
@@ -8747,7 +8778,9 @@ if (ev.signed_on)
 
     app.innerHTML = h;
 
-$("evBack").addEventListener("click", function () { go("customer", ev.customer_id); });
+$("evBack").addEventListener("click", function () {
+      goBack(function () { go("customer", ev.customer_id); });
+    });
     $("evPrt").addEventListener("click", async function () {
        
       var a = document.activeElement;
