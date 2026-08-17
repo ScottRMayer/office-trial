@@ -1970,6 +1970,24 @@ if (S.programs.length) {
           ? '<div class="msg warn">The ' + ly + " letters go out at the start of " +
             "November.</div>"
           : "") +
+         
+        (function () {
+          var by = {}, yy = [];
+          S.progLetters.forEach(function (l) {
+            if (!l.year) return;
+            if (!by[l.year]) { by[l.year] = { posted: 0, called: 0 }; yy.push(l.year); }
+            by[l.year].posted++;
+            if (l.acknowledged_on) by[l.year].called++;
+          });
+          yy = yy.filter(function (y) { return y !== ly; }).sort().reverse();
+          if (!yy.length) return "";
+          return '<p class="note" style="margin-top:.6rem">Other years with letters out</p>' +
+            '<div class="acts">' + yy.map(function (y) {
+              return '<button class="act" type="button" data-lyr="' + y + '">' + y +
+                " \u00b7 " + by[y].posted + " posted, " + by[y].called +
+                " called back</button>";
+            }).join("") + "</div>";
+        })() +
         '<div class="acts"><button class="act go" id="dashLetters" type="button">' +
         "Lay out " + ly + "</button></div></div>";
     }
@@ -2053,6 +2071,13 @@ var stale = S.jobs.filter(function (j) {
       btn.addEventListener("click", function () {
         var b = boxes.filter(function (x) { return x.p.id === btn.getAttribute("data-outcome"); })[0];
         if (b) outcomeModal(b);
+      });
+    });
+     
+    app.querySelectorAll("[data-lyr]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        route.year = Number(b.getAttribute("data-lyr"));
+        go("letters");
       });
     });
     if ($("dashLetters"))
