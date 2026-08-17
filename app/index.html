@@ -1222,7 +1222,9 @@ var IDLE_MS = 20 * 60 * 1000;
       '<p class="note">Nobody has touched this for twenty minutes, so it has been ' +
       "put behind the password. Nothing has been lost — whatever was open is still " +
       "open behind this.</p>" +
-      '<p class="note">Signed in as <b>' + esc(S.me.name) + "</b></p>" +
+       
+      '<p class="note">Signed in as <b>' + esc(S.me.name) + "</b>. To use a " +
+      "different account, sign out below.</p>" +
       '<label for="lkPw">Your password</label>' +
       '<input id="lkPw" class="f" type="password" autocomplete="current-password">' +
       '<div id="lkMsg"></div>' +
@@ -1260,9 +1262,15 @@ var IDLE_MS = 20 * 60 * 1000;
       $("lkMsg").innerHTML = "";
       unlock();
     };
+     
+    $("lkOut").addEventListener("click", async function () {
+      try { localStorage.removeItem("ut_locked"); } catch (e) {}
+      await sb.auth.signOut(); location.reload();
+    });
     $("lkGo").addEventListener("click", go);
     $("lkPw").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
-    $("lkLink").addEventListener("click", async function () {
+     
+    if ($("lkLink")) $("lkLink").addEventListener("click", async function () {
       this.disabled = true;
       $("lkMsg").innerHTML = '<div class="msg">Sending…</div>';
       var r = await sb.auth.signInWithOtp({
@@ -1276,11 +1284,8 @@ var IDLE_MS = 20 * 60 * 1000;
           "if you can.</div>";
       this.disabled = false;
     });
-    $("lkOut").addEventListener("click", async function () {
-      try { localStorage.removeItem("ut_locked"); } catch (e) {}
-      await sb.auth.signOut(); location.reload();
-    });
-    $("lkPw").focus();
+     
+    if ($("lkPw")) $("lkPw").focus();
   }
 
   function touchIdle() {
