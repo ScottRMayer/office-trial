@@ -13554,7 +13554,7 @@ async function renderCustomer(id) {
     h += '<h1 id="cfHd">' + esc(c.name) + (c.first_name ? " \u00b7 " + esc(c.first_name) : "") + "</h1>" +
       '<p class="sub">' + plural(jobs.length, "job") + " on record" +
       (c.year_started ? " \u00b7 customer since " + esc(c.year_started) : "") +
-      (owed > 0.004 ? " \u00b7 owes " + money(owed) : "") + "</p>";
+      "</p>";
 
     if (c.inactive_reason)
       h += '<div class="msg warn"><b>Marked as ' + esc(c.inactive_reason) +
@@ -13567,7 +13567,29 @@ async function renderCustomer(id) {
     if (owed > 0.004)
       h += '<div class="msg bad"><b>Owes ' + money(owed) + "</b> right now.</div>";
 
-h += '<div class="card"><h2>Who they are</h2>' +
+var nextJ = null, lastJ = null, k;
+    for (k = 0; k < jobs.length; k++) {
+      var jb = jobs[k];
+      if (!lastJ && jb.status === "complete" && jb.completed_date) lastJ = jb;
+       
+      if (jb.status !== "complete" && jb.status !== "cancelled" && jb.scheduled_date &&
+          jb.scheduled_date >= todayISO()) nextJ = jb;
+    }
+    if (nextJ || lastJ)
+      h += '<p class="note">' +
+        (nextJ ? "<b>Next visit</b> " + esc(fmtDate(nextJ.scheduled_date)) +
+                 " " + esc(String(nextJ.scheduled_date).slice(0, 4))
+               : "<b>Nothing booked</b>") +
+        (lastJ
+          ? " \u00b7 last treated " + esc(fmtDate(lastJ.completed_date)) +
+            " " + esc(String(lastJ.completed_date).slice(0, 4)) +
+            (function () {
+              var nm = linesOf(lastJ.id).map(function (l) { return l.service_name; }).join(" + ");
+              return nm ? " \u2014 " + esc(nm) : "";
+            })()
+          : " \u00b7 never treated") + "</p>";
+
+var hWho = '<div class="card"><h2>Who they are</h2>' +
       '<div class="fcols two">' +
       fld("Last name \u2014 how it is filed", "name", c.name, "", "Required.") +
       fld("How they are addressed", "first_name", c.first_name, "Mrs. Anne") +
@@ -13593,12 +13615,12 @@ h += '<div class="card"><h2>Who they are</h2>' +
         : "") +
       "</div>";
 
-h += '<div class="card"><h2>' + plural(ps.length, "address") + " serviced</h2>";
+var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses") + " serviced</h2>";
     if (!ps.length)
-      h += '<p class="empty">No address on file, so nothing can be booked. Add one.</p>';
+      hAddr += '<p class="empty">No address on file, so nothing can be booked. Add one.</p>';
     ps.forEach(function (p) {
       var ar = areaOf(p.area_code);
-      h += '<div class="item" style="display:block"><div class="top">' +
+      hAddr += '<div class="item" style="display:block"><div class="top">' +
         '<span class="dot" id="cfdot_' + p.id + '" style="background:' +
         esc((ar && ar.dot_color) || "var(--dot)") +
         '"></span><span class="nm">' + esc(p.address || "no street") + "</span>" +
@@ -13693,11 +13715,11 @@ h += '<div class="card"><h2>' + plural(ps.length, "address") + " serviced</h2>";
         "</div>";
     });
     if (mayEdit)
-      h += '<div class="acts" style="margin-top:.6rem">' +
+      hAddr += '<div class="acts" style="margin-top:.6rem">' +
         '<button class="act" id="cfAddProp" type="button">\uff0b Another address</button></div>';
-    h += "</div>";
+    hAddr += "</div>";
 
-h += '<div class="card"><h2>What is arranged</h2>' +
+var hArr = '<div class="card"><h2>What is arranged</h2>' +
       '<div class="acts">' +
       (mayEdit ? '<button class="act" id="cfProg" type="button">' +
         (pg ? "Change the programme" : "\uff0b Pre-scheduled programme") + "</button>" : "") +
@@ -13710,11 +13732,23 @@ h += '<div class="card"><h2>What is arranged</h2>' +
           (mayEdit ? " Use the buttons above." : "") + "</p>"
         : "") +
       (pg
-        ? '<p class="note" style="margin-top:.6rem"><b>' +
+        ? '<p class="note" style="margin-top:.6rem">Pre-scheduled programme</p>' +
+          '<div class="dates"><b>' +
           plural((pg.months || []).length, "visit") + "</b> a year \u00b7 " +
           esc((pg.months || []).map(function (m) { return MONTHS[m - 1].slice(0, 3); }).join(", ")) +
           " \u00b7 " + money(pg.base_price == null
-            ? ((S.settings || {}).program_price || 65) : pg.base_price) + " a spray</p>"
+            ? ((S.settings || {}).program_price || 65) : pg.base_price) + " a spray</div>"
+        : "") +
+       
+      (ws.length
+        ? '<p class="note" style="margin-top:.6rem">Warranties</p>' +
+          ws.map(function (w) {
+             
+            return '<div class="dates">' + esc(w.type) + " \u00b7 through " +
+              esc(fmtDate(w.expiration_date) +
+                  (w.expiration_date ? " " + String(w.expiration_date).slice(0, 4) : "")) +
+              (w.annual_amount ? " \u00b7 " + money(w.annual_amount) + " a year" : "") + "</div>";
+          }).join("")
         : "") +
       (qs.length
         ? '<p class="note" style="margin-top:.6rem">Estimates</p>' +
@@ -13748,20 +13782,10 @@ h += '<div class="card"><h2>What is arranged</h2>' +
               "</div>";
           }).join("")
         : "") +
-      (ws.length
-        ? '<p class="note" style="margin-top:.6rem">Warranties</p>' +
-          ws.map(function (w) {
-             
-            return '<div class="dates">' + esc(w.type) + " \u00b7 through " +
-              esc(fmtDate(w.expiration_date) +
-                  (w.expiration_date ? " " + String(w.expiration_date).slice(0, 4) : "")) +
-              (w.annual_amount ? " \u00b7 " + money(w.annual_amount) + " a year" : "") + "</div>";
-          }).join("")
-        : "") +
       "</div>";
 
-h += '<div class="card"><h2>Every job</h2>';
-    h += !jobs.length
+var hJobs = '<div class="card"><h2>Every job</h2>';
+    hJobs += !jobs.length
       ? '<p class="empty">No jobs for this customer yet.' +
         (mayEdit ? " Use <b>Book a job</b> above." : "") + "</p>"
       : jobs.map(function (j) {
@@ -13784,9 +13808,9 @@ h += '<div class="card"><h2>Every job</h2>';
             esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) +
             (t ? " \u00b7 " + esc(t.name) : "") + "</div></div>";
         }).join("");
-    h += "</div>";
+    hJobs += "</div>";
 
-h += '<div class="card"><h2>Notes</h2>' +
+var hNotes = '<div class="card"><h2>Notes</h2>' +
       (mayEdit
         ? '<label for="cfNote">Add one</label>' +
           '<input id="cfNote" class="f" placeholder="what was said, or what to remember">' +
@@ -13821,6 +13845,8 @@ h += '<div class="card"><h2>Notes</h2>' +
           esc(notesFailed) + "</p>"
         : '<p class="empty" style="margin-top:.6rem">Nothing written down yet.</p>') +
       "</div>";
+
+h += hJobs + hNotes + hArr + hWho + hAddr;
 
     if (mayEdit && !c.inactive_reason)
       h += '<div class="acts" style="margin-bottom:1.4rem">' +
