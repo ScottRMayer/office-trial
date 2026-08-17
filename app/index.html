@@ -81,9 +81,49 @@
   .card .note{color:var(--ink-soft);font-size:.84rem;margin:0 0 .85rem}
 
   .buckets{display:grid;gap:.9rem;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));margin-bottom:.9rem}
-   
-  .bucket[data-jump]{cursor:pointer}
+
+.bucket[data-jump],.bucket[data-drawer],.bucket[data-goletters]{cursor:pointer}
+  .bucket[data-drawer]:active,.bucket[data-goletters]:active,
   .bucket[data-jump]:active{background:var(--paper)}
+  .bucket[data-drawer],.bucket[data-goletters]{-webkit-tap-highlight-color:rgba(0,0,0,.08)}
+  .bucket[data-drawer]:focus-visible,.bucket[data-goletters]:focus-visible{
+    outline:2px solid var(--brand);outline-offset:2px}
+   
+  .bucket.calm{border-left-color:var(--rule)}
+  .bucket.calm .amt{color:var(--ink-soft);font-weight:600}
+  .bucket.lets{border-left:5px solid var(--brand)}
+  .bucket.call{border-left:5px solid var(--brand)}
+
+.drawer{margin:-.35rem 0 .9rem}
+  .drawer[hidden]{display:none}
+
+.week7{display:grid;grid-template-columns:repeat(7,minmax(3.4rem,1fr));gap:.35rem}
+  .d7{border:1px solid var(--rule);border-radius:5px;padding:.4rem .2rem;text-align:center;
+    cursor:pointer;-webkit-tap-highlight-color:rgba(0,0,0,.08)}
+  .d7:active{background:var(--paper)}
+  .d7:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .d7 .dow{font-size:.6rem;letter-spacing:.06em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:700}
+  .d7 .num{font-size:1.15rem;font-weight:700;line-height:1.25}
+  .d7 .cnt{font-size:.62rem;color:var(--ink-soft)}
+  .d7.istoday{border-color:var(--brand);box-shadow:inset 0 0 0 2px var(--brand)}
+  .d7.istoday .dow{color:var(--brand)}
+  .d7.shut{opacity:.62;background:var(--paper)}
+
+.card.watch .wline{display:flex;align-items:center;justify-content:space-between;
+    gap:.6rem;padding:.5rem 0;border-top:1px solid var(--rule);cursor:pointer;
+    -webkit-tap-highlight-color:rgba(0,0,0,.08)}
+  .card.watch .wline:first-of-type{border-top:0}
+  .card.watch .wline:active{background:var(--paper)}
+  .card.watch .wline:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+  .card.watch .wnm{font-weight:600}
+   
+  @media (max-width:560px){
+    .week7{display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch;
+      scroll-snap-type:x proximity;padding-bottom:.2rem}
+    .week7 .d7{flex:0 0 4.1rem;scroll-snap-align:start}
+    .card.watch .wline{flex-wrap:wrap;gap:.15rem}
+  }
   .bucket{border:1px solid var(--rule);border-radius:6px;background:var(--card);padding:.95rem 1.05rem}
   .bucket.owed{border-left:5px solid var(--owed)} .bucket.risk{border-left:5px solid var(--risk)}
   .bucket .lbl{font-size:.67rem;letter-spacing:.11em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)}
@@ -891,7 +931,13 @@ function money(n) {
     var d = new Date(), z = function (n) { return (n < 10 ? "0" : "") + n; };
     return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
   }
-   
+
+function shutOn(iso) {
+    var cd = S.closedDays || [];
+    for (var i = 0; i < cd.length; i++) if (cd[i].d === iso) return true;
+    return false;
+  }
+
   function shiftISO(iso, n) {
     var d = new Date(iso + "T12:00:00"); d.setDate(d.getDate() + n);
     var z = function (x) { return (x < 10 ? "0" : "") + x; };
@@ -1693,7 +1739,8 @@ function goBack(fallback) {
 
 function reachable(root) {
     if (!root || !root.querySelectorAll) return;
-    var rows = root.querySelectorAll(".item.tap, .lrow.tap, [data-job], [data-cust]");
+     
+      var rows = root.querySelectorAll(".item.tap, .lrow.tap, [data-job], [data-cust], [data-drawer], [data-goletters], [data-goday]");
     for (var i = 0; i < rows.length; i++) {
       var el = rows[i], t = el.tagName;
       if (t === "BUTTON" || t === "A" || t === "INPUT" || t === "SELECT" || t === "TEXTAREA") continue;
@@ -1820,26 +1867,54 @@ function nextBox() {
 var h = missingBanner() + "<h1>Dashboard</h1>" +
       '<p class="sub">Calls to make: ' + esc(span) + "</p>";
 
-var money3 = '<div class="buckets">' +
-      '<div class="bucket owed" data-jump="owed"><div class="lbl">Money already owed</div><div class="amt">' +
-        money(sum(owed)) + '</div><div class="what">' +
-        plural(owed.length, "completed job") + " with payment not collected</div>" +
-        (owed.length ? '<button class="expand" type="button" data-jump="owed">Show me which ↓</button>' : "") +
-      "</div>" +
-      '<div class="bucket risk" data-jump="risk"><div class="lbl">Revenue at risk</div><div class="amt">' +
-        money(sum(risk)) + '</div><div class="what">' +
-        plural(risk.length, "quote or warranty", "quotes and warranties") +
-        " that could still be accepted or refused</div>" +
-        (risk.length ? '<button class="expand" type="button" data-jump="risk">Show me which ↓</button>' : "") +
-      "</div>" +
+var wlGaps = "", dwGaps = "", wlWdi = "", dwWdi = "", wlWdiUrgent = false;
+    var wlStale = "", dwStale = "";
+
+function tile(key, cls, label, big, what, n) {
+      return '<div class="bucket ' + cls + (n ? "" : " calm") + '" data-drawer="' + key +
+        '" aria-expanded="false"><div class="lbl">' + esc(label) + '</div><div class="amt">' +
+        big + '</div><div class="what">' + what + "</div>" +
+        '<div class="expand" aria-hidden="true">' +
+        (n ? "Show me which \u2193" : "Nothing to do here") + "</div></div>";
+    }
+
+    var money3 = '<div class="buckets">' +
+      tile("owed", "owed", "Money already owed", money(sum(owed)),
+        owed.length ? plural(owed.length, "completed job") + " with payment not collected"
+                    : "Every finished job has been paid for", owed.length) +
+      tile("risk", "risk", "Revenue at risk", money(sum(risk)),
+        risk.length ? plural(risk.length, "quote or warranty", "quotes and warranties") +
+                      " that could still be accepted or refused"
+                    : "No quote or warranty is waiting on anybody", risk.length) +
        
-      '<div class="bucket call" data-jump="boxes"><div class="lbl">Calls to make</div><div class="amt">' +
-        boxes.length + '</div><div class="what">' +
-        (late.length ? late.length + " overdue · " : "") +
-        nowB.length + " due this month · " + nextB.length + " to book ahead for " +
-        esc(mLabel(nextW)) + "</div>" +
-        (boxes.length ? '<button class="expand" type="button" data-jump="boxes">Show me which ↓</button>' : "") +
-      "</div></div>";
+      tile("boxes", "call", "Calls to make", boxes.length,
+        boxes.length
+          ? (late.length ? late.length + " overdue \u00b7 " : "") +
+            nowB.length + " due this month \u00b7 " + nextB.length +
+            " to book ahead for " + esc(mLabel(nextW))
+          : "Everybody due up to " + esc(mLabel(nextW)) + " is already booked",
+        boxes.length) +
+       
+      (S.programs.length
+        ? (function () {
+            var ly = route.year;
+            var pl = S.progLetters.filter(function (l) { return l.year === ly; });
+            if (LET && !LET.absent && LET.year === ly && LET.rows)
+              pl = LET.rows.filter(function (r) { return r.sent_at; });
+            var ack = pl.filter(function (l) { return l.acknowledged_on; });
+            return '<div class="bucket lets' + (pl.length ? "" : " calm") +
+              '" data-goletters="' + ly + '" aria-label="The ' + ly +
+              ' schedule letters"><div class="lbl">The ' + ly + ' schedule letters</div>' +
+              '<div class="amt">' + (pl.length ? pl.length : "0") + "</div>" +
+              '<div class="what">' +
+              (pl.length ? "posted \u00b7 " + ack.length + " called back"
+                         : "none posted for " + ly + " yet \u00b7 " +
+                           plural(S.programs.length, "customer") + " on the programme") +
+              "</div>" +
+              '<div class="expand" aria-hidden="true">Lay out ' + ly + " \u2192</div></div>";
+          })()
+        : "") +
+      "</div>";
 
 if (S.gaps.length) {
       var byKind = {};
@@ -1851,10 +1926,11 @@ if (S.gaps.length) {
       var kinds = Object.keys(byKind).sort(function (a, b) {
         return byKind[a].u - byKind[b].u || byKind[b].n - byKind[a].n;
       });
-      h += '<div class="card" id="gaps" style="border-left:4px solid var(--risk)">' +
-        "<h2>The sheet says, and the file does not</h2>" +
-        '<p class="note">' + plural(S.gaps.length, "thing") + " to put right. " +
-        "Nothing here can be dismissed.</p>" +
+       
+      wlGaps = plural(S.gaps.length, "thing") + " to put right" +
+        (kinds.length ? " · worst is " + esc(kinds[0]) : "");
+      dwGaps = '<div class="drawer" id="dw-gaps" hidden>' +
+        '<p class="note">Nothing here can be dismissed.</p>' +
         kinds.map(function (k) {
           var g = byKind[k];
           return '<div style="margin:.5rem 0 .2rem"><b>' + esc(k) + "</b> " +
@@ -1889,11 +1965,11 @@ if (S.wdiStatus.length) {
         return wk[a].u - wk[b].u || wk[b].n - wk[a].n;
       });
       var urgent = S.wdiStatus.filter(function (x) { return x.urgency === 1; }).length;
-      h += '<div class="card" id="wdilist" style="border-left:4px solid var(--' +
-        (urgent ? "risk" : "brand") + ')">' +
-        "<h2>Inspection reports</h2>" +
-        '<p class="note">' + plural(S.wdiStatus.length, "thing") + " to see to." +
-        (urgent ? " " + urgent + " past the ninety days." : "") + "</p>" +
+       
+      wlWdi = plural(S.wdiStatus.length, "thing") + " to see to" +
+        (urgent ? " · " + urgent + " past the ninety days" : "");
+      wlWdiUrgent = !!urgent;
+      dwWdi = '<div class="drawer" id="dw-wdi" hidden>' +
         wks.map(function (k) {
           var g = wk[k];
           return '<div style="margin:.5rem 0 .2rem"><b>' + esc(k) + "</b> " +
@@ -1925,72 +2001,26 @@ if (S.wdiStatus.length) {
         }).join("") + "</div>";
     }
 
-    h += '<div class="card"><h2>Needs a person</h2>' +
-      (S.attention.length
-        ? '<div id="owed">' + owed.map(attnHTML).join("") + '</div><div id="risk">' +
-          risk.map(attnHTML).join("") + "</div>"
-         
-        : '<div class="msg good">Nothing needs following up.</div>') +
+var dwOwed = '<div class="drawer" id="dw-owed" hidden>' +
+      (owed.length ? owed.map(attnHTML).join("")
+                   : '<div class="msg good">Every finished job has been paid for.</div>') +
+      "</div>";
+    var dwRisk = '<div class="drawer" id="dw-risk" hidden>' +
+      (risk.length ? risk.map(attnHTML).join("")
+                   : '<div class="msg good">Nothing is waiting on a customer to decide.</div>') +
       "</div>";
 
-h += '<div class="card" id="boxes"><h2>Who needs a call</h2>' +
+var dwBoxes = '<div class="drawer" id="dw-boxes" hidden>' +
       '<p class="note">Due a visit, not on the calendar yet.</p>' +
-       
       '<div class="acts noprint" style="margin-bottom:.3rem">' +
-      '<button class="act" id="dashLabels" type="button">Postcard labels…</button></div>';
-    if (!boxes.length) {
-      h += '<div class="empty">Everybody whose month has come round, up to ' +
-        esc(mLabel(nextW)) + ", is already on the calendar. Nobody to ring.</div>";
-    } else {
-      h += boxGroup("Overdue — their month has already gone by", late, "owed") +
-        boxGroup("Due this month", nowB, "") +
-        boxGroup("Book ahead for " + mLabel(nextW) + " — ring these now", nextB, "risk");
-    }
-    h += "</div>";
-
-if (S.programs.length) {
-      var ly = route.year;
-       
-      var fromHydrate = S.progLetters.filter(function (l) { return l.year === ly; });
-      var posted = fromHydrate;
-      var called = fromHydrate.filter(function (l) { return l.acknowledged_on; });
-      if (LET && !LET.absent && LET.year === ly && LET.rows) {
-        posted = LET.rows.filter(function (r) { return r.sent_at; });
-        called = LET.rows.filter(function (r) { return r.acknowledged_on; });
-      }
-       
-      var due = new Date().getMonth() >= 9;
-      h += '<div class="card"><h2>The ' + ly + ' schedule letters</h2>' +
-        '<p class="note">' + plural(S.programs.length, "customer") +
-        " on the pre-scheduled programme" +
-        (posted.length
-          ? " · " + posted.length + " posted · " + called.length + " called back"
-          : " · none posted for " + ly + " yet") + ".</p>" +
-        (due && !posted.length
-          ? '<div class="msg warn">The ' + ly + " letters go out at the start of " +
-            "November.</div>"
-          : "") +
-         
-        (function () {
-          var by = {}, yy = [];
-          S.progLetters.forEach(function (l) {
-            if (!l.year) return;
-            if (!by[l.year]) { by[l.year] = { posted: 0, called: 0 }; yy.push(l.year); }
-            by[l.year].posted++;
-            if (l.acknowledged_on) by[l.year].called++;
-          });
-          yy = yy.filter(function (y) { return y !== ly; }).sort().reverse();
-          if (!yy.length) return "";
-          return '<p class="note" style="margin-top:.6rem">Other years with letters out</p>' +
-            '<div class="acts">' + yy.map(function (y) {
-              return '<button class="act" type="button" data-lyr="' + y + '">' + y +
-                " \u00b7 " + by[y].posted + " posted, " + by[y].called +
-                " called back</button>";
-            }).join("") + "</div>";
-        })() +
-        '<div class="acts"><button class="act go" id="dashLetters" type="button">' +
-        "Lay out " + ly + "</button></div></div>";
-    }
+      '<button class="act" id="dashLabels" type="button">Postcard labels…</button></div>' +
+      (boxes.length
+        ? boxGroup("Overdue — their month has already gone by", late, "owed") +
+          boxGroup("Due this month", nowB, "") +
+          boxGroup("Book ahead for " + mLabel(nextW) + " — ring these now", nextB, "risk")
+        : '<div class="msg good">Everybody whose month has come round, up to ' +
+          esc(mLabel(nextW)) + ", is already on the calendar. Nobody to ring.</div>") +
+      "</div>";
 
 var stale = S.jobs.filter(function (j) {
       if (!j.scheduled_date ||
@@ -2008,9 +2038,9 @@ var stale = S.jobs.filter(function (j) {
         return t + (bb && !bb.charge_withdrawn && !bb.voided_at ? Number(bb.total) || 0
                                                                 : Number(j.price) || 0);
       }, 0);
-      h += '<div class="card"><h2>Booked and not finished</h2>' +
-        '<p class="note">' + plural(stale.length, "job") + " · " + money(owedOn) +
-        " of work</p>" +
+       
+      wlStale = plural(stale.length, "job") + " · " + money(owedOn) + " of work";
+      dwStale = '<div class="drawer" id="dw-stale" hidden>' +
         '<table class="lst"><tr><th>Was due</th><th>Who</th><th>Why</th>' +
         "<th></th></tr>" +
         stale.slice(0, 30).map(function (j) {
@@ -2034,7 +2064,50 @@ var stale = S.jobs.filter(function (j) {
           : "") + "</div>";
     }
 
-    h += money3;           
+var book = '<div class="card"><h2>The book</h2>' +
+      '<p class="note">Today and the six days after it. Tap a day to open it.</p>' +
+      '<div class="week7">';
+    for (var wd = 0; wd < 7; wd++) {
+      var dISO = shiftISO(todayISO(), wd);
+      var dJobs = S.jobs.filter(function (j) {
+        return j.scheduled_date === dISO &&
+               ["cancelled"].indexOf(j.status) < 0;
+      });
+      var dD = new Date(dISO + "T12:00:00");
+      book += '<div class="d7' + (wd === 0 ? " istoday" : "") +
+        (shutOn(dISO) ? " shut" : "") + '" data-goday="' + dISO + '">' +
+        '<div class="dow">' + (wd === 0 ? "Today" : DOW[dD.getDay()]) + "</div>" +
+        '<div class="num">' + dD.getDate() + "</div>" +
+        '<div class="cnt">' +
+        (shutOn(dISO) ? "closed"
+                      : dJobs.length ? dJobs.length + (dJobs.length === 1 ? " job" : " jobs")
+                                     : "free") +
+        "</div></div>";
+    }
+    book += "</div></div>";
+
+h += money3 + dwOwed + dwRisk + dwBoxes + book;
+
+    if (wlGaps || wlWdi || wlStale)
+      h += '<div class="card watch"><h2>Watchlist</h2>' +
+        (wlGaps
+          ? '<div class="wline" data-drawer="gaps" aria-expanded="false">' +
+            '<span class="wnm">The sheet says, and the file does not</span>' +
+            '<span class="pill warn">' + esc(wlGaps) + "</span></div>" + dwGaps
+          : "") +
+        (wlWdi
+          ? '<div class="wline" data-drawer="wdi" aria-expanded="false">' +
+            '<span class="wnm">Inspection reports</span>' +
+            '<span class="pill' + (wlWdiUrgent ? " warn" : "") + '">' + esc(wlWdi) +
+            "</span></div>" + dwWdi
+          : "") +
+        (wlStale
+          ? '<div class="wline" data-drawer="stale" aria-expanded="false">' +
+            '<span class="wnm">Booked and not finished</span>' +
+            '<span class="pill warn">' + esc(wlStale) + "</span></div>" + dwStale
+          : "") +
+        "</div>";
+
     h += '<div class="acts" style="justify-content:center;margin-top:.4rem">' +
       '<button class="act go" id="dashBook" type="button">＋ Book a job</button></div>';
 
@@ -2082,6 +2155,34 @@ var stale = S.jobs.filter(function (j) {
     });
     if ($("dashLetters"))
       $("dashLetters").addEventListener("click", function () { go("letters"); });
+
+app.querySelectorAll("[data-drawer]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var d = $("dw-" + b.getAttribute("data-drawer"));
+        if (!d) return;
+        var shut = d.hidden;
+        d.hidden = !shut;
+        b.setAttribute("aria-expanded", shut ? "true" : "false");
+        var cap = b.querySelector(".expand");
+        if (cap && cap.textContent.indexOf("Nothing") < 0)
+          cap.textContent = shut ? "Hide these ↑" : "Show me which ↓";
+      });
+    });
+     
+    app.querySelectorAll("[data-goletters]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        route.year = Number(b.getAttribute("data-goletters"));
+        go("letters");
+      });
+    });
+     
+    app.querySelectorAll("[data-goday]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        route.date = b.getAttribute("data-goday");
+        route.span = "day";
+        go("schedule");
+      });
+    });
   }
   function boxGroup(title, rows, tone) {
     if (!rows.length) return "";
@@ -7250,6 +7351,25 @@ function fmtLetter(iso) {
 
 var unposted = ready.filter(function (r) { return !r.sent_at; });
 
+h += (function () {
+      var by = {}, yy = [];
+      S.progLetters.forEach(function (l) {
+        if (!l.year) return;
+        if (!by[l.year]) { by[l.year] = { posted: 0, called: 0 }; yy.push(l.year); }
+        by[l.year].posted++;
+        if (l.acknowledged_on) by[l.year].called++;
+      });
+      yy = yy.filter(function (yr) { return yr !== y; }).sort().reverse();
+      if (!yy.length) return "";
+      return '<p class="note noprint" style="margin:0 0 .3rem">Other years with ' +
+        "letters out</p>" +
+        '<div class="acts noprint" style="margin-bottom:.5rem">' + yy.map(function (yr) {
+          return '<button class="act" type="button" data-lyr="' + yr + '">' + yr +
+            " · " + by[yr].posted + " posted, " + by[yr].called +
+            " called back</button>";
+        }).join("") + "</div>";
+    })();
+
     h += '<div class="daynav noprint">' +
       '<button class="act" data-yr="-1" type="button">‹ ' + (y - 1) + "</button>" +
       '<b style="font-variant-numeric:tabular-nums">' + y + "</b>" +
@@ -7368,6 +7488,12 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
 
     app.innerHTML = h + stamp();
 
+app.querySelectorAll("[data-lyr]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        route.year = Number(b.getAttribute("data-lyr"));
+        render();
+      });
+    });
     app.querySelectorAll("[data-yr]").forEach(function (b) {
       b.addEventListener("click", function () {
         route.year = y + Number(b.getAttribute("data-yr"));
