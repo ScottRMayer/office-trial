@@ -629,6 +629,12 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
 
 #labelPrint{display:none}
   body.labels #labelPrint{display:block}
+   
+  .lprev{overflow:auto;max-height:52vh;border:1px solid var(--line);border-radius:.4rem;
+    background:#fff;margin:.5rem 0}
+  .lprevin{width:8.5in}
+   
+  .veil.wide .modal{max-width:60rem}
   .lsheet{width:8.5in;padding:.5in .1875in 0;margin:0 auto;background:#fff;color:#000;
     font-family:ui-sans-serif,Arial,Helvetica,sans-serif;line-height:1.2}
   .lsheet + .lsheet{page-break-before:always}
@@ -1944,8 +1950,14 @@ h += '<div class="card" id="boxes"><h2>Who needs a call</h2>' +
 
 if (S.programs.length) {
       var ly = route.year;
-      var posted = S.progLetters.filter(function (l) { return l.year === ly; });
-      var called = posted.filter(function (l) { return l.acknowledged_on; });
+       
+      var fromHydrate = S.progLetters.filter(function (l) { return l.year === ly; });
+      var posted = fromHydrate;
+      var called = fromHydrate.filter(function (l) { return l.acknowledged_on; });
+      if (LET && !LET.absent && LET.year === ly && LET.rows) {
+        posted = LET.rows.filter(function (r) { return r.sent_at; });
+        called = LET.rows.filter(function (r) { return r.acknowledged_on; });
+      }
        
       var due = new Date().getMonth() >= 9;
       h += '<div class="card"><h2>The ' + ly + ' schedule letters</h2>' +
@@ -3914,7 +3926,7 @@ document.body.classList.add("hassheetbar");
         ? '<button class="act corr" id="unlock" type="button">Open for corrections</button>'
         : "") +
       '<button class="act" id="cmp" type="button">' +
-      (compact ? "Printing: just what was used" : "Printing: every box, like the pad") +
+      (compact ? "Printing: just what was used" : "Printing: the whole materials pad") +
       "</button>" +
        
       (isOffice()
@@ -4401,6 +4413,8 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
       return { well_cistern_ft: isNaN(n) ? null : n };
     });
     wireMaterials();
+     
+    wireMatFind();
      
     fillHistory();
 
@@ -7357,11 +7371,11 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
       b.addEventListener("click", function () { markCalled(b.getAttribute("data-ack"), b); });
     });
     if ($("printAll")) $("printAll").addEventListener("click", function () {
-      printLetters(ready);
+      printRunModal(ready, "Print " + plural(ready.length, "letter"));
     });
      
     if ($("printNew")) $("printNew").addEventListener("click", function () {
-      printLetters(unposted);
+      printRunModal(unposted, "Print the " + unposted.length + " not posted");
     });
     if ($("bookYear")) $("bookYear").addEventListener("click", function () {
       bookYearModal(ready);
@@ -7708,6 +7722,27 @@ function printBlock(holderId, cls, html) {
     printBlock("letterPrint", "letters", rows.map(letterHTML).join(""));
   }
 
+function printRunModal(rows, verb) {
+    if (!rows.length) { toast("Nothing is ready to print."); return; }
+    var one = rows[0];
+    openModal("<h3>" + esc(verb) + "</h3>" +
+      '<p class="note">' + plural(rows.length, "letter") + " for " + LET.year +
+      ", one page each. Printing does not mark anybody posted — that is still " +
+      "the Posted button on each row.</p>" +
+       
+      (rows.length <= 24
+        ? '<p class="note">' +
+          esc(rows.map(function (r) { return r.customer_name; }).join(", ")) + "</p>"
+        : "") +
+      '<p class="note">This is the first of them:</p>' +
+      '<div style="max-height:60vh;overflow:auto;margin:.6rem 0">' + letterHTML(one) + "</div>" +
+      '<div class="row"><button class="act" id="prNo" type="button">Not now</button>' +
+      '<button class="primary" id="prGo" type="button">' + esc(verb) + "</button></div>");
+    $("prNo").addEventListener("click", closeModal);
+     
+    $("prGo").addEventListener("click", function () { closeModal(); printLetters(rows); });
+  }
+
 var LABELS_PER_SHEET = 30;               
 
 function labelYear(m) {
@@ -7781,7 +7816,9 @@ function labelYear(m) {
       '<p class="note">In the print dialog set <b>Margins</b> to <b>None</b> and ' +
       "<b>Scale</b> to <b>100%</b>. The first time, print one sheet on plain paper " +
       "and hold it against a sheet of labels.</p>" +
+      '<div id="lbPrev" class="lprev noprint" hidden></div>' +
       '<div class="row"><button class="primary" id="lbGo" type="button">Print them</button>' +
+      '<button class="act" id="lbSee" type="button">See the sheet</button>' +
       '<button class="act" id="lbNo" type="button">Cancel</button></div>');
     $("lbNo").addEventListener("click", closeModal);
 
@@ -7812,7 +7849,54 @@ function labelYear(m) {
         (prev ? "<br>Last printed " + esc(fmtDate(String(prev.sent_at).slice(0, 10))) + "." : "");
       $("lbGo").disabled = !ok.length;
     };
+     
+    function drawPreview() {
+      var host = $("lbPrev");
+      if (!host) return;
+      var m = Number($("lbMonth").value);
+      var rows = labelRows(m).filter(function (r) { return !!r.to.street; });
+      host.innerHTML = '<div class="lprevin">' + labelSheets(rows) + "</div>";
+      var inner = host.firstChild, sheet = host.querySelector(".lsheet");
+      if (!sheet) { host.innerHTML = '<p class="note">Nothing to show.</p>'; return; }
+
+var over = [], cells = host.querySelectorAll(".lcell"), i;
+      for (i = 0; i < cells.length; i++)
+        if (cells[i].scrollHeight > cells[i].clientHeight + 1 && rows[i])
+          over.push(rows[i].c.name);
+
+if (over.length)
+        host.insertAdjacentHTML("beforebegin",
+          '<div class="msg warn" id="lbClip">' + plural(over.length, "label") +
+          " " + (over.length === 1 ? "is" : "are") + " too long for the stock and " +
+          (over.length === 1 ? "loses its" : "lose their") + " last line — " +
+          "which is the town and the zip: <b>" + esc(over.join(", ")) + "</b>. " +
+          "Shorten the name on the record, or post " +
+          (over.length === 1 ? "that one" : "those") + " by hand.</div>");
+    }
+
+    if ($("lbSee"))
+      $("lbSee").addEventListener("click", function () {
+        var host = $("lbPrev"), clip = $("lbClip");
+        if (clip) clip.parentNode.removeChild(clip);
+        if (!host.hidden) {
+          host.hidden = true; host.innerHTML = "";
+          $("veil").classList.remove("wide");
+          this.textContent = "See the sheet";
+          return;
+        }
+        host.hidden = false;
+        $("veil").classList.add("wide");
+        this.textContent = "Hide the sheet";
+        drawPreview();
+      });
+
     $("lbMonth").addEventListener("change", say);
+     
+    $("lbMonth").addEventListener("change", function () {
+      var host = $("lbPrev"), clip = $("lbClip");
+      if (clip) clip.parentNode.removeChild(clip);
+      if (host && !host.hidden) drawPreview();
+    });
     say();
 
     $("lbGo").addEventListener("click", async function () {
@@ -12943,7 +13027,9 @@ function openModal(html) {
   function closeModal() {
      
     if (screenLocked) return;
-    $("veil").classList.remove("show"); $("modal").innerHTML = ""; document.body.style.overflow = "";
+     
+    $("veil").classList.remove("show"); $("veil").classList.remove("wide");
+    $("modal").innerHTML = ""; document.body.style.overflow = "";
   }
    
   $("veil").addEventListener("click", function (e) {
