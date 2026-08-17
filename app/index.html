@@ -926,6 +926,7 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
             invoices: [], balances: [], quotes: [], evals: [], warranties: [], attention: [],
             progLetters: [], progExtras: [], closedDays: [], calls: [], recalls: [],
             cis: [], cisItems: [], gaps: [], wdi: [], wdiStatus: [],
+            compEvents: [],
             loadedAt: null };
   var route = { name: "dashboard", arg: null, date: todayISO(), tech: null,
                  
@@ -999,6 +1000,15 @@ if (rows.length === PAGE)
       return [];
     }
     return r.data || [];
+  }
+   
+  async function softAll(make, what, disables) {
+    try {
+      return await all(make);
+    } catch (e) {
+      noteMissing(what, disables);
+      return [];
+    }
   }
   function explain(e) {
     var m = (e && e.message) || String(e);
@@ -1352,7 +1362,12 @@ all(function () { return sb.from("customers").select("*").order("name").order("i
       soft(sb.from("wdi_reports").select("*").order("inspection_date", { ascending: false }),
            "wdi_reports", "the Wood Destroying Insect report — run 0043"),
       off ? soft(sb.from("v_wdi_status").select("*"), "v_wdi_status",
-                 "the ninety-day list — run 0043") : []
+                 "the ninety-day list — run 0043") : [],
+       
+      softAll(function () {
+        return sb.from("compliance_events").select("*").order("occurred_at").order("id");
+      }, "compliance_events",
+         "the compliance toggles — run supabase/migrations/0058")
     ]);
      
     S.people = r[0]; S.areas = r[1]; S.settings = r[2][0] || null; S.menu = r[3];
@@ -1368,6 +1383,7 @@ all(function () { return sb.from("customers").select("*").order("name").order("i
     S.calls = r[25]; S.recalls = r[26]; S.evals = r[27];
     S.cis = r[28]; S.cisItems = r[29]; S.gaps = r[30];
     S.wdi = r[31]; S.wdiStatus = r[32];
+    S.compEvents = r[33];
      
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
@@ -1396,6 +1412,10 @@ async function reload(what) {
       if (isOffice())
         S.gaps = await soft(sb.from("v_compliance_gaps").select("*"),
                             "v_compliance_gaps", "the compliance list");
+       
+      S.compEvents = await softAll(function () {
+        return sb.from("compliance_events").select("*").order("occurred_at").order("id");
+      }, "compliance_events", "the compliance toggles");
       S.crew = await soft(sb.from("job_crew").select("*"), "job_crew",
                           "putting a second technician on a job");
     }
@@ -1497,6 +1517,20 @@ var custById = function (id) { return S.customers.filter(function (c) { return c
     return S.gaps.filter(function (g) { return g.job_id === jid; });
   };
    
+  function ceLive(jid) {
+    var rows = S.compEvents.filter(function (e) { return e.job_id === jid; });
+    var corrected = {};
+    rows.forEach(function (e) { if (e.reverses_id) corrected[e.reverses_id] = 1; });
+    return rows.filter(function (e) { return !e.reverses_id && !corrected[e.id]; });
+  }
+   
+  function ceOf(jid, kind) {
+    return ceLive(jid).filter(function (e) { return e.kind === kind; })
+      .sort(function (a, b) {
+        return String(a.occurred_at).localeCompare(String(b.occurred_at));
+      })[0] || null;
+  }
+   
   var allChemsOf = function (trId) {
     if (!trId) return [];
     return S.chems.filter(function (x) { return x.treatment_id === trId; })
@@ -1510,6 +1544,8 @@ var custById = function (id) { return S.customers.filter(function (c) { return c
 function sheetIsOpen(j) {
     if (!j) return false;
     if (j.status === "complete") return false;
+     
+    if (j.uncompleted_at) return false;
     var sh = sheetOf(j.id);
     if (sh && sh.signed_on) return false;
      
@@ -2884,6 +2920,9 @@ if (tr) {
           : "<b>no product</b>") + "</div>";
     }
 
+h += '<div class="card" style="margin:.9rem 0 0"><b>The sign, and what was ' +
+      "handed over</b>" + ceStrip(j) + "</div>";
+
     if (j.status !== "complete") {
       h += '<div class="row"><button class="primary" data-act="complete" type="button">Mark the job complete</button></div>';
       if (needsRecord && !tr)
@@ -2891,6 +2930,19 @@ if (tr) {
              "what was applied, how much, and where.</p>";
     } else {
       h += '<div class="msg good">Marked complete ' + fmtDate(j.completed_date) + "</div>";
+       
+      if (isOffice())
+        h += '<div class="acts"><button class="act" data-act="uncomplete" type="button">' +
+             "Take it back off complete…</button></div>";
+    }
+     
+    if (j.uncompleted_at) {
+      var uw = personOf(j.uncompleted_by);
+      h += '<div class="msg warn">Taken back off complete ' +
+        esc(fmtDate(String(j.uncompleted_at).slice(0, 10))) +
+        (uw ? " by " + esc(uw.name) : "") +
+        (j.uncomplete_reason ? " — " + esc(j.uncomplete_reason) + "." : ".") +
+        " The pesticide record is still filed.</div>";
     }
     h += '<div class="row"><button class="act" data-act="close" type="button">Close</button>' +
          (j.status === "scheduled"
@@ -2915,8 +2967,10 @@ if (tr) {
     if (A("disc")) A("disc").addEventListener("click", function () {
       discountModal(inv.id, function () { jobModal(j.id); });
     });
-    if (A("complete")) A("complete").addEventListener("click", function () { completeJob(j, this); });
+    if (A("complete")) A("complete").addEventListener("click", function () { completePrompt(j, this); });
+    if (A("uncomplete")) A("uncomplete").addEventListener("click", function () { uncompleteModal(j); });
     if (A("rain")) A("rain").addEventListener("click", function () { rainOut(j, this); });
+    wireCompliance(function () { jobModal(j.id); }, $("modal"));
     $("modal").querySelectorAll("[data-give]").forEach(function (b) {
       b.addEventListener("click", function () {
         moveJob(j, { assigned_to: b.getAttribute("data-give") || null }, b);
@@ -3418,6 +3472,284 @@ var SIG = { cv: null, strokes: [] };
       }).join("") + "</svg>";
   }
 
+var CE_ACTS = [
+    ["sign-posted",      "Sign put up",                    "Sign put up"],
+    ["sign-removed",     "Sign taken down",                "Sign taken down"],
+    ["cis-given",        "CIS given to the customer",      "CIS given"],
+    ["regs-given",       "Regulation sheets handed over",  "Regulations handed over"],
+    ["tearoff-obtained", "Tear-off obtained",              "Tear-off obtained"]
+  ];
+   
+  var CE_FOR_GAP = {
+    "no sign recorded": "sign-posted",
+    "sign still up": "sign-removed",
+    "regulations not handed over": "regs-given"
+  };
+  var ceLabel = function (k) {
+    for (var i = 0; i < CE_ACTS.length; i++) if (CE_ACTS[i][0] === k) return CE_ACTS[i][1];
+    return k;
+  };
+  function ceWhen(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " " +
+      d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  }
+   
+  var ceOffer = function (j, k) {
+    return k !== "sign-removed" || !!ceOf(j.id, "sign-posted");
+  };
+
+function ceFix(done) {
+    var fired = false;
+    var finish = function (p) { if (fired) return; fired = true; done(p || null); };
+    if (!navigator.geolocation) { finish(null); return; }
+    setTimeout(function () { finish(null); }, 2500);
+    try {
+      navigator.geolocation.getCurrentPosition(
+        function (pos) { finish(pos); },
+        function () { finish(null); },
+        { enableHighAccuracy: false, timeout: 2500, maximumAge: 60000 });
+    } catch (e) { finish(null); }
+  }
+
+async function ceWrite(row, btn, dup, after) {
+    if (btn) btn.disabled = true;
+    var pos = await new Promise(function (res) { ceFix(res); });
+    if (pos && pos.coords && pos.coords.latitude != null && pos.coords.longitude != null) {
+      row.gps_lat = Number(Number(pos.coords.latitude).toFixed(6));
+      row.gps_lng = Number(Number(pos.coords.longitude).toFixed(6));
+      if (pos.coords.accuracy != null)
+        row.gps_accuracy_m = Number(Number(pos.coords.accuracy).toFixed(1));
+    }
+     
+    var r = await sb.from("compliance_events").insert(row).select();
+    if (r.error) {
+       
+      if (r.error.code === "23505") {
+        await reload(["jobs"]);
+        toast(dup);
+        if (after) after();
+        return true;
+      }
+      toast(explain(r.error).message);
+      if (btn) btn.disabled = false;
+      return false;
+    }
+     
+    if (!(r.data || []).length) {
+      toast("That didn’t save — the database refused it. The job may have been " +
+            "given to somebody else.");
+      if (btn) btn.disabled = false;
+      return false;
+    }
+    await reload(["jobs"]);
+    if (after) after();
+    return true;
+  }
+
+  async function ceAdd(jid, kind, btn, after) {
+    var was = ceOf(jid, kind);
+    var dup = was ? "Already recorded " + ceWhen(was.occurred_at) + "."
+                  : "Already recorded.";
+    var ok = await ceWrite({ job_id: jid, kind: kind, actor_id: S.me.id },
+                           btn, dup, after);
+    if (ok) toast(ceLabel(kind) + " — recorded.");
+  }
+
+var CE_WHY = ["Tapped by mistake", "Wrong job", "It did not actually happen"];
+  function ceUndoModal(id, after) {
+    var e = S.compEvents.filter(function (x) { return x.id === id; })[0];
+    if (!e) { toast("That entry has moved — reload."); return; }
+    openModal("<h3>" + esc(ceLabel(e.kind)) + "</h3>" +
+      '<p class="note">Recorded ' + esc(ceWhen(e.occurred_at)) +
+      (e.actor_name ? " by " + esc(e.actor_name) : "") + ".</p>" +
+      '<div class="msg warn">The entry stays on the log. A correction is written ' +
+      "beside it with your name and the time, and both are on the record.</div>" +
+      '<div class="acts">' +
+      CE_WHY.map(function (w, n) {
+        return '<button class="act" data-cewhy="' + n + '" type="button">' + esc(w) + "</button>";
+      }).join("") + "</div>" +
+      '<details style="margin-top:.6rem"><summary style="cursor:pointer;font-size:.86rem">' +
+      "Something else</summary>" +
+      '<input id="ceWhy" class="f" placeholder="what actually happened">' +
+      '<div class="row"><button class="primary" id="ceGo" type="button">Write the correction</button></div>' +
+      "</details>" +
+      '<div class="row"><button class="act" id="ceNo" type="button">Leave it</button></div>');
+    $("ceNo").addEventListener("click", closeModal);
+    $("modal").querySelectorAll("[data-cewhy]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        ceUndo(e, CE_WHY[Number(b.getAttribute("data-cewhy"))], this, after);
+      });
+    });
+    $("ceGo").addEventListener("click", function () {
+      var why = $("ceWhy").value.trim();
+      if (!why) { toast("Say why, or use one of the three above."); return; }
+      ceUndo(e, why, this, after);
+    });
+  }
+  async function ceUndo(e, why, btn, after) {
+    var ok = await ceWrite(
+      { job_id: e.job_id, kind: e.kind, actor_id: S.me.id,
+        reverses_id: e.id, reason: why },
+      btn, "That entry has already been corrected.",
+      function () { closeModal(); if (after) after(); });
+    if (ok) toast("Corrected. Both entries are on the log.");
+  }
+
+function ceStrip(j) {
+    return '<table class="lst">' + CE_ACTS.map(function (a) {
+      var e = ceOf(j.id, a[0]);
+      return '<tr><td style="width:11rem">' + esc(a[1]) + "</td><td>" +
+        (e
+          ? "<b>" + esc(ceWhen(e.occurred_at)) + "</b> " +
+            '<span class="empty">' + esc(e.actor_name || "") +
+            (e.gps_lat != null ? " · position recorded" : "") + "</span> " +
+            '<button class="act" data-ce-undo="' + e.id + '" type="button" ' +
+            'style="padding:.1rem .4rem;font-size:.72rem">That was a mistake</button>'
+          : (ceOffer(j, a[0])
+              ? '<button class="act go" data-ce-add="' + j.id + "|" + a[0] +
+                '" type="button">' + esc(a[2]) + "</button>"
+              : '<span class="empty">nothing went up</span>')) +
+        "</td></tr>";
+    }).join("") + "</table>";
+  }
+   
+  function ceChips(j) {
+     
+    if (NEEDS_RECORD.indexOf(j.type) < 0) return "";
+    return '<div class="acts" style="margin-top:.35rem">' +
+      CE_ACTS.map(function (a) {
+        var e = ceOf(j.id, a[0]);
+        if (e)
+          return '<span class="pill ok">' + esc(a[2]) + " " +
+            esc(ceWhen(e.occurred_at)) + "</span>";
+        return ceOffer(j, a[0])
+          ? '<button class="act" data-ce-add="' + j.id + "|" + a[0] +
+            '" type="button">' + esc(a[2]) + "</button>"
+          : "";
+      }).join("") + "</div>";
+  }
+   
+  function ceGapBtn(r) {
+    var k = r.job_id ? CE_FOR_GAP[r.gap] : null;
+    if (!k || ceOf(r.job_id, k)) return "";
+    return '<button class="act go" data-ce-add="' + r.job_id + "|" + k +
+      '" type="button" style="padding:.1rem .4rem;font-size:.72rem">' +
+      esc(ceLabel(k)) + "</button> ";
+  }
+   
+  function wireCompliance(redraw, root) {
+    var where = root || app;
+    where.querySelectorAll("[data-ce-add]").forEach(function (b) {
+      b.addEventListener("click", function (ev) {
+         
+        ev.stopPropagation();
+        var p = b.getAttribute("data-ce-add").split("|");
+        ceAdd(p[0], p[1], this, redraw);
+      });
+    });
+    where.querySelectorAll("[data-ce-undo]").forEach(function (b) {
+      b.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        ceUndoModal(b.getAttribute("data-ce-undo"), redraw);
+      });
+    });
+  }
+
+function completePrompt(j, btn) {
+    if (NEEDS_RECORD.indexOf(j.type) < 0) { completeJob(j, btn); return; }
+    var ask = ["sign-posted", "cis-given"].filter(function (k) { return !ceOf(j.id, k); });
+    var done = ["sign-posted", "cis-given"].filter(function (k) { return !!ceOf(j.id, k); });
+    if (!ask.length) { completeJob(j, btn); return; }
+    openModal("<h3>Before it goes down as complete</h3>" +
+      (done.length
+        ? '<div class="msg good">' + done.map(function (k) {
+            var e = ceOf(j.id, k);
+            return esc(ceLabel(k)) + " " + esc(ceWhen(e.occurred_at));
+          }).join("<br>") + "</div>"
+        : "") +
+      '<p class="note">Each one is recorded with your name and the time. Nothing ' +
+      "here can be skipped.</p>" +
+      ask.map(function (k) {
+        return '<div class="acts" style="margin:.5rem 0"><span class="minilbl">' +
+          esc(ceLabel(k)) + "</span>" +
+          '<button class="act go" data-cpy="' + k + '" type="button">Yes</button>' +
+          '<button class="act" data-cpn="' + k + '" type="button">Not done</button>' +
+          '<span class="pill" data-cpp="' + k + '"></span></div>';
+      }).join("") +
+      '<div class="row"><button class="primary" id="cpGo" type="button" disabled>' +
+      "Mark it complete</button>" +
+      '<button class="act" id="cpNo" type="button">Back</button></div>');
+    var said = {};
+    var refresh = function () {
+      ask.forEach(function (k) {
+        var p = $("modal").querySelector('[data-cpp="' + k + '"]');
+        if (p) p.textContent = said[k] === true ? "recorded"
+                             : said[k] === false ? "goes on the compliance list" : "";
+      });
+      $("cpGo").disabled = ask.some(function (k) { return said[k] === undefined; });
+    };
+    $("cpNo").addEventListener("click", closeModal);
+    $("modal").querySelectorAll("[data-cpy]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        said[b.getAttribute("data-cpy")] = true; refresh();
+      });
+    });
+    $("modal").querySelectorAll("[data-cpn]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        said[b.getAttribute("data-cpn")] = false; refresh();
+      });
+    });
+    refresh();
+    $("cpGo").addEventListener("click", async function () {
+      this.disabled = true;
+      var yes = ask.filter(function (k) { return said[k] === true; }), i;
+      for (i = 0; i < yes.length; i++) {
+        var r = await sb.from("compliance_events")
+          .insert({ job_id: j.id, kind: yes[i], actor_id: S.me.id }).select();
+         
+        if (r.error && r.error.code !== "23505") {
+          toast(explain(r.error).message); this.disabled = false; return;
+        }
+      }
+      await reload(["jobs"]);
+       
+      completeJob(j, this);
+    });
+  }
+
+function uncompleteModal(j) {
+    openModal("<h3>Take it back off complete?</h3>" +
+      '<p class="note">It goes back on the board. Your name, the date and the ' +
+      "reason go onto the job and stay on it, completed again or not.</p>" +
+      '<div class="msg warn">The compliance log is untouched — a sign that was ' +
+      "posted was posted. And the pesticide record stays filed: to change what " +
+      "was applied, open the sheet for corrections as well.</div>" +
+      '<label for="ucjWhy">Why</label>' +
+      '<input id="ucjWhy" class="f" placeholder="marked complete on the wrong job · came back to finish it">' +
+      '<div class="row"><button class="primary" id="ucjGo" type="button">Take it off</button>' +
+      '<button class="act" id="ucjNo" type="button">Leave it</button></div>');
+    $("ucjNo").addEventListener("click", closeModal);
+    $("ucjGo").addEventListener("click", async function () {
+      var why = $("ucjWhy").value.trim();
+      if (!why) { toast("Say why — it is recorded on the job."); return; }
+      this.disabled = true;
+      try {
+        var r = await sb.from("jobs").update({
+          status: "scheduled", completed_date: null,
+          uncompleted_at: new Date().toISOString(),
+          uncompleted_by: S.me.id, uncomplete_reason: why
+        }).eq("id", j.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That didn’t save — the database refused it.");
+        await reload(["jobs", "money", "attention"]);
+        closeModal(); render();
+        toast("Back on the board. The record is still filed.");
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
   async function completeJob(j, btn) {
     btn.disabled = true;
     try {
@@ -3479,7 +3811,8 @@ var chkBox = function (on) {
 
 var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
     var reopened = !!sh.unlocked_at;
-    var recordLocked = !!((sh.signed_on || j.status === "complete") && !reopened);
+    var recordLocked = !!((sh.signed_on || j.status === "complete" ||
+                           j.uncompleted_at) && !reopened);
     var linesLocked = !!((sh.signed_on || (paidish && j.status === "complete")) && !reopened);
     var locked = recordLocked || linesLocked;
     var live = !recordLocked;
@@ -3881,68 +4214,27 @@ var condBox = function (kind, val, label, on) {
       'margin-top:.35rem"></div>' +
       "</div>";
 
-if (tr) {
-      var upAt = tr.sign_posted_at ? new Date(tr.sign_posted_at) : null;
-      var dnAt = tr.sign_removed_at ? new Date(tr.sign_removed_at) : null;
-      var hrs = upAt && dnAt ? (dnAt - upAt) / 3600000 : null;
-      var stillUp = upAt && !dnAt ? (new Date() - upAt) / 3600000 : null;
-      var when = function (d) {
-        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
-          " " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
-      };
-       
-      var regsOwed = chems.some(function (r) {
-        var pp = S.products.filter(function (x) { return x.id === r.product_id; })[0];
-        return pp && pp.needs_regs_summary === true;
-      });
-
-      h += '<div class="rs-sec noprint"><div class="rs-band">The sign, and what was handed over</div>' +
-        '<table class="lst"><tr><td style="width:11rem">Sign posted</td><td>' +
-        (upAt
-          ? "<b>" + esc(when(upAt)) + "</b>"
-          : (live
-              ? '<button class="act" id="signUp" type="button">Record it going up</button>'
-              : '<span class="empty">not recorded, and the record is filed</span>')) +
-        "</td></tr>" +
-
-        "<tr><td>Sign taken down</td><td>" +
-        (dnAt
-          ? "<b>" + esc(when(dnAt)) + "</b>" +
-            (hrs != null
-              ? ' <span class="empty">' + Math.round(hrs) + " hours up" +
-                (hrs < 24 ? " \u2014 the sheet says at least 24" : "") + "</span>"
-              : "")
-          : (upAt
-              ? '<button class="act go" id="signDown" type="button">It has come down</button>' +
-                (stillUp != null && stillUp > 72
-                  ? ' <b style="color:var(--risk)">up ' + Math.round(stillUp / 24) +
-                    " days \u2014 the sheet promises inside 72 hours</b>"
-                  : "")
-              : '<span class="empty">nothing went up</span>')) +
-        "</td></tr>" +
-
-        "<tr><td>Regulations handed over</td><td>" +
-        (tr.regs_given
-          ? "<b>yes</b>"
-          : (live
-              ? '<button class="act" id="regsGo" type="button">Mark it handed over</button>'
-              : '<span class="empty">no</span>')) +
-        (regsOwed && !tr.regs_given
-          ? ' <b style="color:var(--risk)">required \u2014 a termiticide that is not a bait</b>'
-          : "") +
-        "</td></tr></table>" +
+var regsOwed = chems.some(function (r) {
+      var pp = S.products.filter(function (x) { return x.id === r.product_id; })[0];
+      return pp && pp.needs_regs_summary === true;
+    });
+    h += '<div class="rs-sec noprint"><div class="rs-band">The sign, and what was handed over</div>' +
+      ceStrip(j) +
+      (regsOwed && !ceOf(j.id, "regs-given")
+        ? '<div class="msg warn"><b>The regulations are required here</b> \u2014 a ' +
+          "termiticide that is not a bait.</div>"
+        : "") +
 
 (c.wants_label_copies || c.wants_application_dates
-          ? '<div class="msg warn" style="margin:.5rem 0 0">' +
-            (c.wants_label_copies
-              ? "<b>This customer has asked for a copy of the label</b> for each pesticide. "
-              : "") +
-            (c.wants_application_dates
-              ? "<b>They have asked to be told the exact dates</b> of applications."
-              : "") + "</div>"
-          : "") +
-        "</div>";
-    }
+        ? '<div class="msg warn" style="margin:.5rem 0 0">' +
+          (c.wants_label_copies
+            ? "<b>This customer has asked for a copy of the label</b> for each pesticide. "
+            : "") +
+          (c.wants_application_dates
+            ? "<b>They have asked to be told the exact dates</b> of applications."
+            : "") + "</div>"
+        : "") +
+      "</div>";
 
 h += '<div class="rs-sec noprint"><div class="rs-band">Photographs</div>' +
       '<div class="snaps" id="snaps"></div>' +
@@ -4030,31 +4322,7 @@ renderSheet(jobId);
     if ($("cisBtn")) $("cisBtn").addEventListener("click", function () { go("cis", j.customer_id); });
     if ($("wdiBtn")) $("wdiBtn").addEventListener("click", function () { go("wdi", jobId); });
      
-    if ($("signUp")) $("signUp").addEventListener("click", async function () {
-      this.disabled = true;
-      var r = await sb.from("treatment_records")
-        .update({ sign_posted_at: new Date().toISOString() }).eq("id", tr.id).select();
-      if (r.error) { toast(explain(r.error).message); this.disabled = false; return; }
-      if (!(r.data || []).length) {
-        toast("That didn" + "\u2019" + "t save. The record is filed, and when the sign went " +
-              "up is part of the visit \u2014 the sheet has to be opened for corrections.");
-        this.disabled = false; return;
-      }
-      await reload(["jobs"]); toast("Sign recorded."); renderSheet(jobId);
-    });
-
-    if ($("signDown")) $("signDown").addEventListener("click", async function () {
-      this.disabled = true;
-      var r = await sb.from("treatment_records")
-        .update({ sign_removed_at: new Date().toISOString() }).eq("id", tr.id).select();
-      if (r.error) { toast(explain(r.error).message); this.disabled = false; return; }
-      if (!(r.data || []).length) {
-        toast("That didn" + "\u2019" + "t save \u2014 tell me, because taking the sign down is " +
-              "meant to work on a filed record.");
-        this.disabled = false; return;
-      }
-      await reload(["jobs"]); toast("Down."); renderSheet(jobId);
-    });
+    wireCompliance(function () { renderSheet(jobId); });
 
 if ($("newCust")) $("newCust").addEventListener("click", async function () {
       var was = $("newCust").getAttribute("aria-pressed") === "true";
@@ -4065,19 +4333,6 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
         toast(was ? "Not a new customer." : "New customer.");
         renderSheet(jobId);
       } catch (e) { toast(e.message); this.disabled = false; }
-    });
-
-    if ($("regsGo")) $("regsGo").addEventListener("click", async function () {
-      this.disabled = true;
-      var r = await sb.from("treatment_records")
-        .update({ regs_given: true }).eq("id", tr.id).select();
-      if (r.error) { toast(explain(r.error).message); this.disabled = false; return; }
-      if (!(r.data || []).length) {
-        toast("That didn" + "\u2019" + "t save. Handing the regulations over happened at the " +
-              "visit, so on a filed record it goes through opening the sheet.");
-        this.disabled = false; return;
-      }
-      await reload(["jobs"]); toast("Recorded."); renderSheet(jobId);
     });
 
     if ($("unlock")) $("unlock").addEventListener("click", function () { unlockModal(); });
