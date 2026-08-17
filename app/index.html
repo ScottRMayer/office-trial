@@ -768,8 +768,18 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     <div class="acts" style="margin-top:.7rem">
       <button class="act" id="magic" type="button">Email me a link instead</button>
     </div>
-    <p class="note" style="margin:.6rem 0 0">No password to remember — we send a
-      link that signs you in on this device. It lasts an hour and can be used once.</p>
+    
+    <div id="codeBox" hidden style="margin-top:.7rem">
+      <label for="otp">Or the six-digit code from that email</label>
+      <input id="otp" class="f" inputmode="numeric" autocomplete="one-time-code"
+             maxlength="8" placeholder="123456">
+      <div class="acts" style="margin-top:.5rem">
+        <button class="primary" id="otpGo" type="button">Sign me in</button>
+      </div>
+    </div>
+    <p class="note" style="margin:.6rem 0 0">No password to remember. On a phone,
+      use the code — a link opens your browser and signs you in there, not in this
+      app. Either lasts an hour and works once.</p>
   </div>
 </div>
 
@@ -1172,6 +1182,11 @@ var IDLE_MS = 20 * 60 * 1000;
 
 $("signin").addEventListener("click", doSignIn);
   $("magic").addEventListener("click", sendMagicLink);
+   
+  if ($("otpGo")) $("otpGo").addEventListener("click", signInWithCode);
+  if ($("otp")) $("otp").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") signInWithCode();
+  });
   $("pw").addEventListener("keydown", function (e) { if (e.key === "Enter") doSignIn(); });
   $("email").addEventListener("keydown", function (e) { if (e.key === "Enter") $("pw").focus(); });
    
@@ -1192,7 +1207,33 @@ $("signin").addEventListener("click", doSignIn);
     });
   });
 
-async function sendMagicLink() {
+async function signInWithCode() {
+    var b = $("otpGo"); if (!b) return;
+    var email = $("email").value.trim();
+    var code = ($("otp").value || "").replace(/[^0-9]/g, "");
+    if (!email) {
+      $("gateMsg").innerHTML = '<div class="msg bad">Type your email address too, so we ' +
+        "know whose code it is.</div>"; return;
+    }
+    if (code.length < 6) {
+      $("gateMsg").innerHTML = '<div class="msg bad">The code is six digits.</div>'; return;
+    }
+    b.disabled = true;
+    $("gateMsg").innerHTML = '<div class="msg">Signing in…</div>';
+    try {
+      var r = await sb.auth.verifyOtp({ email: email, token: code, type: "email" });
+      if (r.error) throw new Error(r.error.message);
+       
+      lsDel("ut_locked");
+      await start();
+    } catch (e) {
+      $("gateMsg").innerHTML = '<div class="msg bad">' + esc(e.message) +
+        "<br>Codes last an hour and work once. Ask for a fresh one if in doubt.</div>";
+      b.disabled = false;
+    }
+  }
+
+  async function sendMagicLink() {
     var b = $("magic"); b.disabled = true;
     var email = $("email").value.trim();
     if (!email) {
@@ -1208,9 +1249,13 @@ async function sendMagicLink() {
        
       if (r.error && !/signups not allowed|user not found|security purposes/i.test(r.error.message))
         throw new Error(r.error.message);
+       
+      if ($("codeBox")) $("codeBox").hidden = false;
+      if ($("otp")) $("otp").focus();
       $("gateMsg").innerHTML = '<div class="msg"><b>Check your email.</b><br>' +
-        "If " + esc(email) + " is one of ours, a sign-in link is on its way. It " +
-        "lasts an hour. Open it on this device.</div>";
+        "If " + esc(email) + " is one of ours, it has a link and a six-digit " +
+        "code. <b>On a phone, type the code below</b> — a link opens your " +
+        "browser and signs you in there, not in this app. Either lasts an hour.</div>";
     } catch (e) {
       $("gateMsg").innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>";
     } finally { b.disabled = false; }
