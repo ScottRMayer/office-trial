@@ -2089,11 +2089,25 @@ if (S.wdiStatus.length) {
       var wks = Object.keys(wk).sort(function (a, b) {
         return wk[a].u - wk[b].u || wk[b].n - wk[a].n;
       });
-      var urgent = S.wdiStatus.filter(function (x) { return x.urgency === 1; }).length;
        
+      var wdiGone = S.wdiStatus.filter(function (x) { return x.state === "expired"; }).length;
+      var wdiUsed = S.wdiStatus.filter(function (x) {
+        return x.state === "used outside its ninety days";
+      }).length;
+      var wdiSoon = null;
+      S.wdiStatus.forEach(function (x) {
+        var d = Number(x.days_left);
+        if (isNaN(d) || d < 0) return;
+        if (wdiSoon === null || d < wdiSoon) wdiSoon = d;
+      });
       wlWdi = plural(S.wdiStatus.length, "inspection report") + " outstanding" +
-        (urgent ? " · " + urgent + " past the ninety days" : "");
-      wlWdiUrgent = !!urgent;
+        (wdiGone ? " · " + wdiGone + " expired" : "") +
+        (wdiUsed ? " · " + wdiUsed + " used after expiry" : "") +
+        (wdiSoon !== null
+          ? " · next expires " + (wdiSoon === 0 ? "today"
+              : wdiSoon === 1 ? "tomorrow" : "in " + plural(wdiSoon, "day"))
+          : "");
+      wlWdiUrgent = !!(wdiGone || wdiUsed);
       dwWdi = '<div class="drawer" id="dw-wdi" hidden>' +
         wks.map(function (k) {
           var g = wk[k];
