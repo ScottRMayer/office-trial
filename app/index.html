@@ -311,6 +311,9 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   button.gear:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
   select.li{width:100%;font:inherit;font-size:.84rem;padding:.22rem .3rem;
     border:1px solid transparent;border-radius:3px;background:transparent;color:var(--ink)}
+   
+  select.li[data-col="role"]{min-width:17rem}
+  select.li[data-col="works_under"]{min-width:10rem}
   select.li:hover{border-color:var(--rule)}
   select.li:focus{border-color:var(--brand);background:var(--card);outline:none}
   select.li:disabled{opacity:.6}
@@ -380,6 +383,8 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .mcell:hover{background:var(--brand-w)}
   .mcell.other{background:var(--paper);opacity:.55}
   .mcell.istoday{box-shadow:inset 0 0 0 2px var(--brand)}
+   
+  .mcell.istoday .mnum{padding-right:2.4rem}
   .mcell.picked{background:var(--brand-w)}
   .mnum{font-size:.72rem;font-variant-numeric:tabular-nums;color:var(--ink-soft);
     display:flex;align-items:baseline}
@@ -886,7 +891,7 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
   <div class="hrow">
     <div class="logo">United Termite <small>&amp; Pest Control</small></div>
     <div class="search">
-      <input id="q" type="search" placeholder="Search — address, name or phone…" autocomplete="off" aria-label="Search">
+      <input id="q" type="search" placeholder="Search — address or name" autocomplete="off" aria-label="Search">
       <div class="results" id="qr"></div>
     </div>
     <div class="who" id="whoami"></div>
@@ -962,6 +967,8 @@ function money(n) {
     var v = Number(n) || 0, neg = v < 0, p = Math.abs(v).toFixed(2).split(".");
     return (neg ? "-$" : "$") + p[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",") + "." + p[1];
   }
+   
+  function num(v) { return (v === null || v === undefined || v === "") ? "—" : String(v); }
   function plural(n, one, many) { return n + " " + (n === 1 ? one : (many || one + "s")); }
    
   function esc(s) {
@@ -1888,15 +1895,15 @@ var PROPERTY_KINDS = [
 
 var STATUS = { "scheduled": "Scheduled", "complete": "Complete",
                  "cancelled": "Cancelled", "rained-out": "Rained out",
-                 "no-access": "Nobody home" };
+                 "no-access": "No access" };
   function statusLabel(v) { return STATUS[v] || v; }
 
   var METHODS = { "cash": "Cash", "check": "Cheque", "card": "Card",
                   "to-be-mailed": "To be mailed", "other": "Other" };
   function methodLabel(v) { return METHODS[v] || v; }
 
-  var KINDS = { "unpaid-completed": "money owed", "quiet-quote": "gone quiet",
-                "warranty-no-autorenew": "no auto-renewal", "sold-not-scheduled": "not on the calendar" };
+  var KINDS = { "unpaid-completed": "Money owed", "quiet-quote": "No reply",
+                "warranty-no-autorenew": "No auto-renewal", "sold-not-scheduled": "Not on the calendar" };
 
 var MONTHS = ["January","February","March","April","May","June","July","August",
                 "September","October","November","December"];
@@ -2006,7 +2013,7 @@ function tile(key, cls, label, big, what, n, calm) {
                     : "Every finished job has been paid for", owed.length,
         "Nothing owed") +
        
-      tile("risk", "risk", "Quotes and warranties waiting", money(sum(risk)),
+      tile("risk", "risk", "Estimates and warranties waiting", money(sum(risk)),
         risk.length ? plural(risk.length, "quote or warranty", "quotes and warranties") +
                       " that could still be accepted or refused"
                     : "No quote or warranty is waiting on anybody", risk.length,
@@ -2069,9 +2076,9 @@ if (S.gaps.length) {
                 '<td style="font-size:.76rem">' + esc(r.detail || "") + "</td>" +
                 "<td>" + (r.job_id
                   ? '<button class="act" data-gapjob="' + r.job_id +
-                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">the sheet</button>'
+                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The sheet</button>'
                   : '<button class="act" data-gapcust="' + r.customer_id +
-                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">the folder</button>') +
+                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The folder</button>') +
                 "</td></tr>";
             }).join("") + "</table>" +
             (g.n > 6
@@ -2125,11 +2132,12 @@ if (S.wdiStatus.length) {
                 "<td>" + (isNaN(d)
                   ? esc(fmtDate(r.expires_on))
                   : d < 0
-                    ? '<b style="color:var(--risk)">' + Math.abs(d) + " days ago</b>"
+                    ? '<b style="color:var(--risk)">Expired ' + Math.abs(d) +
+                      " days ago</b>"
                     : d + " days left") + "</td>" +
                 "<td>" + (r.job_id
                   ? '<button class="act" data-wdijob="' + r.job_id +
-                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">the report</button>'
+                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The report</button>'
                   : "") + "</td></tr>" +
                 (r.detail
                   ? '<tr><td colspan="4" class="empty" style="font-size:.74rem;' +
@@ -2154,7 +2162,7 @@ var dwBoxes = '<div class="drawer" id="dw-boxes" hidden>' +
       '<div class="acts noprint" style="margin-bottom:.3rem">' +
       '<button class="act" id="dashLabels" type="button">Print postcard labels</button></div>' +
       (boxes.length
-        ? boxGroup("Overdue — their month has already gone by", late, "owed") +
+        ? boxGroup("Overdue — their month has passed", late, "owed") +
           boxGroup("Due this month", nowB, "") +
           boxGroup("Schedule for " + mLabel(nextW) + " — call these now", nextB, "risk")
         : '<div class="msg good">Everyone whose month has come round, up to ' +
@@ -2170,7 +2178,7 @@ var stale = S.jobs.filter(function (j) {
 
     if (stale.length) {
        
-      var WHY = { "rained-out": "Rained out", "no-access": "Nobody home",
+      var WHY = { "rained-out": "Rained out", "no-access": "No access",
                   "scheduled": "Scheduled, not done" };
        
       var owedOn = stale.reduce(function (t, j) {
@@ -2194,7 +2202,7 @@ var stale = S.jobs.filter(function (j) {
             '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
             "<td>" + esc(WHY[j.status] || j.status) + "</td>" +
             '<td class="r"><button class="act" data-restale="' + j.id +
-            '" type="button">Move it</button>' +
+            '" type="button">Reschedule</button>' +
             ' <button class="act" data-sheet="' + j.id + '" type="button">The sheet</button>' +
             "</td></tr>";
         }).join("") + "</table>" +
@@ -2206,7 +2214,7 @@ var stale = S.jobs.filter(function (j) {
     }
 
 var book = '<div class="card"><h2>The schedule</h2>' +
-      '<p class="note">Today and the six days after it. Tap a day to open it.</p>' +
+      '<p class="note">Today and the following six days. Tap a day to open it.</p>' +
       '<div class="week7">';
     for (var wd = 0; wd < 7; wd++) {
       var dISO = shiftISO(todayISO(), wd);
@@ -2370,7 +2378,7 @@ app.querySelectorAll("[data-drawer]").forEach(function (b) {
 
 var OUTCOMES = [
     ["no-answer", "No answer",                          "stays on the list, try counted"],
-    ["called",    "Spoke to them — nothing booked yet",  "stays on the list"],
+    ["called",    "Spoke to them — no visit booked",  "stays on the list"],
     ["booked",    "They want a visit",                  "opens the calendar"],
     ["declined",  "They declined this year",            "off the list until next year"]
   ];
@@ -2501,7 +2509,7 @@ async function saveOutcome(b, outcome, note) {
       acts.push('<button class="act go" data-pay="' + a.record_id + '">Record payment</button>');
       acts.push('<button class="act" data-remind="' + a.record_id + '">Send reminder</button>');
        
-      acts.push('<button class="act" data-notowed="' + a.record_id + '">Won’t collect…</button>');
+      acts.push('<button class="act" data-notowed="' + a.record_id + '">Will not collect…</button>');
       if (a.job_id) acts.push('<button class="act" data-sheet="' + a.job_id + '">The sheet</button>');
     }
     acts.push('<button class="act" data-note="' + a.customer_id + '">Add a note</button>');
@@ -2509,7 +2517,7 @@ async function saveOutcome(b, outcome, note) {
 
 acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|" +
       (a.amount || 0) + '" data-dismissnm="' + esc(a.customer_name || "") +
-      '">Mark as handled…</button>');
+      '">Mark as resolved…</button>');
     return '<div class="item ' + (a.bucket === "owed" ? "owed" : "risk") + '">' +
       '<div class="top"><span class="dot" style="background:' + esc((ar && ar.dot_color) || "var(--dot)") + '"></span>' +
       '<span class="nm">' + esc(a.customer_name) + '</span><span class="pill">' +
@@ -2690,7 +2698,7 @@ function jobsOn(iso) {
       : MONTHS[Number(d.slice(5, 7)) - 1] + " " + d.slice(0, 4);
 
     var h = missingBanner() + "<h1>" + esc(title) + "</h1>" +
-      (span === "day" ? '<p class="sub">Noon is kept clear.</p>' : "");
+      (span === "day" ? '<p class="sub">The windows overlap at noon.</p>' : "");
 
 h += '<div class="daynav noprint">' +
       '<span class="spanbtns">' +
@@ -2861,7 +2869,7 @@ var noWin = all.filter(function (j) { return !windowOf(j); });
               ? '<span class="pill warn">' + money(b.balance) + " owed</span>"
               : '<span class="pill ok">Complete</span>')
           : (j.status === "rained-out" ? '<span class="pill">Rained out</span>'
-             : j.status === "no-access" ? '<span class="pill">nobody home</span>' : "")) +
+             : j.status === "no-access" ? '<span class="pill">No access</span>' : "")) +
       "</span>" +
 
 (withAssign === true && isOffice()
@@ -3144,12 +3152,12 @@ if (isOffice() && !field) {
         }).join("") +
         (j.assigned_to
            
-          ? '<button class="act" data-give="" type="button">Back to the pool</button>'
+          ? '<button class="act" data-give="" type="button">Unassign</button>'
           : '<span class="pill warn">unassigned</span>') +
         "</div>";
       h += '<div class="acts" style="margin-top:.5rem">' +
         '<span class="minilbl">Schedule</span>' +
-        '<button class="act" id="mvBtn" type="button">Another day…</button>' +
+        '<button class="act" id="mvBtn" type="button">Move the job…</button>' +
         WINDOWS.map(function (W) {
           return win === W[0]
             ? '<span class="pill ok">' + esc(W[1]) + "</span>"
@@ -3230,19 +3238,19 @@ h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size
     h += '<div class="acts" style="margin-top:.7rem">' +
       (S.menu.length ? '<button class="act" data-act="addsvc">＋ Add a service</button>' : "") +
       (needsRecord ? '<button class="act' + (tr ? "" : " go") + '" data-act="record">' +
-        (tr ? "Treatment record ✓" : "Fill the treatment record") + "</button>" : "") +
+        (tr ? "Treatment record ✓" : "Record the treatment") + "</button>" : "") +
       '<button class="act' + (sh && sh.signed_on ? "" : " go") + '" data-act="sign">' +
-        (sh && sh.signed_on ? "Signed ✓" : "Get a signature") + "</button>" +
+        (sh && sh.signed_on ? "Signed ✓" : "Record signature") + "</button>" +
        
       (b && (b.voided_at || b.charge_withdrawn)
         ? '<span class="pill warn">' +
           (b.voided_at ? "voided — never owed" : "charge withdrawn") + "</span>"
         : b && Number(b.balance) > 0.004
-          ? '<button class="act go" data-act="pay">Take payment</button>'
+          ? '<button class="act go" data-act="pay">Record payment</button>'
           : '<span class="pill ok">nothing owed</span>') +
        
       (isOffice() && b && !b.voided_at && !b.charge_withdrawn
-        ? '<button class="act" data-act="notowed">Won’t collect…</button>'
+        ? '<button class="act" data-act="notowed">Will not collect…</button>'
         : "") +
        
       (canDiscount(inv)
@@ -3289,7 +3297,7 @@ h += '<div class="card" style="margin:.9rem 0 0"><b>The sign, and what was ' +
     }
     h += '<div class="row"><button class="act" data-act="close" type="button">Close</button>' +
          (j.status === "scheduled"
-           ? '<button class="act" data-act="rain" type="button">Rained out — keeping the sheet</button>' : "") +
+           ? '<button class="act" data-act="rain" type="button">Mark rained out — keep the sheet</button>' : "") +
          "</div>";
 
     openModal(h);
@@ -3408,7 +3416,7 @@ function moveDayModal(j) {
           '<span class="empty" style="font-size:.7rem"> ' +
           esc(fmtDate(shiftISO(from, Number(q[0])))) + "</span></button>";
       }).join("") + "</div>" +
-      '<label for="mvDate">Or pick a day</label>' +
+      '<label for="mvDate">Or select a date</label>' +
       '<input id="mvDate" class="f" type="date" value="' + esc(shiftISO(from, 1)) + '">' +
       '<label for="mvWin">Morning or afternoon</label><select id="mvWin" class="f">' +
       WINDOWS.map(function (W) {
@@ -3418,8 +3426,8 @@ function moveDayModal(j) {
       (span > 1
         ? '<p class="note">It runs ' + plural(span, "day") + ", so the whole run moves.</p>"
         : "") +
-      '<div class="row"><button class="primary" id="mvGo" type="button">Move it</button>' +
-      '<button class="act" id="mvNo" type="button">Leave it</button></div>');
+      '<div class="row"><button class="primary" id="mvGo" type="button">Move the job</button>' +
+      '<button class="act" id="mvNo" type="button">Cancel</button></div>');
     $("mvNo").addEventListener("click", function () { jobModal(j.id); });
     $("modal").querySelectorAll("[data-push]").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -3457,7 +3465,7 @@ async function moveJob(j, patch, btn, inList) {
                             "putting a second technician on a job");
       var t = personOf(patch.assigned_to);
       toast("assigned_to" in patch
-        ? (t ? "Given to " + t.name : "Back in the pool")
+        ? (t ? "Given to " + t.name : "Unassigned")
         : "slots" in patch
           ? (patch.slots >= 10 ? "All day now" : plural(patch.slots, "slot") + " now")
           : "end_date" in patch
@@ -3585,7 +3593,7 @@ if (!sup.applicator_no) {
       (canWrite
         ? '<label for="prod">' + (already.length ? "Add another product" : "Product used") +
           "</label><select id=\"prod\" class=\"f\">" +
-          '<option value="">— none applied —</option>' +
+          '<option value="">None applied</option>' +
           S.products.map(function (p) {
             return '<option value="' + p.id + '">' + esc(p.name) +
               (p.epa_number ? " (EPA " + esc(p.epa_number) + ")" : "") + "</option>";
@@ -3709,15 +3717,15 @@ var SIG = { cv: null, strokes: [] };
     var noGround = NEEDS_GROUND.indexOf(j.type) >= 0 &&
                    !(recYet && recYet.retreat_reason);
     var notReady = !recYet || !chemYet.length || noGround;
-    openModal("<h3>Customer signature</h3>" +
+    openModal("<h3>Record signature</h3>" +
       '<p class="note">It prints on the sheet. <b>Signing closes the sheet</b> — after ' +
       "this the pests, the places treated, the materials, the services and why this " +
       "re-treatment is lawful can only be changed by the office opening it again.</p>" +
       (notReady
         ? '<div class="msg warn">' +
           (!recYet
-            ? "<b>Nothing is on the treatment record yet.</b> Sign now and it cannot be " +
-              "filled in without ringing the office."
+            ? "<b>The treatment record is empty.</b> If the customer signs now, it " +
+              "cannot be filled in without ringing the office."
             : !chemYet.length
             ? "<b>No material is on the record yet.</b> Sign now and nothing can be " +
               "attached to it — the printed record would say no pesticide was applied."
@@ -3732,7 +3740,7 @@ var SIG = { cv: null, strokes: [] };
       '<div class="row">' +
        
       (notReady
-        ? '<button class="primary" id="sgFirst" type="button">Fill the record first</button>' +
+        ? '<button class="primary" id="sgFirst" type="button">Record the treatment</button>' +
           '<button class="act" id="sgGo" type="button">Sign anyway</button>'
         : '<button class="primary" id="sgGo" type="button">Save the signature</button>') +
       '<button class="act" id="sgNo" type="button">Back</button></div>');
@@ -3828,7 +3836,7 @@ var CE_ACTS = [
     ["sign-posted",      "Sign put up",                    "Sign put up"],
     ["sign-removed",     "Sign taken down",                "Sign taken down"],
     ["cis-given",        "CIS given to the customer",      "CIS given"],
-    ["regs-given",       "Regulation sheets handed over",  "Regulations handed over"],
+    ["regs-given",       "Regulations handed over",  "Regulations handed over"],
     ["tearoff-obtained", "Tear-off obtained",              "Tear-off obtained"]
   ];
    
@@ -3961,7 +3969,7 @@ function ceStrip(j) {
           : (ceOffer(j, a[0])
               ? '<button class="act go" data-ce-add="' + j.id + "|" + a[0] +
                 '" type="button">' + esc(a[2]) + "</button>"
-              : '<span class="empty">No sign recorded</span>')) +
+              : '<span class="empty">No sign put up</span>')) +
         "</td></tr>";
     }).join("") + "</table>";
   }
@@ -4030,14 +4038,14 @@ function completePrompt(j, btn) {
           '<span class="pill" data-cpp="' + k + '"></span></div>';
       }).join("") +
       '<div class="row"><button class="primary" id="cpGo" type="button" disabled>' +
-      "Mark it complete</button>" +
+      "Mark the job complete</button>" +
       '<button class="act" id="cpNo" type="button">Back</button></div>');
     var said = {};
     var refresh = function () {
       ask.forEach(function (k) {
         var p = $("modal").querySelector('[data-cpp="' + k + '"]');
         if (p) p.textContent = said[k] === true ? "recorded"
-                             : said[k] === false ? "goes on the compliance list" : "";
+                             : said[k] === false ? "goes on the compliance list" : "not answered";
       });
       $("cpGo").disabled = ask.some(function (k) { return said[k] === undefined; });
     };
@@ -4349,9 +4357,11 @@ var priorSeen = S.jobs.filter(function (x) {
           return "<div>" + chkBox(x.id === j.assigned_to) + " " + esc(x.name) + "</div>";
         }).join("") +
          
-        '<div style="margin-top:.15rem">FT&quot; <b>' + esc(p.ft_code || "________") + "</b></div>" +
+        '<div style="margin-top:.15rem">' +
+        (/^FT/i.test(p.ft_code || "") ? "" : "FT&quot; ") +
+        "<b>" + esc(p.ft_code || "________") + "</b></div>" +
         '<div style="font-size:.58rem;color:#777;margin-top:.2rem">filing ' +
-        esc((p.area_code || "?") + "-" + (p.month_box || "?")) + "</div>" +
+        esc((p.area_code || "__") + "-" + (p.month_box || "__")) + "</div>" +
       "</div></div></div>";
 
 h += '<div class="rs-sec"><div class="rs-band">Type of service</div>' +
@@ -4360,7 +4370,7 @@ h += '<div class="rs-sec"><div class="rs-band">Type of service</div>' +
      
     if (!linesLocked)
       h += '<div class="noprint" style="font-size:.63rem;color:#777;margin-bottom:.15rem">' +
-        "Tick above to add it." +
+        "Tick a service to add it." +
         (isOffice() ? " Tick a service that is already on to remove it." : "") +
         "</div>";
     h += ls.map(function (l) {
@@ -4593,7 +4603,7 @@ var regsOwed = chems.some(function (r) {
       var pp = S.products.filter(function (x) { return x.id === r.product_id; })[0];
       return pp && pp.needs_regs_summary === true;
     });
-    h += '<div class="rs-sec noprint"><div class="rs-band">The sign, and what was handed over</div>' +
+    h += '<div class="rs-sec noprint"><div class="rs-band">Warning sign and documents</div>' +
       ceStrip(j) +
       (regsOwed && !ceOf(j.id, "regs-given")
         ? '<div class="msg warn"><b>The regulations are required here</b> \u2014 a ' +
@@ -4617,7 +4627,7 @@ h += '<div class="rs-sec noprint"><div class="rs-band">Photographs</div>' +
         ? '<div class="acts"><label class="act go" for="snapFile">\uff0b Take a photo</label>' +
           '<input id="snapFile" type="file" accept="image/*" capture="environment" ' +
           'multiple style="position:absolute;width:1px;height:1px;opacity:0"></div>' +
-          '<p class="note snapnote">Shrunk before it is sent, so it works on a bad signal.</p>'
+          '<p class="note snapnote">Images are compressed before upload.</p>'
         : (isOffice()
             ? '<div class="acts"><label class="act" for="snapFile">\uff0b Add a photo</label>' +
               '<input id="snapFile" type="file" accept="image/*" multiple ' +
@@ -4804,7 +4814,7 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
             mCond.innerHTML = "Last recorded at this address on " +
               esc(fmtLong(r0.as_at)) + ": " + esc(got.join(" \u00b7 ")) + ".";
           } else {
-            mCond.innerHTML = "Nothing recorded about this building yet.";
+            mCond.innerHTML = "No structural conditions recorded at this address.";
           }
         }
          
@@ -4852,7 +4862,7 @@ function unlockModal() {
         (sh.signed_on ? "It was signed on " + esc(sh.signed_on) + ". " : "") +
         (paidish ? "Payment has been recorded against it. " : "") +
         "<b>The signature stays as it is.</b> Recorded with your name.</p>" +
-        '<div class="row"><button class="primary" id="ulGo" type="button">Open it</button>' +
+        '<div class="row"><button class="primary" id="ulGo" type="button">Reopen the month</button>' +
         '<button class="act" id="ulNo" type="button">Leave it closed</button></div>');
       $("ulNo").addEventListener("click", closeModal);
       $("ulGo").addEventListener("click", async function () {
@@ -5312,7 +5322,7 @@ var CIS_WHY =
     var h = '<div class="sheetbar noprint">' +
       '<button class="act" id="ciBack" type="button">\u2039 Back to the folder</button>' +
       (shown ? '<button class="act go" id="ciPrt" type="button">🖨 Print</button>' : "") +
-      '<button class="act" id="ciNew" type="button">\uff0b Issue a new one</button>' +
+      '<button class="act" id="ciNew" type="button">\uff0b Issue a new sheet</button>' +
       "</div>";
 
 if (MISSING.some(function (m) { return m.what === "consumer_sheets"; }))
@@ -5338,15 +5348,17 @@ h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
           return "<tr" +
             (shown && x.id === shown.id
               ? ' style="background:var(--brand-w)"' : "") + ">" +
-            "<td>" + esc(fmtDate(x.issued_on)) + " \u00b7 " + esc({ handed: "Handed over", posted: "Posted", emailed: "Emailed" }[x.given_how] || x.given_how) + "</td>" +
-            "<td>" + esc(xp ? xp.address : "every address") + "</td>" +
+            "<td>" + esc(fmtDate(x.issued_on)) +
+               
+              (x.given_how ? " \u00b7 " + esc({ handed: "Handed over", posted: "Posted", emailed: "Emailed" }[x.given_how] || x.given_how) : "") + "</td>" +
+            "<td>" + esc(xp ? xp.address : "Every address") + "</td>" +
             "<td>" + esc(cisItemsOf(x.id).map(function (i) { return i.brand_name; }).join(", ")
                           || "Nothing listed") + "</td>" +
             "<td>" + (back
-              ? "Returned " + esc(fmtDate(x.signed_on || x.returned_on))
+              ? "Returned" + (x.signed_on || x.returned_on ? " " + esc(fmtDate(x.signed_on || x.returned_on)) : "")
               : '<span class="empty">Not returned</span>') + "</td>" +
             '<td><button class="act" data-cishow="' + x.id +
-              '" type="button" style="padding:.1rem .4rem;font-size:.72rem">Show</button>' +
+              '" type="button" style="padding:.1rem .4rem;font-size:.72rem">View sheet</button>' +
             '<button class="act" data-citear="' + x.id +
               '" type="button" style="padding:.1rem .4rem;font-size:.72rem">' +
               (back ? "Correct the dates" : "Record the tear-off") + "</button></td></tr>";
@@ -5355,24 +5367,24 @@ h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
     h += "</div>";
 
 h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
-      "<h2>What this customer has asked for</h2>" +
+      "<h2>Customer requests</h2>" +
       '<p class="note">Both are on the sheet as a right: "you may request ' +
       "notification of the exact date(s) of our applications and for a copy of the " +
       "label for each pesticide we will use.\" Ticked here, they follow the job to " +
-      "whoever is standing at the door.</p>" +
+      "the person who answers the door.</p>" +
       '<table class="lst">' +
-      "<tr><td>To be told the exact dates</td><td>" +
+      "<tr><td>Notification of exact application dates</td><td>" +
         asked("wants_application_dates", c.wants_application_dates) + "</td></tr>" +
-      "<tr><td>A copy of the label, each time</td><td>" +
+      "<tr><td>Copy of the label for each pesticide</td><td>" +
         asked("wants_label_copies", c.wants_label_copies) + "</td></tr>" +
       "</table></div>";
 
 if (shown && !items.length)
       h += '<div class="msg bad noprint"><b>This sheet lists no products.</b> It ' +
-        "counts as a disclosure on file and says nothing, so issue a fresh one " +
+        "counts as a disclosure on file and says nothing, so issue a new one " +
         "and have an admin take this one off.</div>";
     if (shown) h += cisPaper(co, c, prop, shown, items);
-    else h += '<div class="msg noprint">Nothing issued yet \u2014 <b>Issue a new one</b> ' +
+    else h += '<div class="msg noprint">Nothing issued yet \u2014 <b>Issue a new sheet</b> ' +
       "lists the products and their dates, and this is where the sheet appears.</div>";
 
     app.innerHTML = h;
@@ -5515,7 +5527,7 @@ function cisNewModal(cid, ps) {
       "work happens <b>within fourteen days</b> of each date, and the compliance " +
       "list checks it against the record afterwards.</p>" +
       (ps.length > 1
-        ? '<label for="ciProp">Which address</label><select id="ciProp" class="f">' +
+        ? '<label for="ciProp">Address</label><select id="ciProp" class="f">' +
           '<option value="">every address on this folder</option>' +
           ps.map(function (p) {
             return '<option value="' + p.id + '">' + esc(p.address) + "</option>";
@@ -6739,17 +6751,17 @@ function parseYear(raw) {
         "list in.</div>";
       return;
     }
-    var h = "<h1>Bring the customer list in</h1>" +
+    var h = "<h1>Import customers</h1>" +
       '<p class="sub">From MyMailList, or any spreadsheet saved as CSV.</p>';
 
     if (!IMP) {
-      h += '<div class="card"><h2>The file</h2>' +
+      h += '<div class="card"><h2>Source file</h2>' +
         '<p class="note">It is read here in the browser and never uploaded ' +
         "anywhere. Save the export as CSV first.</p>" +
         '<input id="impFile" class="f" type="file" accept=".csv,text/csv,text/plain">' +
-        '<p class="note">Or paste it — headers on the first line.</p>' +
+        '<p class="note">Or paste the rows — headers on the first line.</p>' +
         '<textarea id="impPaste" class="f" style="min-height:6rem;font-family:ui-monospace,Consolas,monospace;font-size:.8rem"></textarea>' +
-        '<div class="acts"><button class="act go" id="impRead" type="button">Read it</button></div>' +
+        '<div class="acts"><button class="act go" id="impRead" type="button">Read the pasted rows</button></div>' +
         "</div>";
       app.innerHTML = h + stamp();
       $("impFile").addEventListener("change", function () {
@@ -7126,33 +7138,33 @@ var patch = [];
 
 function settingsNav() {
     var to = [["set-people", "People"], ["set-you", "Your account"],
-              ["set-areas", "Communities"], ["set-work", "How the company works"],
+              ["set-areas", "Communities"], ["set-work", "Company settings"],
               ["set-closed", "Days off"],
 
-["set-prices", "Prices"], ["set-sheet", "The sheet’s lists"],
+["set-prices", "Types of service"], ["set-sheet", "The sheet’s lists"],
               ["set-materials", "Materials"]];
     return '<div class="acts" style="margin-bottom:1rem">' +
       to.map(function (t) {
         return '<button class="act" data-jump="' + t[0] + '" type="button">' + esc(t[1]) + "</button>";
       }).join("") +
       '<span style="flex:1"></span>' +
-      '<button class="act go" id="goImport" type="button">Bring the customer list in</button>' +
+      '<button class="act go" id="goImport" type="button">Import customers</button>' +
       "</div>";
   }
 
   var ROLES = [
-    ["admin",  "Everything, including money and prices"],
-    ["office", "The office, but cannot delete or change a price"],
-    ["tech",   "Only their own jobs. No money, no prices, no other technician"]
+    ["admin",  "Everything, money and prices"],
+    ["office", "Office; no delete or reprice"],
+    ["tech",   "Own jobs; no money or prices"]
   ];
 
 function peopleCard() {
     var h = '<div class="card" id="set-people"><h2>People</h2>' +
-      '<p class="note">Who can see and do what. A change takes effect the next time ' +
+      '<p class="note">Permissions for each person. A change takes effect the next time ' +
       "they load the app.</p>" +
       '<table class="lst"><tr><th>Name</th><th>Signs in with</th><th>Permissions</th>' +
        
-      "<th>In the field</th><th>Licence</th><th>Works under</th><th>Still works here</th></tr>" +
+      "<th>In the field</th><th>Licence</th><th>Works under</th><th>Employed</th></tr>" +
       S.people.map(function (pp) {
         var me = pp.id === S.me.id;
         return "<tr>" +
@@ -7161,7 +7173,7 @@ function peopleCard() {
           "<td>" + esc(pp.email || "\u2014") +
             (isAdmin()
               ? ' <button class="act" data-email="' + pp.id +
-                '" type="button" style="padding:.12rem .4rem;font-size:.72rem">change</button>'
+                '" type="button" style="padding:.12rem .4rem;font-size:.72rem">Change</button>'
               : "") + "</td>" +
           '<td><select class="li" data-who="' + pp.id + '" data-col="role"' +
             (me ? " disabled" : "") + ">" +
@@ -7171,10 +7183,10 @@ function peopleCard() {
             }).join("") + "</select></td>" +
           "<td>" + flag("who", pp.id, "is_technician", pp.is_technician) + "</td>" +
           '<td><input class="li" data-who="' + pp.id + '" data-col="applicator_no" value="' +
-            esc(pp.applicator_no || "") + '" placeholder="none of their own"></td>' +
+            esc(pp.applicator_no || "") + '" placeholder="None"></td>' +
            
           '<td><select class="li" data-who="' + pp.id + '" data-col="works_under">' +
-            '<option value="">Nobody — their own licence</option>' +
+            '<option value="">Their own licence</option>' +
             S.people.filter(function (x) { return x.id !== pp.id; })
               .map(function (x) {
                 return '<option value="' + esc(x.id) + '"' +
@@ -7186,8 +7198,7 @@ function peopleCard() {
                        : flag("who", pp.id, "active", pp.active)) + "</td></tr>";
       }).join("") + "</table>" +
       '<p class="note" style="margin-top:.7rem">Your own role and sign-in are not ' +
-      "editable here — locking yourself out of your own system should take more than a " +
-      "mis-tap. Your sign-in ADDRESS you can move, with the button beside it. " +
+      "editable here. The sign-in address can be changed with the button beside it. " +
       "<b>Signs in with</b> is the address the password and the emailed link " +
       "belong to; changing it is how these four move onto their real addresses at " +
       "go-live.</p>" +
@@ -7199,9 +7210,9 @@ function peopleCard() {
 
 function newUserModal() {
     openModal("<h3>Add a person</h3>" +
-      '<p class="note">They get an email and choose their own password. Nobody ' +
-      "types one here, and nobody sends one.</p>" +
-      '<label for="nuName">Name</label><input id="nuName" class="f" placeholder="how the office says it">' +
+      '<p class="note">They get an email and choose their own password. The ' +
+      "invitation carries a link, not a password.</p>" +
+      '<label for="nuName">Name</label><input id="nuName" class="f" placeholder="Name as recorded by the office">' +
       '<label for="nuEmail">Their email</label>' +
       '<input id="nuEmail" class="f" type="email" autocomplete="off" spellcheck="false">' +
       '<label for="nuRole">Permissions</label><select id="nuRole" class="f">' +
@@ -7210,9 +7221,9 @@ function newUserModal() {
           esc(r[1]) + "</option>";
       }).join("") + "</select>" +
       '<label class="box" style="min-height:2.75rem"><input type="checkbox" id="nuField"> ' +
-      "<span>Works in the field — is given a day and can fill in sheets</span></label>" +
-      '<p class="note">Start with the most restricted role. A role is one tap to change on the People list ' +
-      "once you can see they are set up.</p>" +
+      "<span>In the field — is given a day and fills in sheets</span></label>" +
+      '<p class="note">Start with the most restricted role. Roles can be changed on the ' +
+      "People list at any time.</p>" +
       '<div class="row"><button class="primary" id="nuGo" type="button">Send the invitation</button>' +
       '<button class="act" id="nuNo" type="button">Cancel</button></div>');
     $("nuName").focus();
@@ -7306,7 +7317,7 @@ function areasCard() {
             'aria-label="Pick a colour for ' + esc(a.name) + '" value="' +
             esc(/^#[0-9a-fA-F]{6}$/.test(a.dot_color || "") ? a.dot_color : "#888888") + '">' +
             '<input class="li" style="max-width:5.5rem" data-area="' + esc(a.code) +
-            '" data-col="dot_color" value="' + esc(a.dot_color || "") + '" placeholder="none"></td>' +
+            '" data-col="dot_color" value="' + esc(a.dot_color || "") + '" placeholder="None"></td>' +
           "<td>" + flag("area", a.code, "out_of_area", a.out_of_area) + "</td>" +
           '<td class="r"><span class="pill">' + n + "</span></td></tr>";
       }).join("") + "</table>" +
@@ -7324,7 +7335,7 @@ function closedCard() {
 
     return '<div class="card" id="set-closed"><h2>Days off</h2>' +
       '<p class="note">Memorial Day, July 4th, Labor Day and Thanksgiving are ' +
-      "already known. Put anything else here.</p>" +
+      "always closed. Additional closures are recorded here.</p>" +
       (soon.length
         ? '<table class="lst"><tr><th>Day</th><th>Reason</th><th></th></tr>' +
           soon.map(function (c) {
@@ -7332,7 +7343,7 @@ function closedCard() {
               '<td class="r"><button class="act" data-openday="' + esc(c.d) +
               '" type="button">Reopen the day</button></td></tr>';
           }).join("") + "</table>"
-        : '<div class="empty">Nothing but the four holidays.</div>') +
+        : '<div class="empty">No closures other than the four holidays.</div>') +
       '<div class="acts" style="margin-top:.6rem">' +
       '<button class="act go" id="addClosed" type="button">＋ Close a day</button></div>' +
       "</div>";
@@ -7341,14 +7352,13 @@ function closedCard() {
   function closedDayModal() {
     openModal("<h3>Close a day</h3>" +
       '<p class="note">Nothing gets scheduled on it, and a pre-scheduled visit that ' +
-      "falls on it waits for you to choose another date rather than going out on a " +
-      "letter.</p>" +
-      '<label for="cdDay">Which day</label>' +
+      "falls on it is held back from its letter until another date is chosen.</p>" +
+      '<label for="cdDay">Day</label>' +
       '<input id="cdDay" class="f" type="date" value="' + esc(todayISO()) + '">' +
        
       '<div id="cdBooked"></div>' +
       '<label for="cdWhy">Reason</label>' +
-      '<input id="cdWhy" class="f" placeholder="away · van in the shop · a funeral">' +
+      '<input id="cdWhy" class="f" placeholder="Reason for the closure">' +
       '<div class="row"><button class="primary" id="cdGo" type="button">Close the day</button>' +
       '<button class="act" id="cdNo" type="button">Cancel</button></div>');
     $("cdDay").focus();
@@ -7361,8 +7371,8 @@ function closedCard() {
         return runsOn(j, d) && j.status !== "cancelled" && j.status !== "complete";
       }).length;
       box.innerHTML = n
-        ? '<div class="msg warn">' + plural(n, "visit") + " already booked that day. " +
-          "Closing it does not move anything — each one still needs another date.</div>"
+        ? '<div class="msg warn">' + "The book already has " + plural(n, "visit") + " that day. " +
+          "Closing the day does not move anything — another date is still needed.</div>"
         : "";
     };
     sayBooked();
@@ -7398,7 +7408,7 @@ function workCard() {
         '" placeholder="' + esc(ph || "") + '"></td>' +
         '<td class="empty" style="font-size:.78rem">' + (hint || "") + "</td></tr>";
     };
-    return '<div class="card" id="set-work"><h2>How the company works</h2>' +
+    return '<div class="card" id="set-work"><h2>Company settings</h2>' +
       '<table class="lst"><tr><th>Setting</th><th>Value</th><th></th></tr>' +
       row("Company name", "company_name", st.company_name) +
       row("Short name on the sheet", "company_short", st.company_short) +
@@ -7590,7 +7600,10 @@ h += (function () {
           " to the schedule</button>"
         : "") + "</div>";
 
-var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reason; });
+var elsewhere = rows.filter(function (r) {
+      return r.bill_to && !r.inactive_reason &&
+             String(r.bill_to).trim() !== String(r.service_address || "").trim();
+    });
     if (elsewhere.length)
       h += '<div class="msg warn"><b>' + plural(elsewhere.length, "letter") +
         " post to a different address than the one serviced</b> — " +
@@ -7603,7 +7616,7 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
         rows.length + '</div><div class="what">' + money(owed) + " for the year</div></div>" +
       (needs.length
         ? '<div class="bucket owed"><div class="lbl">Need a date chosen</div><div class="amt">' +
-          needs.length + '</div><div class="what">a visit lands on a day nobody works</div></div>'
+          needs.length + '</div><div class="what">a visit falls on a day the office is closed</div></div>'
         : "") +
       '<div class="bucket call"><div class="lbl">Ready to post</div><div class="amt">' +
         ready.length + '</div><div class="what">dates settled</div></div>' +
@@ -7629,7 +7642,7 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
     if (!(S.settings && S.settings.phone)) {
       h += '<div class="msg bad"><b>There is no phone number in the settings.</b><br>' +
         "Every one of these letters asks the customer to call and confirm, so the " +
-        "number has to be on it. Add it under Settings → How the company works before printing.</div>";
+        "number has to be on it. Add it under Settings → Company settings before printing.</div>";
     }
     if (needs.length) {
       h += '<div class="msg warn"><b>' + plural(needs.length, "letter") +
@@ -7679,10 +7692,10 @@ var elsewhere = rows.filter(function (r) { return r.bill_to && !r.inactive_reaso
               (blocked ? "" :
                 (r.sent_at
                   ? (r.acknowledged_on ? ""
-                      : ' <button class="act" data-ack="' + r.customer_id + '" type="button">Confirmed</button>')
-                  : ' <button class="act go" data-sent="' + r.customer_id + '" type="button">Posted</button>')) +
+                      : ' <button class="act" data-ack="' + r.customer_id + '" type="button">Mark as confirmed</button>')
+                  : ' <button class="act go" data-sent="' + r.customer_id + '" type="button">Mark as posted</button>')) +
               (r.sent_at ? ' <button class="act" data-unsent="' + r.customer_id +
-                           '" type="button">Not posted</button>' : "") +
+                           '" type="button">Mark as not posted</button>' : "") +
             "</td></tr>";
         }).join("") + "</table>";
     }
@@ -7777,7 +7790,7 @@ function bookYearModal(ready) {
 
     openModal("<h3>Add " + y + " to the schedule</h3>" +
       '<p class="note">Every settled date becomes a job in the schedule. Nobody is ' +
-      "assigned — they go in the pool.</p>" +
+      "assigned — they are left unassigned.</p>" +
       '<div class="buckets" style="margin-bottom:.6rem">' +
       '<div class="bucket call"><div class="lbl">To be scheduled</div><div class="amt">' +
         make.length + '</div><div class="what">new jobs</div></div>' +
@@ -8651,8 +8664,8 @@ function quoteAge(q) {
         : "") +
        
       "<tr><td>Status</td><td class=\"r\"><b>" +
-        esc({ open: "waiting on them", quiet: "gone quiet",
-              accepted: "accepted", declined: "refused" }[q.status] || q.status) +
+        esc({ open: "Awaiting decision", quiet: "No reply",
+              accepted: "Accepted", declined: "Refused" }[q.status] || q.status) +
         "</b></td></tr>" +
        
       (q.basis_kind && q.basis_kind !== "flat"
@@ -8743,7 +8756,7 @@ function rangThemModal(q) {
       '<input id="rgWhen" class="f" type="date" value="' +
         esc(shiftISO(todayISO(), days)) + '">' +
       '<label class="box"><input type="checkbox" id="rgQuiet"> ' +
-      "<span>They have gone quiet — stop chasing for now</span></label>" +
+      "<span>No reply — stop chasing for now</span></label>" +
       '<div class="row"><button class="primary" id="rgGo" type="button">Record it</button>' +
       '<button class="act" id="rgNo" type="button">Cancel</button></div>');
     $("rgWhat").focus();
@@ -8941,7 +8954,7 @@ function newQuoteModal(cid, pre) {
 
     openModal("<h3>An estimate for " + esc(c ? c.name : "") + "</h3>" +
       (ps.length > 1
-        ? '<label for="nqProp">Which address</label><select id="nqProp" class="f">' +
+        ? '<label for="nqProp">Address</label><select id="nqProp" class="f">' +
           ps.map(function (p) {
              
             return '<option value="' + p.id + '"' +
@@ -8960,15 +8973,15 @@ function newQuoteModal(cid, pre) {
           }).join("") + "</select>"
         : "") +
       '<div id="nqWork"></div>' +
-      '<label for="nqAmt">The price quoted</label>' +
+      '<label for="nqAmt">The estimated price</label>' +
       '<input id="nqAmt" class="f r" inputmode="decimal" placeholder="0.00">' +
       '<label for="nqWhat">Description</label>' +
       '<input id="nqWhat" class="f" placeholder="vapor barrier · insulation · waterproofing">' +
-      '<label for="nqSent">When it was given</label>' +
+      '<label for="nqSent">Date raised</label>' +
       '<input id="nqSent" class="f" type="date" value="' + esc(todayISO()) + '">' +
-      '<p class="note">It goes on the dashboard as money at risk after ' +
+      '<p class="note">It goes on the dashboard under Estimates and warranties waiting after ' +
       plural(Number(st.followup_days) || 7, "day") + " with no answer.</p>" +
-      '<div class="row"><button class="primary" id="nqGo" type="button">Record it</button>' +
+      '<div class="row"><button class="primary" id="nqGo" type="button">Record the estimate</button>' +
       '<button class="act" id="nqNo" type="button">Cancel</button></div>');
 
 if (pre.amount) $("nqAmt").value = pre.amount;
@@ -9475,13 +9488,13 @@ if (Object.keys(ev.service_basis || {}).some(function (k) {
 
 if (ev.signed_on)
       h += '<div class="msg noprint" style="margin-top:.8rem">' +
-        (q ? "The estimate behind it is <b>" + esc({ open: "waiting on them", quiet: "gone quiet", accepted: "accepted", declined: "refused" }[q.status] || q.status) + "</b> at " + money(q.amount) + "."
+        (q ? "The estimate behind it is <b>" + esc({ open: "Awaiting decision", quiet: "No reply", accepted: "Accepted", declined: "Refused" }[q.status] || q.status) + "</b> at " + money(q.amount) + "."
            : "Sold on the contract — it never went on the estimates list, and it does " +
              "not go on one now.") + "</div>";
     else if (live)
       h += '<div class="msg noprint" style="margin-top:.8rem">' +
         (q
-          ? "On the estimates list at " + money(q.amount) + " — <b>" + esc({ open: "waiting on them", quiet: "gone quiet", accepted: "accepted", declined: "refused" }[q.status] || q.status) + "</b>." +
+          ? "On the estimates list at " + money(q.amount) + " — <b>" + esc({ open: "Awaiting decision", quiet: "No reply", accepted: "Accepted", declined: "Refused" }[q.status] || q.status) + "</b>." +
             (q.status === "accepted" && !q.job_id ? " Not in the book yet." : "")
           : ev.quote_id
             ? "The estimate this was tied to has been voided."
@@ -9771,19 +9784,19 @@ function newEvalModal(cid) {
       return q.customer_id === cid && (q.status === "open" || q.status === "quiet");
     });
     openModal("<h3>Crawl space form for " + esc(c.name) + "</h3>" +
-      '<p class="note">What is down there, what it needs and the price. Ticking ' +
+      '<p class="note">The crawl space condition, the work required and the price. Ticking ' +
       "<b>Contract</b> on the form turns the same sheet into the home-improvement " +
-      "contract — that is what makes the work sold.</p>" +
+      "contract — that is the point at which the work is sold.</p>" +
       (ps.length > 1
-        ? '<label for="neProp">Which address</label><select id="neProp" class="f">' +
+        ? '<label for="neProp">Address</label><select id="neProp" class="f">' +
           ps.map(function (p) {
             return '<option value="' + p.id + '"' + (p.is_primary ? " selected" : "") + ">" +
               esc(p.address) + "</option>";
           }).join("") + "</select>"
         : "") +
       (open.length
-        ? '<label for="neQuote">Is it for an estimate already on the list?</label>' +
-          '<select id="neQuote" class="f"><option value="">No — not from an estimate</option>' +
+        ? '<label for="neQuote">Estimate this form covers</label>' +
+          '<select id="neQuote" class="f"><option value="">None — not from an estimate</option>' +
           open.map(function (q) {
             return '<option value="' + q.id + '">' + money(q.amount) + " · " +
               esc(q.description || "no description") + "</option>";
@@ -10588,16 +10601,16 @@ var split = num(f.cash_total) + num(f.check_total) + num(f.card_total) + num(f.o
         money(f.tax_collected) + '</div><div class="what">each invoice at its own rate</div></div>' +
       "</div>";
 
-    h += '<div class="card"><h2>How the money came in</h2>' +
+    h += '<div class="card"><h2>Money received by method</h2>' +
       '<table class="lst"><tr><th>Method</th><th class="r">Amount</th></tr>' +
       "<tr><td>Cash</td><td class=\"r\">" + money(f.cash_total) + "</td></tr>" +
-      "<tr><td>Check</td><td class=\"r\">" + money(f.check_total) + "</td></tr>" +
+      "<tr><td>Cheque</td><td class=\"r\">" + money(f.check_total) + "</td></tr>" +
       "<tr><td>Card</td><td class=\"r\">" + money(f.card_total) + "</td></tr>" +
       (num(f.other_total) > 0.004 || num(f.other_total) < -0.004
         ? "<tr><td>Other — mailed, or another method</td>" +
           '<td class="r">' + money(f.other_total) + "</td></tr>"
         : "") +
-      '<tr><td><b>Altogether</b></td><td class="r"><b>' + money(split) + "</b></td></tr>" +
+      '<tr><td><b>Total</b></td><td class="r"><b>' + money(split) + "</b></td></tr>" +
       "</table>" +
       (Math.abs(split - num(f.collected_total)) > 0.004
         ? '<div class="msg bad"><b>Cash, check and card do not add up to the ' +
@@ -10607,7 +10620,7 @@ var split = num(f.cash_total) + num(f.check_total) + num(f.card_total) + num(f.o
         : '<p class="note">Adds up to the money taken, to the cent.</p>') +
       "</div>";
 
-h += '<div class="card"><h2>Not settled yet</h2>';
+h += '<div class="card"><h2>Outstanding items</h2>';
     if (MC.itemsFailed) {
       h += '<div class="msg warn"><b>The list of outstanding items could not be ' +
         'loaded.</b> The ' +
@@ -10618,9 +10631,11 @@ h += '<div class="card"><h2>Not settled yet</h2>';
         "closed, every payment collected.</div>";
     } else {
       h += '<p class="note">None of this prevents the month being closed.</p>' +
-        '<table class="lst"><tr><th>Item</th><th class="r">How many</th>' +
+        '<table class="lst"><tr><th>Item</th><th class="r">Count</th>' +
         "<th class=\"r\">Amount</th></tr>" +
         MC.items.map(function (x) {
+           
+          if (!x.headline) return "";
           return "<tr><td>" + esc(x.headline) + '</td><td class="r">' + x.n + "</td>" +
             '<td class="r">' + (num(x.amount) ? money(x.amount) : "—") + "</td></tr>";
         }).join("") + "</table>";
@@ -10656,7 +10671,7 @@ if (r) {
     }
 
 var over = addMonths(todayISO().slice(0, 8) + "01", 0) > mon;
-    h += '<div class="card"><h2>' + (shut ? "Reopening it" : "Closing it") + "</h2>";
+    h += '<div class="card"><h2>' + (shut ? "Reopening it" : "Closing the month") + "</h2>";
     if (!isAdmin()) {
       h += '<p class="note">Closing a month is an admin\u2019s to do. ' +
         "Everything on this screen is yours to read.</p>";
@@ -10870,7 +10885,7 @@ var qty = function (v, u) {
       return;
     }
 
-h += '<div class="card"><h2>What could not be added up' +
+h += '<div class="card"><h2>Excluded from the totals' +
       (gapsN ? " \u2014 " + plural(gapsN, "line") : "") + "</h2>";
     if (PU.gapsFailed) {
       h += '<div class="msg warn"><b>This list could not be read.</b> There may be ' +
@@ -10903,19 +10918,20 @@ h += '<div class="card"><h2>' +
         '<th class="r">Registered product, gallons</th><th>First \u2014 last</th></tr>' +
         PU.used.map(function (x) {
           return "<tr><td>" + esc(x.product_name) + "</td><td>" + esc(x.epa_number) + "</td>" +
-            '<td class="r">' + x.lines + '</td><td class="r">' + x.visits + "</td>" +
+             
+            '<td class="r">' + num(x.lines) + '</td><td class="r">' + num(x.visits) + "</td>" +
             '<td class="r">' + esc(qty(x.mixture_qty, x.unit)) + "</td>" +
             '<td class="r">' + esc(qty(x.mixture_gal, x.mixture_gal == null ? "" : "gal")) +
             "</td>" +
             '<td class="r">' + esc(qty(x.product_gal, x.product_gal == null ? "" : "gal")) +
-            '<span class="dates">from ' + x.product_gal_from + " of " + x.lines +
-            " lines</span></td>" +
+            ' <span class="dates">from ' + num(x.product_gal_from) + " of " +
+            num(x.lines) + " lines</span></td>" +
             "<td>" + esc(fmtDate(x.first_applied)) + " \u2014 " +
             esc(fmtDate(x.last_applied)) + "</td></tr>";
         }).join("") + "</table>" +
         '<p class="note"><b>There is deliberately no total row.</b> Gallons of one product, ' +
         "pounds of another and a count of glueboards do not add up to a figure anybody " +
-        "could defend. The mixture is what went through the hose; the registered product " +
+        "could defend. The mixture is the volume applied; the registered product " +
         "is the mixture times its strength \u2014 90 gallons at 0.06% is about " +
         "0.054 gallons of product, so reporting the mixture as the product overstates it " +
         "roughly 1,667 times. The <b>from n of m lines</b> is the denominator of the " +
@@ -10943,11 +10959,13 @@ if (PU.pct.length) {
 
 h += '<div class="card"><h2>Every application in ' + y + " \u2014 " +
       plural(PU.recs.length, "line") + "</h2>" +
-      '<p class="note">One row per product line, which is the grain the record needs. ' +
-      "The words and the reading are side by side so the two can be compared by eye. " +
+(PU.recs.length
+        ?       '<p class="note">One row per product line, which is the level of detail the record requires. ' +
+      "The words and the reading are shown side by side for comparison. " +
       "<b>County is blank on every row</b> \u2014 there is no county anywhere in this " +
-      "database, and it is here so that is found now rather than in front of an " +
-      "inspector.</p>";
+      "database, and it is here so that it is found now rather than in front of an " +
+      "inspector.</p>"
+        : "");
     if (!PU.recs.length) {
       h += '<div class="empty">No application recorded in ' + y + ".</div>";
     } else {
@@ -11546,8 +11564,8 @@ function newAreaModal() {
       '<div><label for="naOrder">Calling order</label>' +
       '<input id="naOrder" class="f" inputmode="numeric" value="999"></div></div>' +
       '<label class="box" style="min-height:2.75rem"><input type="checkbox" id="naOut"> ' +
-      "<span>Out of the usual area</span></label>" +
-      '<div class="row"><button class="primary" id="naGo" type="button">Add it</button>' +
+      "<span>Out of area</span></label>" +
+      '<div class="row"><button class="primary" id="naGo" type="button">Add the community</button>' +
       '<button class="act" id="naNo" type="button">Cancel</button></div>');
     $("naCode").focus();
     $("naNo").addEventListener("click", closeModal);
@@ -11792,7 +11810,7 @@ var h = "<h1>Daily Close — " + esc(fmtLong(D)) + "</h1>" +
       '<button class="act" id="cmonth" type="button">Month end for sales tax…</button>' +
       '<button class="act" id="cprint" type="button">🖨 Print</button></div>';
 
-var third = nothingYet ? { lbl: "Nothing to reconcile", val: money(0), cls: " ok" }
+var third = nothingYet ? { lbl: "Left to reconcile", val: money(0), cls: " ok" }
       : balanced ? { lbl: "Reconciled", val: money(0), cls: " ok" }
       : null;
 
@@ -11973,7 +11991,7 @@ if (noInvoice.length)
             "</div></div>";
         }).join("") + "</div>";
 
-h += '<div class="card"><h2>What should go to the bank — ' + money(drawer) + "</h2>" +
+h += '<div class="card"><h2>Bank deposit — ' + money(drawer) + "</h2>" +
       '<p class="note">Money that changed hands <b>this day</b>, whichever day the job ' +
       "was done.</p>";
     if (!inDrawer.length && !promised.length && !revs.length) {
@@ -12146,8 +12164,8 @@ if (openToday.length)
     });
     if (carried.length)
       h += '<div class="card" style="border-left:5px solid var(--risk)">' +
-        "<h2>Still out from an earlier day (" + carried.length + ")</h2>" +
-        '<p class="note">Rained out or never closed off, last ' + CARRY_DAYS + " days.</p>" +
+        "<h2>Carried over from an earlier day (" + carried.length + ")</h2>" +
+        '<p class="note">Rained out or not closed, last ' + CARRY_DAYS + " days.</p>" +
         carried.map(function (j) { return openJobLine(j, D); }).join("") + "</div>";
 
     h += stamp();
@@ -12252,11 +12270,11 @@ function bankRow(label, rows, total, detail) {
         '<div class="dates">' + esc(svc(j.id)) +
         (t ? " · " + esc(t.name) : "") +
         (days > 0 ? " · " + plural(days, "day") + " ago" : "") +
-        (days >= 7 ? " — worth chasing" : "") + "</div>" +
+        (days >= 7 ? " — overdue" : "") + "</div>" +
          
         '<div class="acts noprint">' +
-        '<button class="act go" data-move="' + j.id + '" type="button">Move it</button>' +
-        '<button class="act" data-job="' + j.id + '" type="button">Open it</button>' +
+        '<button class="act go" data-move="' + j.id + '" type="button">Reschedule</button>' +
+        '<button class="act" data-job="' + j.id + '" type="button">Open the job</button>' +
         "</div></div>";
     }
   }
@@ -12625,7 +12643,7 @@ function canDiscount(inv) {
   }
 
 var DISCOUNT_REASONS = ["Goodwill", "They complained", "Coupon",
-                          "Priced too high", "The owner agreed it"];
+                          "Priced too high", "Approved by owner"];
 
   async function discountModal(invoiceId, back) {
     back = back || function () { closeModal(); render(); };
@@ -12647,7 +12665,7 @@ var rows;
     var hint = "A figure like 45.50, or a percentage like 10% — 10% of " +
                money(sub) + " is " + money(Math.round(sub * 10) / 100) + ".";
 
-    openModal("<h3>Take money off — " + esc(c ? c.name : "") + "</h3>" +
+    openModal("<h3>Discount — " + esc(c ? c.name : "") + "</h3>" +
        
       '<p class="note">Service fee <b>' + money(sub) + "</b> before tax" +
       (already > 0 ? " · " + money(already) + " already off" : "") +
@@ -12657,11 +12675,11 @@ var rows;
         ? " · <b>" + money(bal.balance) + " owed</b>"
         : collected > 0 ? " · nothing owed" : "") + "</p>" +
       (room > 0.004
-        ? '<label for="dcAmt">How much comes off</label>' +
+        ? '<label for="dcAmt">Amount off</label>' +
           '<input id="dcAmt" class="f" inputmode="decimal" placeholder="45.50 or 10%">' +
           '<div id="dcPrev" class="note" style="margin:-.5rem 0 .75rem">' + hint + "</div>" +
-          '<label for="dcWhy">Why</label>' +
-          '<input id="dcWhy" class="f" placeholder="what the customer was told">' +
+          '<label for="dcWhy">Reason</label>' +
+          '<input id="dcWhy" class="f" placeholder="Reason given to the customer">' +
           '<div class="acts" style="margin:-.4rem 0 .8rem">' +
           DISCOUNT_REASONS.map(function (w) {
             return '<button class="act" data-why="' + esc(w) + '" type="button">' +
@@ -12689,7 +12707,7 @@ var rows;
         : "") +
       '<div class="row">' +
       (room > 0.004
-        ? '<button class="primary" id="dcGo" type="button">Take it off</button>'
+        ? '<button class="primary" id="dcGo" type="button">Apply the discount</button>'
         : "") +
       '<button class="act" id="dcNo" type="button">' +
       (room > 0.004 ? "Cancel" : "Close") + "</button></div>");
@@ -12844,7 +12862,7 @@ function draw() {
         "</div></div>" +
         '<div class="msg"><b>It should never have been raised.</b><br>' +
         "Nothing was ever owed. It stays void even if services are added to the sheet " +
-        "afterwards, so do not use it for a visit that is still going to happen." +
+        "afterwards, so do not use it for a visit that is still to take place." +
         (got > 0.004
           ? "<br><b>" + money(got) + " has been collected against it.</b> Nothing was owed, " +
             "so that money belongs somewhere else — give it back, or put it on the right " +
@@ -12855,7 +12873,7 @@ function draw() {
           ? '<span class="pill warn">money is in — it cannot be voided</span>'
           : '<button class="act" id="noVd" type="button">Void the invoice</button>') +
         "</div></div>" +
-        '<div class="row"><button class="act" id="noNo" type="button">Leave it</button></div>');
+        '<div class="row"><button class="act" id="noNo" type="button">Cancel</button></div>');
       $("noNo").addEventListener("click", leave);
       if ($("noWd")) $("noWd").addEventListener("click", function () { mode = "withdraw"; draw(); });
       if ($("noVd")) $("noVd").addEventListener("click", function () { mode = "void"; draw(); });
@@ -13011,7 +13029,7 @@ function bookModal(pre) {
       var h = "<h3>Book a job</h3>";
 
 if (!c) {
-        h += '<label for="bkq">Who is it for?</label>' +
+        h += '<label for="bkq">Customer</label>' +
           '<input id="bkq" class="f" placeholder="Type a name or an address…" autocomplete="off">' +
           '<div id="bkhits" class="picklist"></div>' +
           '<div class="acts" style="margin:-.4rem 0 .8rem">' +
@@ -13022,7 +13040,7 @@ if (!c) {
           (c.phone ? " · " + esc(c.phone) : "") +
           '<button class="act" id="bkClear" type="button" style="float:right">Change</button></div>';
         if (props.length > 1) {
-          h += '<label for="bkprop">Which address?</label><select id="bkprop" class="f">' +
+          h += '<label for="bkprop">Address</label><select id="bkprop" class="f">' +
             props.map(function (pp) {
               return '<option value="' + pp.id + '"' +
                 (pre.property_id === pp.id ? " selected" : "") + ">" +
@@ -13032,7 +13050,7 @@ if (!c) {
         }
       }
 
-h += '<label>What are they having done?</label>' +
+h += '<label>Services</label>' +
         '<div class="picklist" id="bksvc">' +
         (S.services.length
           ? S.services.map(function (sv) {
@@ -13046,7 +13064,7 @@ h += '<label>What are they having done?</label>' +
                        : "Ask an admin to add them under Settings.") +
             "</div>") + "</div>";
 
-      h += '<label for="bktype">What kind of job?</label><select id="bktype" class="f">' +
+      h += '<label for="bktype">Job type</label><select id="bktype" class="f">' +
         JOB_TYPES.map(function (t) {
           return '<option value="' + t[0] + '">' + esc(t[1]) + "</option>";
         }).join("") + "</select>";
@@ -13061,31 +13079,31 @@ h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
         }).join("") + "</select></div></div>";
 
       h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.6rem">' +
-        '<div><label for="bkslots">Takes</label><select id="bkslots" class="f">' +
+        '<div><label for="bkslots">Duration</label><select id="bkslots" class="f">' +
          
         [1,2,3,4,5].map(function (n) {
           return '<option value="' + n + '">' + n + (n === 1 ? " slot" : " slots") +
-            " · " + hoursText(n) + "</option>";
+            "</option>";
         }).join("") + '<option value="10">All day</option></select></div>' +
-        '<div><label for="bkdays">Runs</label><select id="bkdays" class="f">' +
+        '<div><label for="bkdays">Days</label><select id="bkdays" class="f">' +
         [1,2,3,4,5].map(function (n) {
           return '<option value="' + n + '">' + plural(n, "day") + "</option>";
         }).join("") + "</select></div>" +
         '<div><label for="bkhour">At (optional)</label>' +
          
-        '<input id="bkhour" class="f" placeholder="e.g. 2pm, or just 2"></div></div>';
+        '<input id="bkhour" class="f" placeholder="e.g. 2pm or 2"></div></div>';
 
-h += '<label for="bkwho">Who does it?</label><select id="bkwho" class="f">' +
-        '<option value="">Leave it in the pool</option>' +
+h += '<label for="bkwho">Technician</label><select id="bkwho" class="f">' +
+        '<option value="">Unassigned</option>' +
         techs().map(function (t) {
           return '<option value="' + t.id + '">' + esc(t.name) + "</option>";
         }).join("") + "</select>";
 
-      h += '<label for="bknote">Anything the technician needs to know</label>' +
-        '<input id="bknote" class="f" placeholder="side door, dog is friendly"' +
+      h += '<label for="bknote">Notes for the technician</label>' +
+        '<input id="bknote" class="f" placeholder="side door, dog on the property"' +
         (pre.note ? ' value="' + esc(pre.note) + '"' : "") + '>';
 
-      h += '<div class="row"><button class="primary" id="bkGo" type="button">Book it</button>' +
+      h += '<div class="row"><button class="primary" id="bkGo" type="button">Book the job</button>' +
         '<button class="act" id="bkNo" type="button">Cancel</button></div>';
       return h;
     }
@@ -13254,15 +13272,15 @@ function newCustomerModal(then) {
       '<label for="ncphone">Phone</label><input id="ncphone" class="f" inputmode="tel">' +
        
       '<label for="ncbill">Billing address — only if the bill goes somewhere else</label>' +
-      '<input id="ncbill" class="f" placeholder="leave empty if it is the same">' +
+      '<input id="ncbill" class="f" placeholder="Leave empty if the same as the service address">' +
       '<div class="fcols two"><div><label for="ncbcity">Billing town</label>' +
-      '<input id="ncbcity" class="f" placeholder="only with a billing address"></div>' +
+      '<input id="ncbcity" class="f" placeholder="Only with a billing address"></div>' +
       '<div><label for="ncbzip">Billing zip</label>' +
       '<input id="ncbzip" class="f" inputmode="numeric"></div></div>' +
       '<p class="note">Leave the billing address empty for an owner-occupier. Fill it ' +
       "in for a rental, or anyone whose post goes elsewhere — the sheet is printed for " +
       "the service address and the bill is addressed to this one.</p>" +
-      '<div class="row"><button class="primary" id="ncGo" type="button">Add them</button>' +
+      '<div class="row"><button class="primary" id="ncGo" type="button">Add the customer</button>' +
       '<button class="act" id="ncNo" type="button">Cancel</button></div>');
     $("ncname").focus();
     $("ncNo").addEventListener("click", function () {
@@ -13443,7 +13461,7 @@ function changeEmailModal(userId) {
       "or sign-in link goes to the new one." +
       (me ? " <b>This is your own sign-in. Get it right.</b>" : "") + "</p>" +
       '<div id="ceMsg"></div>' +
-      '<div class="row"><button class="primary" id="ceGo" type="button">Move it</button>' +
+      '<div class="row"><button class="primary" id="ceGo" type="button">Move the job</button>' +
       '<button class="act" id="ceNo" type="button">Leave it</button></div>');
     $("ceNo").addEventListener("click", closeModal);
     $("ceGo").addEventListener("click", async function () {
@@ -13541,7 +13559,7 @@ function payModal(invoiceId) {
     openModal("<h3>Record payment — " + esc(c ? c.name : "") + "</h3>" +
       '<p class="note">Owes <b>' + money(b.balance) + "</b> of " + money(b.total) +
       (Number(b.collected) > 0 ? " · " + money(b.collected) + " already in" : "") + "</p>" +
-      '<label for="pm">How did they pay?</label><select id="pm" class="f">' +
+      '<label for="pm">Payment method</label><select id="pm" class="f">' +
       '<option value="cash">Cash</option><option value="check">Check</option>' +
       '<option value="card">Card</option>' +
       '<option value="to-be-mailed">To be mailed — the customer will send it</option></select>' +
@@ -13550,18 +13568,18 @@ function payModal(invoiceId) {
       '<div id="ctxn" style="display:none"><label for="ptxn">Transaction ID from the terminal ' +
       '<span class="empty">(leave empty if the office runs it later)</span></label>' +
       '<input id="ptxn" class="f" placeholder="on the Authorize.Net screen after it runs"></div>' +
-      '<label for="amt">How much did they pay?</label>' +
+      '<label for="amt">Amount</label>' +
       '<input id="amt" class="f" inputmode="decimal" value="' + Number(b.balance).toFixed(2) + '">' +
-      '<p class="note">Type less if they paid part of it. Once recorded it cannot be ' +
+      '<p class="note">Enter a lower amount for a part payment. Once recorded it cannot be ' +
       "changed — only the office can reverse it. " +
       (jobDone
         ? "The job is complete, so the record is already filed; recording money " +
           "also locks the charges."
-        : "The work is not done yet, so this is a deposit — the sheet stays " +
-          "open for the technician until the job is complete.") + "</p>" +
+        : "The job is not marked complete, so this is a deposit — the sheet " +
+          "stays open until it is.") + "</p>" +
        
       '<div id="payMsg"></div>' +
-      '<div class="row"><button class="primary" id="payGo" type="button">Record it</button>' +
+      '<div class="row"><button class="primary" id="payGo" type="button">Record the payment</button>' +
       '<button class="act" id="payNo" type="button">Cancel</button></div>');
     $("pm").addEventListener("change", function () {
       $("cknum").style.display = this.value === "check" ? "" : "none";
@@ -13953,7 +13971,7 @@ async function renderCustomer(id) {
           : "") + "</div>";
 
     if (owed > 0.004)
-      h += '<div class="msg bad"><b>Owes ' + money(owed) + "</b> right now.</div>";
+      h += '<div class="msg bad"><b>Owes ' + money(owed) + "</b>.</div>";
 
 var nextJ = null, lastJ = null, k;
     for (k = 0; k < jobs.length; k++) {
@@ -13969,7 +13987,7 @@ var nextJ = null, lastJ = null, k;
         '<div class="ans"><span class="k">Next visit</span><span class="v">' +
         (nextJ ? esc(fmtDate(nextJ.scheduled_date)) + " " +
                  esc(String(nextJ.scheduled_date).slice(0, 4))
-               : "nothing booked") + "</span></div>" +
+               : "No visit booked") + "</span></div>" +
         '<div class="ans"><span class="k">Last treated</span><span class="v">' +
         (lastJ
           ? esc(fmtDate(lastJ.completed_date)) + " " +
@@ -14107,7 +14125,7 @@ var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses")
             esc(p.month_box ? MONTHS[Number(p.month_box) - 1] : "\u2014") + "</div>") + "</div>" +
         (p.is_primary
           ? ""
-          : "<div><label>What this address is</label>" +
+          : "<div><label>Role of this address</label>" +
             (mayEdit
               ? '<input class="f" data-pfld="' + p.id + '|label" value="' +
                 esc(p.label || "") + '" placeholder="the rental">'
@@ -14121,7 +14139,7 @@ var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses")
         '<button class="act" id="cfAddProp" type="button">\uff0b Another address</button></div>';
     hAddr += "</div>";
 
-var hArr = '<div class="card"><h2>What is arranged</h2>' +
+var hArr = '<div class="card"><h2>Arrangements</h2>' +
       '<div class="acts">' +
       (mayEdit ? '<button class="act" id="cfProg" type="button">' +
         (pg ? "Change the programme" : "\uff0b Pre-scheduled programme") + "</button>" : "") +
@@ -14168,8 +14186,8 @@ var hArr = '<div class="card"><h2>What is arranged</h2>' +
             return '<div class="dates"><a href="#" data-cfq="' + q.id + '">' +
                
               money(q.amount) + " \u00b7 " +
-              esc({ open: "waiting on them", quiet: "gone quiet",
-                    accepted: "accepted", declined: "refused" }[q.status] || q.status) +
+              esc({ open: "Awaiting decision", quiet: "No reply",
+                    accepted: "Accepted", declined: "Refused" }[q.status] || q.status) +
               "</a>" +
               (q.description ? " \u2014 " + esc(q.description) : "") + "</div>";
           }).join("")
@@ -14215,9 +14233,9 @@ var hJobs = '<div class="card"><h2>Every job</h2>';
 var hNotes = '<div class="card"><h2>Notes</h2>' +
       (mayEdit
         ? '<label for="cfNote">Add one</label>' +
-          '<input id="cfNote" class="f" placeholder="what was said, or what to remember">' +
+          '<input id="cfNote" class="f" placeholder="Note for the record">' +
           '<div class="acts"><button class="act go" id="cfNoteGo" type="button">' +
-          "Put it on the folder</button></div>"
+          "Add the note</button></div>"
         : "") +
       (notes.length
         ? notes.map(function (n) {
@@ -14245,7 +14263,7 @@ var hNotes = '<div class="card"><h2>Notes</h2>' +
         : notesFailed
         ? '<p class="empty" style="margin-top:.6rem">The notes could not be read \u2014 ' +
           esc(notesFailed) + "</p>"
-        : '<p class="empty" style="margin-top:.6rem">Nothing written down yet.</p>') +
+        : '<p class="empty" style="margin-top:.6rem">No notes recorded.</p>') +
       "</div>";
 
 h += hJobs + hNotes + hArr + hWho + hAddr;
@@ -14540,7 +14558,7 @@ function addPropModal(cid) {
       MONTHS.map(function (m, i) {
         return '<option value="' + (i + 1) + '">' + esc(m) + "</option>";
       }).join("") + "</select></div></div>" +
-      '<div class="row"><button class="primary" id="apGo" type="button">Add it</button>' +
+      '<div class="row"><button class="primary" id="apGo" type="button">Add the address</button>' +
       '<button class="act" id="apNo" type="button">Cancel</button></div>');
     $("apLabel").addEventListener("change", function () {
       var other = this.value === "__other";
@@ -14600,7 +14618,7 @@ async function customerCard(id) {
           '<div class="acts"><button class="act" id="ccBack" type="button">' +
           "They are still a customer — clear it</button></div></div>"
         : "") +
-      (owed > 0.004 ? '<div class="msg bad"><b>Owes ' + money(owed) + "</b> right now.</div>" : "") +
+      (owed > 0.004 ? '<div class="msg bad"><b>Owes ' + money(owed) + "</b>.</div>" : "") +
       ps.map(function (p) {
         var ar = areaOf(p.area_code);
         return '<div class="item"><div class="top"><span class="dot" style="background:' +
@@ -14703,14 +14721,14 @@ async function customerCard(id) {
 var INACTIVE = [
     ["moved",       "They moved away",           "no calls, no post"],
     ["passed",      "They passed away",          "the folder stays, the post stops"],
-    ["declined",    "They declined the service", "off the list until they ask"],
-    ["unreachable", "Nobody ever answers",       "set aside after three tries"]
+    ["declined",    "They declined the service", "off the list until they request service"],
+    ["unreachable", "They cannot be reached",       "set aside after three attempts"]
   ];
   function inactiveModal(id) {
     var c = custById(id); if (!c) return;
     openModal("<h3>" + esc(c.name) + " — no longer a customer</h3>" +
-      '<p class="note">Which is it? Nothing is deleted and the record stays ' +
-      "searchable, so this can be undone from the same card.</p>" +
+      '<p class="note">Select a reason. Nothing is deleted and the record stays ' +
+      "searchable, so this can be undone from the folder.</p>" +
       '<div class="picklist" style="max-height:none">' +
       INACTIVE.map(function (o) {
         return '<button type="button" class="pickrow" data-why="' + o[0] + '"><span>' +
@@ -14769,16 +14787,16 @@ var NTHS = [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [5, "the last"]];
     var st = S.settings || {};
 
     openModal("<h3>" + esc(c.name) + " · the pre-scheduled programme</h3>" +
-      '<p class="note">A slot they keep, mailed to them once a year.</p>' +
+      '<p class="note">A recurring slot, confirmed by letter once a year.</p>' +
       (ps.length > 1
-        ? '<label for="pgProp">Which address</label><select id="pgProp" class="f">' +
+        ? '<label for="pgProp">Address</label><select id="pgProp" class="f">' +
           ps.map(function (p) {
             return '<option value="' + p.id + '"' +
               (pg.property_id === p.id || (!pg.property_id && p.is_primary) ? " selected" : "") +
               ">" + esc(p.address) + "</option>";
           }).join("") + "</select>"
         : "") +
-      '<label for="pgNth">Which week, and which day</label>' +
+      '<label for="pgNth">Week and day</label>' +
       '<div class="row" style="gap:.4rem">' +
       '<select id="pgNth" class="f" style="flex:1">' +
       NTHS.map(function (n) {
@@ -14803,19 +14821,19 @@ var NTHS = [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [5, "the last"]];
         esc(money(st.program_price || 65)) + ' — the programme rate">' +
       '<label for="pgNote">A line for their letter</label>' +
       '<input id="pgNote" class="f" value="' + esc(pg.letter_note || "") +
-        '" placeholder="Always Friday morning, please">' +
+        '" placeholder="Morning visits only">' +
        
       '<label>Also on that visit</label>' +
       '<div id="pgEx"></div>' +
       '<div class="acts"><button class="act" id="pgExAdd" type="button">' +
-      "＋ Add something</button></div>" +
+      "＋ Add a service</button></div>" +
       '<div id="pgPreview" class="msg">Working out the dates…</div>' +
       (!fresh && !progOf(cid)
         ? '<p class="note">They were on the programme before, so their old slot, ' +
           "price and letter note are filled in above rather than lost.</p>"
         : "") +
       '<div class="row"><button class="primary" id="pgGo" type="button">' +
-        (progOf(cid) ? "Save the programme" : "Put them on it") + "</button>" +
+        (progOf(cid) ? "Save the programme" : "Add to the programme") + "</button>" +
       (progOf(cid) ? '<button class="act" id="pgOff" type="button">Take them off</button>' : "") +
       '<button class="act" id="pgNo" type="button">Cancel</button></div>');
 
@@ -14928,7 +14946,7 @@ var pgSeq = 0;
       var clash = rows.filter(function (x) { return x.closed_day; });
       $("pgPreview").className = clash.length ? "msg warn" : "msg good";
       $("pgPreview").innerHTML = "<b>" + esc(slotName($("pgNth").value, $("pgDow").value)) +
-        "</b> puts " + y + " on:<br>" +
+        "</b> in " + y + " falls on:<br>" +
         rows.map(function (x) {
           return esc(fmtLetter(x.d)) + (x.closed_day
             ? ' <span class="pill bad">' + esc(x.closed_reason || "closed") + "</span>" : "");
