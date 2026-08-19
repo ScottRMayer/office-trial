@@ -3283,6 +3283,8 @@ function jobModal(jobId, field) {
          
         (inv && Number(inv.discount) > 0 ? " · after " + money(inv.discount) + " off" : "") +
         (Number(b.collected) > 0 ? " · " + money(b.collected) + " in · " + money(b.balance) + " owed" : "") : "") +
+         
+        agreedNote(j.id) +
       "</div></div>";
 
 if (isOffice() && !field) {
@@ -9146,6 +9148,21 @@ function quoteOf(id) {
     return S.quotes.filter(function (q) { return q.id === id; })[0] || null;
   }
 
+function agreedOn(jobId) {
+    if (!jobId) return null;
+    return S.quotes.filter(function (q) {
+      return q.job_id === jobId && !q.voided_at && Number(q.amount) > 0;
+    })[0] || null;
+  }
+
+function agreedNote(jobId) {
+    var q = agreedOn(jobId);
+    if (!q) return "";
+    return '<div class="why" style="margin-top:.2rem">Agreed on the estimate: <b>' +
+      esc(money(q.amount)) + "</b>" +
+      (q.description ? " · " + esc(q.description) : "") + "</div>";
+  }
+
 var QUOTE_WORDS = { open: "Awaiting decision", quiet: "No reply",
                       accepted: "Accepted", declined: "Refused" };
    
@@ -11219,8 +11236,9 @@ var split = num(f.cash_total) + num(f.check_total) + num(f.card_total) + num(f.o
         "voided and withdrawn charges excluded</div></div>" +
       '<div class="bucket call"><div class="lbl">Money taken</div><div class="amt">' +
         money(f.collected_total) + '</div><div class="what">tax included</div></div>' +
-      '<div class="bucket"><div class="lbl">Sales tax on paid work</div><div class="amt">' +
-        money(f.tax_collected) + '</div><div class="what">each invoice at its own rate</div></div>' +
+       
+      '<div class="bucket"><div class="lbl">Sales tax on work completed</div><div class="amt">' +
+        money(f.tax_collected) + '</div><div class="what">owed on the month’s work, paid or not · each invoice at its own rate</div></div>' +
       "</div>";
 
     h += '<div class="card"><h2>Money received by method</h2>' +
