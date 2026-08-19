@@ -285,11 +285,30 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   table.lst th{font-size:.63rem;letter-spacing:.08em;text-transform:uppercase;
     color:var(--ink-soft);font-weight:700;white-space:nowrap}
   table.lst th.r,table.lst td.r{text-align:right}
+   
+  @media print{
+    @page dep{size:11in 8.5in;margin:.35in .3in}
+    body.deppaper{page:dep}
+    body.deppaper table.lst{display:table;overflow:visible;width:100%;
+      font-size:.58rem}
+    body.deppaper table.lst thead{display:table-header-group}
+    body.deppaper table.lst tr{page-break-inside:avoid}
+    body.deppaper table.lst th,body.deppaper table.lst td{padding:.06rem .18rem;
+      vertical-align:top}
+     
+    body.deppaper table.lst th{white-space:normal;font-size:.5rem}
+  }
   input.li{width:100%;min-width:6rem;font:inherit;font-size:.86rem;padding:.22rem .35rem;
     border:1px solid transparent;border-radius:3px;background:transparent;color:var(--ink)}
   input.li:hover{border-color:var(--rule)}
   input.li:focus{border-color:var(--brand);background:var(--card);outline:none}
   input.li.r{text-align:right;font-variant-numeric:tabular-nums}
+   
+  textarea.li{width:100%;min-width:9rem;font:inherit;font-size:.86rem;padding:.22rem .35rem;
+    border:1px solid transparent;border-radius:3px;background:transparent;color:var(--ink);
+    line-height:1.35;resize:vertical;display:block}
+  textarea.li:hover{border-color:var(--rule)}
+  textarea.li:focus{border-color:var(--brand);background:var(--card);outline:none}
   button.tgl{font:inherit;font-size:.7rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
     padding:.14rem .5rem;border-radius:3px;cursor:pointer;
     border:1px solid var(--rule);background:var(--paper);color:var(--ink-soft)}
@@ -349,6 +368,10 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
     text-transform:uppercase;color:var(--brand);pointer-events:none}
   .wday.istoday{border-color:var(--brand);box-shadow:inset 0 0 0 2px var(--brand)}
   .wday.picked{background:var(--brand-w)}
+   
+  .wday.shut,.mcell.shut{background:var(--paper);opacity:.72}
+  .shutwhy{font-size:.62rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--owed);line-height:1.3;padding:.1rem 0}
   .whdr{font-size:.74rem;color:var(--ink-soft);display:flex;gap:.3rem;align-items:baseline;
     padding-bottom:.3rem;margin-bottom:.3rem;border-bottom:1px solid var(--rule-soft)}
   .whdr b{color:var(--ink)}
@@ -495,6 +518,8 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .panel{border:1px solid #999;border-radius:3px;padding:.35rem .5rem;font-size:.7rem;min-width:11.5rem}
   .fline{width:100%;font:inherit;font-size:.72rem;padding:0 .1rem;border:none;
     border-bottom:1px solid #999;background:transparent;color:#111}
+   
+  .fline.unsaved,.fnotes.unsaved{background:#fff1f1;box-shadow:inset 0 -2px 0 var(--owed)}
   .fcell{width:100%;font:inherit;font-size:.63rem;text-align:center;border:1px solid #d8d8d8;
     border-radius:2px;padding:0 .1rem;background:#fff;color:#111}
   .fcellv{font-size:.63rem}
@@ -513,6 +538,9 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .matname{cursor:pointer;line-height:1.25;display:flex;gap:.25rem;align-items:flex-start;
     min-height:2.75rem;padding:.25rem 0}
   .matname:active{background:#dce8e0}
+   
+  .matname.dead{opacity:.55;cursor:default}
+  .matname.dead:active{background:none}
   .matname.on{background:#eaf1ed;font-weight:700}
    
   .matname.nomatch{opacity:.32}
@@ -708,8 +736,8 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
   .lrow.blocked{background:var(--warn-w,#fdf6e3)}
 
   @media print{
-     
-    body.letters #lettersUI{display:none!important}
+
+body.letters #app > *:not(#letterPrint){display:none!important}
     body.letters .stamp{display:none!important}
     .letter{border:none;margin:0;max-width:none}
   }
@@ -810,6 +838,10 @@ button.datechip{font:inherit;font-size:.86rem;font-weight:600;background:none;bo
     .sheet.rspad .penline{display:inline-block;width:3.4rem;border-bottom:1px solid #000}
     .sheet.rspad .penrule{border-bottom:1px solid #000;height:.62rem;margin-top:.12rem}
     .sheet.rspad .fline{font-size:.54rem;border-bottom-color:#000}
+     
+    .sheet.rspad ::placeholder{color:transparent}
+    .sheet.rspad ::-webkit-input-placeholder{color:transparent}
+    .sheet.rspad .fline.unsaved{background:none;box-shadow:none}
     .sheet.rspad .fcellv{font-size:.46rem}
      
     .sheet.rspad .fnotes{display:none}
@@ -981,10 +1013,34 @@ function money(n) {
     return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate());
   }
 
-function shutOn(iso) {
+var HOLI = {};         
+  var HOLI_YEARS = {};   
+  async function askHolidays(y) {
+     
+    if (!y || HOLI_YEARS[y]) return;
+    HOLI_YEARS[y] = 1;
+    var r;
+    try {
+      r = await sb.rpc("closed_days_in", { p_from: y + "-01-01", p_to: y + "-12-31" });
+    } catch (e) { return; }
+    if (!r || r.error || !(r.data || []).length) return;
+    var got = 0;
+    r.data.forEach(function (x) {
+      if (x && x.d && !HOLI[x.d]) { HOLI[x.d] = x.reason || "closed"; got += 1; }
+    });
+     
+    if (got && !$("veil").classList.contains("show") &&
+        (route.name === "schedule" || route.name === "dashboard")) render();
+  }
+  function shutOn(iso) { return !!shutWhy(iso); }
+   
+  function shutWhy(iso) {
+    if (!iso) return null;
+    askHolidays(iso.slice(0, 4));
     var cd = S.closedDays || [];
-    for (var i = 0; i < cd.length; i++) if (cd[i].d === iso) return true;
-    return false;
+    for (var i = 0; i < cd.length; i++)
+      if (cd[i].d === iso) return cd[i].reason || "closed";
+    return HOLI[iso] || null;
   }
 
   function shiftISO(iso, n) {
@@ -999,6 +1055,12 @@ function shutOn(iso) {
   function fmtLong(d) {
     return new Date(d + "T12:00:00").toLocaleDateString(undefined,
       { weekday: "long", month: "long", day: "numeric" });
+  }
+   
+  function fmtFullDate(iso) {
+    if (!iso) return "";
+    return new Date(iso + "T12:00:00").toLocaleDateString(undefined,
+      { month: "long", day: "numeric", year: "numeric" });
   }
   function hr12(h) { var n = Number(h); return (n > 12 ? n - 12 : n) + (n >= 12 ? "pm" : "am"); }
   function readMoney(v) {
@@ -1453,8 +1515,8 @@ all(function () { return sb.from("customers").select("*").order("name").order("i
       off ? many(sb.from("quotes").select("*").is("voided_at", null)) : [],
       off ? many(sb.from("warranties").select("*")) : [],
       off ? many(sb.from("v_attention_live").select("*")) : [],
-       
-      off ? many(sb.from("service_catalog").select("*").order("sheet_group")) : [],
+
+off ? many(sb.from("service_catalog").select("*").order("sort_order").order("name")) : [],
       off ? many(sb.from("price_exceptions").select("*")) : [],
        
       off ? many(sb.from("programs").select("*").eq("active", true)) : [],
@@ -1524,7 +1586,7 @@ all(function () { return sb.from("customers").select("*").order("name").order("i
     S.optRows = await many(sb.from("form_options").select("*").order("sort_order"));
     S.opts = S.optRows.reduce(function (a, o) { (a[o.kind] = a[o.kind] || []).push(o.value); return a; }, {});
     S.products = await many(sb.from("pesticide_products").select("*").order("sort_order"));
-    if (isOffice()) S.catalog = await many(sb.from("service_catalog").select("*").order("sheet_group"));
+    if (isOffice()) S.catalog = await many(sb.from("service_catalog").select("*").order("sort_order").order("name"));
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
     });
@@ -1718,10 +1780,9 @@ function renderNav() {
     $("whoami").innerHTML = "<b>" + esc(S.me.name) + "</b> · " + esc({ admin: "Administrator", office: "Office", tech: "Technician" }[S.me.role] || S.me.role) +
       (S.me.is_technician ? " · Field" : "") +
        
-      (isAdmin()
-        ? ' <button class="gear" id="gear" type="button" title="Settings" ' +
-          'aria-label="Settings">⚙</button>'
-        : "");
+      ' <button class="gear" id="gear" type="button" title="' +
+        (isAdmin() ? "Settings" : "Your account") + '" aria-label="' +
+        (isAdmin() ? "Settings" : "Your account") + '">⚙</button>';
     if ($("gear")) $("gear").addEventListener("click", function () { go("lists"); });
   }
    
@@ -1781,6 +1842,8 @@ function goBack(fallback) {
     if (route.name !== "wdi") document.body.classList.remove("npma");
      
     if (route.name !== "sheet") document.body.classList.remove("rspaper");
+     
+    if (route.name !== "pesticide") document.body.classList.remove("deppaper");
     if (route.name === "dashboard") return renderDashboard();
     if (route.name === "schedule") return renderSchedule();
     if (route.name === "field") return renderField();
@@ -1801,11 +1864,21 @@ function goBack(fallback) {
     if (isOffice()) renderDashboard(); else renderField();
   }
 
+var DASH_KEEP = null;
+  function dashRedraw() {
+    if (route.name === "dashboard") {
+      var line = app.querySelector('[data-drawer][aria-expanded="true"]');
+      DASH_KEEP = { drawer: line ? line.getAttribute("data-drawer") : null,
+                    y: window.pageYOffset || document.documentElement.scrollTop || 0 };
+    }
+    render();
+  }
+
 function reachable(root) {
     if (!root || !root.querySelectorAll) return;
-     
-    var rows = root.querySelectorAll(".item.tap, .lrow.tap, [data-job], [data-cust]," +
-      " [data-drawer], [data-goletters], [data-goday]");
+
+var rows = root.querySelectorAll(".item.tap, .lrow.tap, [data-job], [data-cust]," +
+      " [data-drawer], [data-goletters], [data-goday], [data-open]");
     for (var i = 0; i < rows.length; i++) {
       var el = rows[i], t = el.tagName;
       if (t === "BUTTON" || t === "A" || t === "INPUT" || t === "SELECT" || t === "TEXTAREA") continue;
@@ -1822,6 +1895,8 @@ function reachable(root) {
       new MutationObserver(function (recs) {
         for (var i = 0; i < recs.length; i++) {
           if (recs[i].addedNodes && recs[i].addedNodes.length) {
+             
+            if (el.id === "modal") stampModal();
             reachable(el); wireMissing(el); return;
           }
         }
@@ -2061,28 +2136,38 @@ if (S.gaps.length) {
        
       wlGaps = plural(S.gaps.length, "item") + " to resolve" +
         (kinds.length ? " · most urgent: " + esc(gapLabel(kinds[0])) : "");
+       
+      var gapRow = function (r) {
+        return "<tr>" +
+          "<td>" + esc(r.customer_name || "") +
+            (r.address ? ' <span class="empty">' + esc(r.address) + "</span>" : "") +
+          "</td><td>" + esc(fmtDate(r.happened_on)) + "</td>" +
+          '<td style="font-size:.76rem">' + esc(r.detail || "") + "</td>" +
+          "<td>" + (r.job_id
+            ? '<button class="act" data-gapjob="' + r.job_id +
+              '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The sheet</button>'
+            : '<button class="act" data-gapcust="' + r.customer_id +
+              '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The folder</button>') +
+          "</td></tr>";
+      };
       dwGaps = '<div class="drawer" id="dw-gaps" hidden>' +
         '<p class="note">Nothing here can be dismissed.</p>' +
-        kinds.map(function (k) {
+        kinds.map(function (k, gi) {
           var g = byKind[k];
           return '<div style="margin:.5rem 0 .2rem"><b>' + esc(gapLabel(k)) + "</b> " +
             '<span class="empty">' + g.n + "</span></div>" +
             '<table class="lst">' +
-            g.rows.slice(0, 6).map(function (r) {
-              return "<tr>" +
-                "<td>" + esc(r.customer_name || "") +
-                  (r.address ? ' <span class="empty">' + esc(r.address) + "</span>" : "") +
-                "</td><td>" + esc(fmtDate(r.happened_on)) + "</td>" +
-                '<td style="font-size:.76rem">' + esc(r.detail || "") + "</td>" +
-                "<td>" + (r.job_id
-                  ? '<button class="act" data-gapjob="' + r.job_id +
-                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The sheet</button>'
-                  : '<button class="act" data-gapcust="' + r.customer_id +
-                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The folder</button>') +
-                "</td></tr>";
-            }).join("") + "</table>" +
+            g.rows.slice(0, 6).map(function (r) { return gapRow(r); }).join("") +
+            "</table>" +
+             
             (g.n > 6
-              ? '<p class="note">and ' + (g.n - 6) + " more not shown</p>"
+               
+              ? '<div id="gapmore-' + gi + '" style="margin:.2rem 0 .5rem">' +
+                '<button class="act" type="button" data-gapall="' + gi +
+                '">Show the other ' + (g.n - 6) + "</button></div>" +
+                '<div id="gaprest-' + gi + '" hidden><table class="lst">' +
+                g.rows.slice(6).map(function (r) { return gapRow(r); }).join("") +
+                "</table></div>"
               : "");
         }).join("") + "</div>";
     }
@@ -2284,7 +2369,8 @@ h += money3 + dwOwed + dwRisk + dwBoxes + book;
         btn.disabled = true;
         try {
           var n = await saveOutcome(b, "no-answer", "");
-          render();
+           
+          dashRedraw();
           toast(b.c.name + " — no answer" +
                 (n > 1 ? ", " + plural(n, "try", "tries") + " now" : "") + ".");
         } catch (e) { toast(e.message); btn.disabled = false; }
@@ -2333,6 +2419,21 @@ app.querySelectorAll("[data-drawer]").forEach(function (b) {
         go("schedule");
       });
     });
+
+if (DASH_KEEP) {
+      var keep = DASH_KEEP; DASH_KEEP = null;
+      if (keep.drawer) {
+        var kLine = app.querySelector('[data-drawer="' + keep.drawer + '"]');
+        var kDraw = $("dw-" + keep.drawer);
+        if (kLine && kDraw) {
+          kDraw.hidden = false;
+          kLine.setAttribute("aria-expanded", "true");
+          var kCap = kLine.querySelector(".expand");
+          if (kCap && kCap.textContent.indexOf("Nothing") < 0) kCap.textContent = "Hide ↑";
+        }
+      }
+      window.scrollTo(0, keep.y);
+    }
   }
   function boxGroup(title, rows, tone) {
     if (!rows.length) return "";
@@ -2369,7 +2470,8 @@ app.querySelectorAll("[data-drawer]").forEach(function (b) {
               '<button class="act" data-outcome="' + esc(b.p.id) +
               '" type="button">Record the outcome…</button>' +
               '<button class="act go" data-book="' + esc(b.c.id) + "|" + esc(b.p.id) +
-              '" type="button"Book a job' +
+               
+              '" type="button">Book a job</button>' +
             '<button class="act" data-cust="' + esc(b.c.id) + '" type="button">Open customer</button>' +
               "</div></div>";
           }).join("");
@@ -2444,7 +2546,8 @@ var OUTCOMES = [
           toast(b.c.name + " — " + (OUTCOME_SAID[oc] || oc) + ", recorded.");
            
           if (oc === "booked") bookModal({ customer_id: b.c.id, property_id: b.p.id });
-          else render();
+           
+          else dashRedraw();
         } catch (e) {
           toast(e.message);
           all_.forEach(function (x) { x.disabled = false; });
@@ -2507,7 +2610,8 @@ async function saveOutcome(b, outcome, note) {
     if (a.kind === "unpaid-completed") {
        
       acts.push('<button class="act go" data-pay="' + a.record_id + '">Record payment</button>');
-      acts.push('<button class="act" data-remind="' + a.record_id + '">Send reminder</button>');
+       
+      acts.push('<button class="act" data-remind="' + a.record_id + '">Send a reminder…</button>');
        
       acts.push('<button class="act" data-notowed="' + a.record_id + '">Will not collect…</button>');
       if (a.job_id) acts.push('<button class="act" data-sheet="' + a.job_id + '">The sheet</button>');
@@ -2516,7 +2620,8 @@ async function saveOutcome(b, outcome, note) {
     acts.push('<button class="act" data-snooze="' + a.kind + "|" + a.record_id + '">Defer…</button>');
 
 acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|" +
-      (a.amount || 0) + '" data-dismissnm="' + esc(a.customer_name || "") +
+      (a.amount || 0) + "|" + (a.customer_id || "") +
+      '" data-dismissnm="' + esc(a.customer_name || "") +
       '">Mark as resolved…</button>');
     return '<div class="item ' + (a.bucket === "owed" ? "owed" : "risk") + '">' +
       '<div class="top"><span class="dot" style="background:' + esc((ar && ar.dot_color) || "var(--dot)") + '"></span>' +
@@ -2528,6 +2633,12 @@ acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|
        
       '<div class="dates">' + (a.address ? esc(a.address) + " · " : "") +
       (a.last_contact ? "Last contact " + fmtDate(a.last_contact) : "Never contacted") +
+       
+      (function () {
+        if (a.kind !== "unpaid-completed") return "";
+        var iv = S.invoices.filter(function (x) { return x.id === a.record_id; })[0];
+        return iv && iv.resent_on ? " · Reminder sent " + fmtDate(iv.resent_on) : "";
+      })() +
       (a.next_followup ? " · Follow up " + fmtDate(a.next_followup) : "") + "</div>" +
       '<div class="acts">' + acts.join("") + "</div></div>";
   }
@@ -2540,6 +2651,13 @@ acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|
      
     on("[data-gapjob]", function (b) { go("sheet", b.getAttribute("data-gapjob")); });
     on("[data-gapcust]", function (b) { go("cis", b.getAttribute("data-gapcust")); });
+     
+    on("[data-gapall]", function (b) {
+      var rest = $("gaprest-" + b.getAttribute("data-gapall"));
+      var box  = $("gapmore-" + b.getAttribute("data-gapall"));
+      if (rest) rest.hidden = false;
+      if (box) box.hidden = true;
+    });
     on("[data-wdijob]", function (b) { go("wdi", b.getAttribute("data-wdijob")); });
     on("[data-pay]", function (b) { payModal(b.dataset.pay); });
     on("[data-remind]", function (b) { remind(b.dataset.remind, b); });
@@ -2697,7 +2815,12 @@ function jobsOn(iso) {
       : span === "week" ? "Week of " + fmtLong(startOfWeek(d))
       : MONTHS[Number(d.slice(5, 7)) - 1] + " " + d.slice(0, 4);
 
+var dayShut = span === "day" ? shutWhy(d) : null;
     var h = missingBanner() + "<h1>" + esc(title) + "</h1>" +
+      (dayShut
+        ? '<div class="msg warn"><b>Nobody is working this day — ' + esc(dayShut) +
+          ".</b> Anything below is still booked on it and needs another date.</div>"
+        : "") +
       (span === "day" ? '<p class="sub">The windows overlap at noon.</p>' : "");
 
 h += '<div class="daynav noprint">' +
@@ -2889,7 +3012,10 @@ function weekView(d) {
     for (var i = 0; i < 7; i++) {
       var iso = shiftISO(start, i), js = jobsOn(iso);
       var loose = js.filter(function (j) { return !windowOf(j); }).length;
+       
+      var whyShut = shutWhy(iso);
       h += '<div class="wday' + (iso === today ? " istoday" : "") +
+        (whyShut ? " shut" : "") +
         (iso === d ? " picked" : "") + '" data-open="' + iso + '">' +
         '<div class="whdr"><b>' + DOW[i] + "</b> " + esc(fmtDate(iso)) +
         '<span class="wcount">' +
@@ -2902,7 +3028,10 @@ function weekView(d) {
                 W[0].toUpperCase() + " " + inW.length + "</span>" : "";
             }).filter(Boolean).join(" ") +
             (loose ? '<span class="over">? ' + loose + "</span>" : "") || js.length
-          : "—") + "</span></div>";
+          : "—") + "</span>" +
+         
+        (whyShut ? '<div class="shutwhy">Closed · ' + esc(whyShut) + "</div>" : "") +
+        "</div>";
       h += js.length
         ? js.map(function (j) {
             var c = custById(j.customer_id), t = personOf(j.assigned_to);
@@ -2947,10 +3076,14 @@ function monthView(d) {
     }).join("");
     cells.forEach(function (iso) {
       var js = jobsOn(iso), inMonth = iso.slice(0, 7) === monthNum;
+       
+      var mWhy = shutWhy(iso);
       h += '<div class="mcell' + (inMonth ? "" : " other") + (iso === today ? " istoday" : "") +
+        (mWhy ? " shut" : "") +
         (iso === d ? " picked" : "") + '" data-open="' + iso + '">' +
         '<div class="mnum">' + Number(iso.slice(8, 10)) +
         (js.length ? '<span class="mcount">' + js.length + "</span>" : "") + "</div>" +
+        (mWhy ? '<div class="shutwhy">' + esc(mWhy) + "</div>" : "") +
         js.slice(0, 4).map(function (j) {
           var c = custById(j.customer_id);
           var p = propOfJob(j), ar = p ? areaOf(p.area_code) : null;
@@ -2979,7 +3112,8 @@ function renderField() {
 var carried = S.jobs.filter(function (j) {
       if (!onJob(j, who) || j.status === "complete" || j.status === "cancelled") return false;
       if (lastDay(j) >= d) return false;    
-      return j.status === "rained-out" || !!sheetOf(j.id);
+       
+      return j.status === "rained-out" || !!sheetOf(j.id) || !!trOf(j.id);
     });
 
 var waiting = isOffice()
@@ -3116,7 +3250,13 @@ function jobModal(jobId, field) {
     var sh = sheetOf(j.id), tr = trOf(j.id);
     var ls = linesOf(j.id);
     var needsRecord = NEEDS_RECORD.indexOf(j.type) >= 0;
-    var mapQ = encodeURIComponent((p ? p.address : "") + ", " + ((p && p.city) || "Toms River") + " NJ");
+     
+    var mapTown = p && p.city ? String(p.city).trim() : "";
+    var mapBits = [];
+    if (p && p.address) mapBits.push(p.address);
+    if (mapTown) mapBits.push(mapTown);
+    mapBits.push("NJ");
+    var mapQ = encodeURIComponent(mapBits.join(", "));
 
     var h = "<h3>" + esc(c ? c.name : "?") + "</h3>" +
       '<p class="note">' + esc(p ? p.address : "") +
@@ -3129,6 +3269,10 @@ function jobModal(jobId, field) {
       (c && c.phone ? callLink(c.phone) : "") +
       '<button class="act" data-act="sheet">Render sheet</button>' +
       "</div>";
+     
+    if (!mapTown)
+      h += '<p class="note">No town on this address, so Directions searches New ' +
+        "Jersey rather than a township. Check the folder before driving.</p>";
 
     h += '<div class="card" style="margin:.9rem 0 0;background:var(--brand-w);border:none">' +
        
@@ -3295,9 +3439,24 @@ h += '<div class="card" style="margin:.9rem 0 0"><b>The sign, and what was ' +
         (j.uncomplete_reason ? " — " + esc(j.uncomplete_reason) + "." : ".") +
         " The pesticide record is still filed.</div>";
     }
+     
+    if (j.status === "rained-out") {
+      var rw = personOf(j.rained_out_by);
+      h += '<div class="msg warn"><b>Rained out' +
+        (j.rained_out_on ? " " + esc(fmtDate(j.rained_out_on)) : "") + "</b>" +
+        (rw ? " by " + esc(rw.name) : "") +
+        (j.rain_reason ? " — " + esc(j.rain_reason) + "." : ".") +
+        " The sheet is still with the technician." +
+        (j.rained_out_on && j.scheduled_date && j.rained_out_on !== j.scheduled_date
+          ? " <b>It has been given a new day since, and the rain-out was never taken off.</b>"
+          : "") +
+        "</div>";
+    }
     h += '<div class="row"><button class="act" data-act="close" type="button">Close</button>' +
          (j.status === "scheduled"
            ? '<button class="act" data-act="rain" type="button">Mark rained out — keep the sheet</button>' : "") +
+         (j.status === "rained-out"
+           ? '<button class="act" data-act="unrain" type="button">Put it back on the board…</button>' : "") +
          "</div>";
 
     openModal(h);
@@ -3320,14 +3479,18 @@ h += '<div class="card" style="margin:.9rem 0 0"><b>The sign, and what was ' +
     });
     if (A("complete")) A("complete").addEventListener("click", function () { completePrompt(j, this); });
     if (A("uncomplete")) A("uncomplete").addEventListener("click", function () { uncompleteModal(j); });
-    if (A("rain")) A("rain").addEventListener("click", function () { rainOut(j, this); });
+    if (A("rain")) A("rain").addEventListener("click", function () { rainOutModal(j); });
+    if (A("unrain")) A("unrain").addEventListener("click", function () { unrainModal(j); });
     wireCompliance(function () { jobModal(j.id); }, $("modal"));
     $("modal").querySelectorAll("[data-give]").forEach(function (b) {
       b.addEventListener("click", function () {
         moveJob(j, { assigned_to: b.getAttribute("data-give") || null }, b);
       });
     });
-    if ($("mvBtn")) $("mvBtn").addEventListener("click", function () { moveDayModal(j); });
+     
+    if ($("mvBtn")) $("mvBtn").addEventListener("click", function () {
+      moveDayModal(j, function () { jobModal(j.id); });
+    });
     $("modal").querySelectorAll("[data-win]").forEach(function (b) {
       b.addEventListener("click", function () {
         moveJob(j, { scheduled_window: b.getAttribute("data-win") }, b);
@@ -3403,9 +3566,11 @@ function wirePoolFold() {
     });
   }
 
-function moveDayModal(j) {
+function moveDayModal(j, back) {
     var from = j.scheduled_date || todayISO();
     var span = runsDays(j);
+     
+    var base = todayISO();
     var quick = [["1", "Tomorrow"], ["2", "In 2 days"], ["7", "Next week"]];
     openModal("<h3>Move " + esc((custById(j.customer_id) || {}).name || "this job") + "</h3>" +
       '<p class="note">' + esc(fmtLong(from)) + " · " + esc(windowName(windowOf(j))) +
@@ -3414,10 +3579,12 @@ function moveDayModal(j) {
       quick.map(function (q) {
         return '<button class="act" data-push="' + q[0] + '" type="button">' + q[1] +
           '<span class="empty" style="font-size:.7rem"> ' +
-          esc(fmtDate(shiftISO(from, Number(q[0])))) + "</span></button>";
+          esc(fmtDate(shiftISO(base, Number(q[0])))) + "</span></button>";
       }).join("") + "</div>" +
       '<label for="mvDate">Or select a date</label>' +
-      '<input id="mvDate" class="f" type="date" value="' + esc(shiftISO(from, 1)) + '">' +
+       
+      '<input id="mvDate" class="f" type="date" min="' + esc(base) +
+      '" value="' + esc(shiftISO(base, 1)) + '">' +
       '<label for="mvWin">Morning or afternoon</label><select id="mvWin" class="f">' +
       WINDOWS.map(function (W) {
         return '<option value="' + W[0] + '"' + (windowOf(j) === W[0] ? " selected" : "") +
@@ -3427,11 +3594,13 @@ function moveDayModal(j) {
         ? '<p class="note">It runs ' + plural(span, "day") + ", so the whole run moves.</p>"
         : "") +
       '<div class="row"><button class="primary" id="mvGo" type="button">Move the job</button>' +
-      '<button class="act" id="mvNo" type="button">Cancel</button></div>');
-    $("mvNo").addEventListener("click", function () { jobModal(j.id); });
+      '<button class="act" id="mvNo" type="button">' +
+      (back ? "Back" : "Cancel") + "</button></div>");
+     
+    $("mvNo").addEventListener("click", back || closeModal);
     $("modal").querySelectorAll("[data-push]").forEach(function (b) {
       b.addEventListener("click", function () {
-        doMove(shiftISO(from, Number(b.getAttribute("data-push"))), windowOf(j), b);
+        doMove(shiftISO(base, Number(b.getAttribute("data-push"))), windowOf(j), b);
       });
     });
     $("mvGo").addEventListener("click", function () {
@@ -3439,6 +3608,8 @@ function moveDayModal(j) {
     });
     async function doMove(to, win, btn) {
       if (!to) { toast("Which day?"); return; }
+       
+      var wasRained = j.status === "rained-out";
       var patch = { scheduled_date: to, scheduled_window: win };
        
       if (j.end_date) patch.end_date = shiftISO(to, span - 1);
@@ -3447,13 +3618,24 @@ function moveDayModal(j) {
        
       var after = jobById(j.id);
       if (after && after.scheduled_date === to)
-        toast("Moved to " + fmtDate(to) + " " + windowName(win).toLowerCase());
+         
+        toast("Moved to " + fmtDate(to) + " " + windowName(win).toLowerCase() +
+              (wasRained ? " — back on the board, the rain-out cleared" : ""));
     }
   }
 
 async function moveJob(j, patch, btn, inList) {
     btn.disabled = true;
     try {
+       
+      var unrained = j.status === "rained-out" && "scheduled_date" in patch &&
+                     patch.scheduled_date !== j.scheduled_date;
+      if (unrained) {
+        patch.status = "scheduled";
+        patch.rained_out_on = null;
+        patch.rained_out_by = null;
+        patch.rain_reason = null;
+      }
       var r = await sb.from("jobs").update(patch).eq("id", j.id).select();
       if (r.error) throw explain(r.error);
       if (!(r.data || []).length)
@@ -3471,16 +3653,17 @@ async function moveJob(j, patch, btn, inList) {
           : "end_date" in patch
             ? (patch.end_date ? "Runs to " + fmtDate(patch.end_date) : "One day now")
             : "Moved to the " + windowName(patch.scheduled_window).toLowerCase());
-       
-      if (inList) render();
+
+if (inList) dashRedraw();
       else {
         jobModal(j.id);
         if (route.name === "schedule" || route.name === "close") render();
       }
     } catch (e) {
        
-      toast(/scheduled_window|slots|end_date/.test(e.message)
-        ? "Windows, job size and multi-day runs need the latest bit of SQL run first."
+      toast(/scheduled_window|slots|end_date|rain_reason|rained_out_by/.test(e.message)
+        ? "Windows, job size, multi-day runs and clearing a rain-out need the latest " +
+          "bit of SQL run first."
         : e.message);
       btn.disabled = false;
     }
@@ -3591,7 +3774,15 @@ if (!sup.applicator_no) {
               : " Nothing can come off it until the office opens the sheet.") + "</p>"
         : "") +
       (canWrite
-        ? '<label for="prod">' + (already.length ? "Add another product" : "Product used") +
+         
+        ? (!sheetIsOpen(j)
+            ? '<div class="msg warn">This record is already filed and the sheet has ' +
+              "been opened for corrections. Anything added here goes on it with your " +
+              "name against it, and the sheet prints <b>Amended</b>.</div>" +
+              '<label for="trWhy">Why is it being changed?</label>' +
+              '<input id="trWhy" class="f" placeholder="it was applied and missed">'
+            : "") +
+          '<label for="prod">' + (already.length ? "Add another product" : "Product used") +
           "</label><select id=\"prod\" class=\"f\">" +
           '<option value="">None applied</option>' +
           S.products.map(function (p) {
@@ -3641,6 +3832,11 @@ if (!sup.applicator_no) {
         };
         var P = pick("data-p"), L = pick("data-a");
         if (!P.length) throw new Error("The record has to name at least one target pest.");
+         
+        var amendWhy = $("trWhy") ? $("trWhy").value.trim() : "";
+        if ($("trWhy") && !amendWhy)
+          throw new Error("Say why this filed record is being changed — it is " +
+            "recorded on it.");
         if (!L.length) throw new Error("The record has to say where it was applied.");
 
 var trNow = trOf(j.id);
@@ -3667,11 +3863,18 @@ var trNow = trOf(j.id);
         if (prod && rec) {
           var pr = S.products.filter(function (x) { return x.id === prod; })[0];
           var amtTyped = $("amtu").value.trim();
-          var c2 = await sb.from("treatment_chemicals").insert({
+           
+          var cBody = {
             treatment_id: rec.id, product_id: prod, product_name: pr.name,
             epa_number: pr.epa_number, percent: $("pct").value.trim() || null,
             amount: amtTyped || null, sort_order: 1
-          }).select();
+          };
+          if (amendWhy) {
+            cBody.added_at = new Date().toISOString();
+            cBody.added_by = S.me.id;
+            cBody.add_reason = amendWhy;
+          }
+          var c2 = await sb.from("treatment_chemicals").insert(cBody).select();
           if (c2.error) throw explain(c2.error);
            
           var line2 = (c2.data || [])[0] || {};
@@ -3763,6 +3966,10 @@ var SIG = { cv: null, strokes: [] };
           signed_on: todayISO(), signed_by_tech: S.me.id
         }, { onConflict: "job_id" }).select();
         if (r.error) throw explain(r.error);
+         
+        if (!(r.data || []).length)
+          throw new Error("That signature did not save — the database refused it. " +
+            "The job may have been given to somebody else.");
          
         saved = true;
         await reload(["jobs"]);
@@ -4130,11 +4337,112 @@ function uncompleteModal(j) {
     } catch (e) { toast(e.message); btn.disabled = false; }
   }
 
-async function rainOut(j, btn) {
+var RAIN_REASONS = ["Raining now", "Ground too wet", "Too windy to spray"];
+
+  function rainOutModal(j) {
+    openModal("<h3>Stop for the weather?</h3>" +
+      '<p class="note">The sheet stays with the technician on this date — the job ' +
+      "does not bounce into a queue for a new day. It can be put back on the board if " +
+      "the weather turns, and that is recorded too.</p>" +
+      '<div class="acts" style="margin-bottom:.3rem">' +
+      RAIN_REASONS.map(function (r, i) {
+        return '<button class="act' + (i === 0 ? " go" : "") + '" data-ro="' + esc(r) +
+          '" type="button">' + esc(r) + "</button>";
+      }).join("") +
+      '<button class="act" id="roOther" type="button">Something else…</button></div>' +
+      '<div id="roFree" hidden><label for="roWhy">What stopped it?</label>' +
+      '<input id="roWhy" class="f" placeholder="say what stopped it">' +
+      '<div class="acts"><button class="act go" id="roGo" type="button">Mark it rained out</button></div></div>' +
+      '<div class="row"><button class="act" id="roNo" type="button">Carry on</button></div>');
+    $("roNo").addEventListener("click", function () { jobModal(j.id); });
+    $("roOther").addEventListener("click", function () {
+      $("roFree").hidden = false; $("roWhy").focus(); this.disabled = true;
+    });
+    $("modal").querySelectorAll("[data-ro]").forEach(function (b) {
+      b.addEventListener("click", function () { rainOut(j, this, b.getAttribute("data-ro")); });
+    });
+    $("roGo").addEventListener("click", function () {
+      var why = $("roWhy").value.trim();
+      if (!why) { toast("Say what stopped it — it is recorded on the job."); return; }
+      rainOut(j, this, why);
+    });
+  }
+
+var UNRAIN_REASONS = ["It did not rain after all", "Marked on the wrong job",
+                        "It cleared and we went back"];
+
+  function unrainModal(j) {
+    openModal("<h3>Put this job back on the board?</h3>" +
+      '<p class="note">It goes back to booked on ' + esc(fmtDate(j.scheduled_date)) +
+      ", and the rain-out comes off it — the day it stopped and the reason both. " +
+      "A line goes on the customer's folder saying so, because one went on when it " +
+      "was marked.</p>" +
+      (j.rain_reason
+        ? '<div class="msg">Marked ' +
+          (j.rained_out_on ? esc(fmtDate(j.rained_out_on)) + " " : "") + "— " +
+          esc(j.rain_reason) + "</div>"
+        : "") +
+      '<div class="acts" style="margin-bottom:.3rem">' +
+      UNRAIN_REASONS.map(function (r, i) {
+        return '<button class="act' + (i === 0 ? " go" : "") + '" data-ur="' + esc(r) +
+          '" type="button">' + esc(r) + "</button>";
+      }).join("") +
+      '<button class="act" id="urOther" type="button">Something else…</button></div>' +
+      '<div id="urFree" hidden><label for="urWhy">Why is it coming off?</label>' +
+      '<input id="urWhy" class="f" placeholder="say why">' +
+      '<div class="acts"><button class="act go" id="urGo" type="button">Put it back</button></div></div>' +
+      '<div class="row"><button class="act" id="urNo" type="button">Leave it</button></div>');
+    $("urNo").addEventListener("click", function () { jobModal(j.id); });
+    $("urOther").addEventListener("click", function () {
+      $("urFree").hidden = false; $("urWhy").focus(); this.disabled = true;
+    });
+    $("modal").querySelectorAll("[data-ur]").forEach(function (b) {
+      b.addEventListener("click", function () { unrain(j, this, b.getAttribute("data-ur")); });
+    });
+    $("urGo").addEventListener("click", function () {
+      var why = $("urWhy").value.trim();
+      if (!why) { toast("Say why — it goes on the folder."); return; }
+      unrain(j, this, why);
+    });
+  }
+
+  async function unrain(j, btn, why) {
     btn.disabled = true;
     try {
-      var r = await sb.from("jobs").update({ status: "rained-out", rained_out_on: todayISO() })
-        .eq("id", j.id).select();
+      if (!why) throw new Error("Say why, or pick one of the reasons.");
+      var u = await sb.from("jobs").update({
+        status: "scheduled", rained_out_on: null,
+        rained_out_by: null, rain_reason: null
+      }).eq("id", j.id).select();
+      if (u.error) throw explain(u.error);
+       
+      if (!(u.data || []).length)
+        throw new Error("That did not save — the database refused it. The job may " +
+          "have been given to somebody else.");
+       
+      await sb.from("notes").insert({
+        related_table: "customers", related_id: j.customer_id, user_id: S.me.id,
+        kind: "call", text: "Rain-out taken back off — " + why
+      });
+      await reload(["jobs", "attention"]);
+      closeModal(); render();
+      toast("Back on the board");
+    } catch (e) {
+      toast(/rain_reason|rained_out_by/.test(e.message)
+        ? "Undoing a rain-out needs the latest bit of SQL run first."
+        : e.message);
+      btn.disabled = false;
+    }
+  }
+
+  async function rainOut(j, btn, why) {
+    btn.disabled = true;
+    try {
+      if (!why) throw new Error("Say what stopped it, or pick one of the reasons.");
+      var r = await sb.from("jobs").update({
+        status: "rained-out", rained_out_on: todayISO(),
+        rained_out_by: S.me.id, rain_reason: why
+      }).eq("id", j.id).select();
       if (r.error) throw explain(r.error);
        
       if (!(r.data || []).length)
@@ -4195,6 +4503,16 @@ function printModeModal(jobId, then) {
 
 var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
     var reopened = !!sh.unlocked_at;
+     
+    var amendMarks = [];
+    if (tr) allChemsOf(tr.id).forEach(function (x) {
+      if (x.voided_at) amendMarks.push(String(x.voided_at));
+      if (x.added_at) amendMarks.push(String(x.added_at));
+    });
+    if (tr && tr.amended_at) amendMarks.push(String(tr.amended_at));
+    amendMarks.sort();
+    var amended = amendMarks.length > 0;
+    var amendedOn = amended ? amendMarks[amendMarks.length - 1].slice(0, 10) : "";
     var recordLocked = !!((sh.signed_on || j.status === "complete" ||
                            j.uncompleted_at) && !reopened);
     var linesLocked = !!((sh.signed_on || (paidish && j.status === "complete")) && !reopened);
@@ -4257,6 +4575,10 @@ document.body.classList.add("hassheetbar");
       (locked && isOffice()
         ? '<button class="act corr" id="unlock" type="button">Open for corrections</button>'
         : "") +
+       
+      (!locked && sh.unlocked_at && isOffice()
+        ? '<button class="act corr" id="shut" type="button">Close this sheet again</button>'
+        : "") +
 
 (isOffice() ? '<span class="barsep" aria-hidden="true">Documents</span>' : "") +
        
@@ -4290,11 +4612,26 @@ document.body.classList.add("hassheetbar");
             "recorded. <b>Open for corrections</b> is on the bar at the foot of " +
             "the screen.</div>"
           : "To correct anything else, ring the office — they have to open it.</div>");
-    else if (sh.unlocked_at)
-      h += '<div class="msg noprint">This sheet was opened for corrections ' +
-        esc(new Date(sh.unlocked_at).toLocaleString()) +
+     
+    else if (sh.unlocked_at) {
+      var ulMin = Math.max(0,
+        Math.round((Date.now() - new Date(sh.unlocked_at).getTime()) / 60000));
+      var ulSaid = ulMin < 1 ? "less than a minute ago"
+        : ulMin < 60 ? plural(ulMin, "minute") + " ago"
+        : ulMin < 1440 ? plural(Math.round(ulMin / 60), "hour") + " ago"
+        : ulMin < 10080 ? plural(Math.round(ulMin / 1440), "day") + " ago"
+        : plural(Math.round(ulMin / 10080), "week") + " ago";
+      h += '<div class="msg' + (ulMin >= 1440 ? " warn" : "") + ' noprint">' +
+        "<b>This sheet is open for corrections.</b> Opened " + esc(ulSaid) +
         (personOf(sh.unlocked_by) ? " by " + esc(personOf(sh.unlocked_by).name) : "") +
-        ". Changes are being recorded against it.</div>";
+        ", on " + esc(new Date(sh.unlocked_at).toLocaleString()) +
+        ". Changes are being recorded against it. " +
+        (isOffice()
+          ? "It stays open until somebody closes it — <b>Close this sheet " +
+            "again</b> is on the bar at the foot of the screen."
+          : "Ring the office to have it closed again once the correction is made.") +
+        "</div>";
+    }
     else if (!S.services.length)
       h += '<div class="msg warn noprint">The list of services is empty, so the ' +
         "<b>Type of service</b> boxes have nothing to print. " +
@@ -4317,7 +4654,14 @@ h += '<div class="sheet rspad"><div class="hdr">' +
       '<div class="padonly specials">Like us to find out about our specials!</div>' +
       "</div></div>" +
        
-      '<div class="padonly rsttl rs-band">FOR SERVICES RENDERED</div>';
+      '<div class="padonly rsttl rs-band">FOR SERVICES RENDERED</div>' +
+       
+      (amended
+        ? '<div class="rsamend" style="border:1.5px solid #000;padding:.1rem .4rem;' +
+          "margin:.14rem 0;font-size:.6rem;letter-spacing:.16em;text-align:center;" +
+          'font-weight:700">AMENDED' +
+          (amendedOn ? " · " + esc(fmtDate(amendedOn)) : "") + "</div>"
+        : "");
 
 var priorSeen = S.jobs.filter(function (x) {
       return x.customer_id === j.customer_id && x.id !== j.id &&
@@ -4327,7 +4671,8 @@ var priorSeen = S.jobs.filter(function (x) {
     h += '<div class="rs-sec" style="border-top:none;margin-top:.2rem">' +
       '<div style="display:flex;gap:.9rem;align-items:flex-start;flex-wrap:wrap">' +
       '<div class="custblk" style="flex:1 1 15rem;min-width:0;font-size:.76rem;line-height:1.6">' +
-        "<div>Date: <b>" + esc(j.scheduled_date ? fmtLong(j.scheduled_date) : "") + "</b></div>" +
+         
+        "<div>Date: <b>" + esc(j.scheduled_date ? fmtLetter(j.scheduled_date) : "") + "</b></div>" +
         "<div>Customer: <b>" + esc((c.first_name ? c.first_name + " " : "") + (c.name || "")) + "</b></div>" +
         "<div>Address: <b>" + esc(p.address || "") + "</b>" +
         (p.label && !p.is_primary
@@ -4514,16 +4859,25 @@ var areaList = withHistory(S.opts["treatment-area"] || [], ticked.area);
       '<div><div class="rs-band">Notes</div>' +
       '<textarea class="fnotes" id="snotes" placeholder="observations and work carried out">' +
       esc(sh.notes || "") + "</textarea>" +
-       
-      '<div class="padonly notesprint">' + esc(sh.notes || "") + "</div>" +
-      (sh.notes
-        ? ""
-        : '<div class="padonly penrule"></div><div class="padonly penrule"></div>') +
+
+'<div class="padonly" id="notesPaper">' + notesPaper(sh.notes) + "</div>" +
       "</div></div></div>";
+
+function notesPaper(v) {
+      return '<div class="padonly notesprint">' + esc(v || "") + "</div>" +
+        (v ? "" : '<div class="padonly penrule"></div><div class="padonly penrule"></div>');
+    }
 
 h += '<div class="rs-sec"><div class="rs-band">Materials used ' +
       "— NJ DEP application record (Reg 7:30-9.10)</div>" +
-       
+
+'<div class="noprint" style="font-size:.63rem;color:#777;margin:.2rem 0 0">' +
+      (live
+        ? "Tap a product to put it on the DEP record."
+        : "This record is filed, so the grey products cannot be ticked. " +
+          (isOffice() ? "Open the sheet for corrections first."
+                      : "Ring the office if something here has to be corrected.")) +
+      "</div>" +
       '<div class="noprint" style="margin:.2rem 0 .3rem">' +
         '<input id="matFind" class="f" type="search" placeholder="Find a product…" ' +
         'aria-label="Find a product" style="font-size:.8rem"></div>' +
@@ -4694,9 +5048,13 @@ wireSnaps(jobId);
     $("back").addEventListener("click", function () {
       goBack(function () { go(isOffice() ? "schedule" : "field"); });
     });
-    $("prt").addEventListener("click", function () {
-
-printModeModal(jobId, function () {
+    $("prt").addEventListener("click", async function () {
+       
+      var a = document.activeElement;
+      if (a && a !== this && a.blur) a.blur();
+      await WRITEQ;
+       
+      printModeModal(jobId, function () {
         renderSheet(jobId);
         setTimeout(function () { window.print(); }, 60);
       });
@@ -4719,6 +5077,8 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
     });
 
     if ($("unlock")) $("unlock").addEventListener("click", function () { unlockModal(); });
+     
+    if ($("shut")) $("shut").addEventListener("click", function () { relockModal(); });
     if ($("discBtn")) $("discBtn").addEventListener("click", function () {
       discountModal(inv.id, function () { closeModal(); renderSheet(jobId); });
     });
@@ -4739,9 +5099,10 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
     });
     trField("rtnote", function (v) { return { retreat_note: v || null }; });
     trField("wellLoc", function (v) { return { well_cistern_location: v || null }; });
+     
     trField("wellFt", function (v) {
-      var n = parseInt(String(v).replace(/[^0-9]/g, ""), 10);
-      return { well_cistern_ft: isNaN(n) ? null : n };
+      var m = String(v).match(/[0-9]+(\.[0-9]+)?/);
+      return { well_cistern_ft: m ? Math.round(parseFloat(m[0])) : null };
     });
     wireMaterials();
      
@@ -4837,15 +5198,29 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
 
 function sheetField(id, toPatch) {
       var el = $(id); if (!el || !live && id !== "snotes") { if (el) el.readOnly = true; return; }
-      el.addEventListener("change", async function () {
+      el.addEventListener("change", function () {
+         
+        var typed = el.value.trim(), patch = toPatch(typed), key = Object.keys(patch)[0];
         el.disabled = true;
-        try {
-          await saveSheet(toPatch(el.value.trim()));
-          toast("Saved");
-          await reload(["jobs"]);
-        } catch (e) { toast(e.message); }
-        el.disabled = false;
+         
+        WRITEQ = WRITEQ.then(function () { return saveSheet(patch); })
+          .then(function () { return reload(["jobs"]); })
+          .then(function () { showStored(el, key, true, typed); })
+          .catch(function (e) { toast(e.message); el.classList.add("unsaved"); })
+          .then(function () { el.disabled = false; });
       });
+    }
+     
+    function showStored(el, key, fromSheet, typed) {
+      var row = (fromSheet ? sheetOf(j.id) : trOf(j.id)) || {};
+      var v = row[key], say = (v == null ? "" : String(v));
+      el.value = say;
+      el.classList.remove("unsaved");
+       
+      if (el.id === "snotes" && $("notesPaper")) $("notesPaper").innerHTML = notesPaper(v);
+      toast(say === typed ? "Saved"
+        : say === "" ? "Saved — that box is empty now."
+        : "Saved as " + say);
     }
     async function saveSheet(patch) {
       patch.job_id = j.id;
@@ -4856,13 +5231,34 @@ function sheetField(id, toPatch) {
           "opened for corrections first.");
     }
 
-function unlockModal() {
+function relockModal() {
+      openModal("<h3>Close this sheet again?</h3>" +
+        '<p class="note">It goes back to being filed. The boxes, the priced lines and ' +
+        "the typed fields stop taking changes, and it has to be opened again to " +
+        "correct anything else. Nothing already written on it is undone, and a note " +
+        "can still be added, the same as on any filed sheet.</p>" +
+        '<p class="note">Recorded with your name.</p>' +
+        '<div class="row"><button class="primary" id="rlGo" type="button">Close it</button>' +
+        '<button class="act" id="rlNo" type="button">Leave it open</button></div>');
+      $("rlNo").addEventListener("click", closeModal);
+      $("rlGo").addEventListener("click", async function () {
+        this.disabled = true;
+        try {
+          await saveSheet({ unlocked_at: null, unlocked_by: null });
+          await reload(["jobs"]);
+          closeModal();
+          toast("Closed again");
+          renderSheet(jobId);
+        } catch (e) { toast(e.message); this.disabled = false; }
+      });
+    }
+    function unlockModal() {
       openModal("<h3>Open this sheet for corrections?</h3>" +
         '<p class="note">' +
         (sh.signed_on ? "It was signed on " + esc(sh.signed_on) + ". " : "") +
         (paidish ? "Payment has been recorded against it. " : "") +
         "<b>The signature stays as it is.</b> Recorded with your name.</p>" +
-        '<div class="row"><button class="primary" id="ulGo" type="button">Reopen the month</button>' +
+        '<div class="row"><button class="primary" id="ulGo" type="button">Open it</button>' +
         '<button class="act" id="ulNo" type="button">Leave it closed</button></div>');
       $("ulNo").addEventListener("click", closeModal);
       $("ulGo").addEventListener("click", async function () {
@@ -4907,6 +5303,25 @@ function unlockModal() {
           }
            
           voidLineModal(on, j, function () { closeModal(); renderSheet(jobId); });
+          return;
+        }
+      }
+       
+      if (reopened && (kind === "pest" || kind === "area" || kind === "std")) {
+        var gaining = kind === "std" ? !hasStd : !isOn(kind, val);
+        if (gaining) {
+          amendReasonModal(kind === "std" ? "the standard exterior application" : val,
+            kind === "std"
+              ? "1/4 gallon 0.25% Permethrin SFR, and it goes on the printed record"
+              : (kind === "pest" ? "a target pest on the application record"
+                                 : "a place the pesticide was applied"),
+            function (why) {
+              closeModal();
+              tickWrite(el, function () {
+                if (kind === "std") return fileStandard(why);
+                return tickRecord(kind, val, why);
+              });
+            });
           return;
         }
       }
@@ -4956,14 +5371,15 @@ function unlockModal() {
     function trField(id, toPatch) {
       var el = $(id); if (!el) return;
       if (!live) { el.readOnly = true; return; }
-      el.addEventListener("change", async function () {
+      el.addEventListener("change", function () {
+        var typed = el.value.trim(), patch = toPatch(typed), key = Object.keys(patch)[0];
         el.disabled = true;
-        try {
-          await trPatch(toPatch(el.value.trim()));
-          toast("Saved");
-          await reload(["jobs"]);
-        } catch (e) { toast(e.message); }
-        el.disabled = false;
+         
+        WRITEQ = WRITEQ.then(function () { return trPatch(patch); })
+          .then(function () { return reload(["jobs"]); })
+          .then(function () { showStored(el, key, false, typed); })
+          .catch(function (e) { toast(e.message); el.classList.add("unsaved"); })
+          .then(function () { el.disabled = false; });
       });
     }
     async function tickService(name) {
@@ -4999,7 +5415,7 @@ function unlockModal() {
       toast(name + (Number(row.price) > 0
         ? " added — " + money(row.price) : " added — priced on the job"));
     }
-    async function tickRecord(kind, val) {
+    async function tickRecord(kind, val, why) {
        
       var COLS = { pest: "target_pests", area: "application_locations",
                    dug: "disrupted_locations", method: "method" };
@@ -5014,6 +5430,12 @@ function unlockModal() {
           target_pests: [], application_locations: []
         };
         if (col === "method") body.method = val; else body[col] = [val];
+         
+        if (why) {
+          body.amended_at = new Date().toISOString();
+          body.amended_by = S.me.id;
+          body.amend_reason = why;
+        }
         var i = await sb.from("treatment_records").insert(body).select();
         if (i.error) throw explain(i.error);
         toast("Application record started — " + esc(((i.data || [])[0] || {}).applicator_no || ""));
@@ -5033,6 +5455,12 @@ if (!cur.length && col !== "disrupted_locations")
               "taking this one off.");
         patch[col] = cur;
       }
+       
+      if (why) {
+        patch.amended_at = new Date().toISOString();
+        patch.amended_by = S.me.id;
+        patch.amend_reason = why;
+      }
       var u2 = await sb.from("treatment_records").update(patch).eq("id", now.id).select();
       if (u2.error) throw explain(u2.error);
       if (!(u2.data || []).length)
@@ -5045,7 +5473,7 @@ if (!cur.length && col !== "disrupted_locations")
         return x.epa_number === SFR_EPA || /permethrin\s*sfr|sfr\s*permethrin/i.test(x.name);
       })[0] || null;
     }
-    async function fileStandard() {
+    async function fileStandard(why) {
       var prod = stdProduct();
       if (!prod)
         throw new Error("Permethrin SFR is not in the materials list, so it cannot be " +
@@ -5055,9 +5483,10 @@ if (!cur.length && col !== "disrupted_locations")
         throw new Error("Already on the record. A filed pesticide application cannot be " +
           "taken back off — that is the law, not the app.");
        
-      await fileMaterial(prod, "0.25", "1/4 gal");
+      await fileMaterial(prod, "0.25", "1/4 gal", why);
     }
-    async function fileMaterial(prod, pct, amt) {
+     
+    async function fileMaterial(prod, pct, amt, why) {
       var rec = tr;
       if (!rec) {
         var i = await sb.from("treatment_records").insert({
@@ -5069,11 +5498,18 @@ if (!cur.length && col !== "disrupted_locations")
         rec = (i.data || [])[0];
       }
        
-      var r = await sb.from("treatment_chemicals").insert({
+      var body = {
         treatment_id: rec.id, product_id: prod.id, product_name: prod.name,
         epa_number: prod.epa_number, percent: pct || null, amount: amt || null,
         sort_order: (prod.sort_order || 0) + 1
-      }).select();
+      };
+       
+      if (why) {
+        body.added_at = new Date().toISOString();
+        body.added_by = S.me.id;
+        body.add_reason = why;
+      }
+      var r = await sb.from("treatment_chemicals").insert(body).select();
       if (r.error) throw explain(r.error);
        
       var line = (r.data || [])[0] || {};
@@ -5113,9 +5549,11 @@ function matFound(chemRows) {
           if (!m) return "<td></td><td></td><td></td>";
           var r = found(m);
           return "<td>" + cell(r, "percent", "%") + "</td>" +
-            '<td class="matname' + (r ? " on" : "") + '"' +
+             
+            '<td class="matname' + (r ? " on" : (live ? "" : " dead")) + '"' +
             (live && !r ? ' data-mat="' + esc(m.id) + '" role="checkbox" aria-checked="false" tabindex="0"'
-                        : (r ? ' data-filed="' + esc(r.id) + '" title="Tap to take this product off the record."' : "")) + ">" +
+                        : (r ? ' data-filed="' + esc(r.id) + '" title="Tap to take this product off the record."'
+                             : ' data-shut="1"')) + ">" +
             chkBox(!!r) + "<span>" + esc(m.name) +
             (m.epa_number ? '<span class="epa">EPA #' + esc(m.epa_number) + "</span>" : "") +
             "</span></td><td>" + cell(r, "amount", "90 gal") + "</td>";
@@ -5199,7 +5637,19 @@ function matFound(chemRows) {
       tb.querySelectorAll("[data-mat]").forEach(function (el) {
         var fire = function () {
           var m = S.products.filter(function (x) { return x.id === el.getAttribute("data-mat"); })[0];
-          if (m) tickWrite(el, function () { return fileMaterial(m, null, null); });
+          if (!m) return;
+           
+          if (reopened) {
+            amendReasonModal(m.name,
+              (m.epa_number ? "EPA #" + m.epa_number + " · " : "") +
+              "it goes on the printed record",
+              function (why) {
+                closeModal();
+                tickWrite(el, function () { return fileMaterial(m, null, null, why); });
+              });
+            return;
+          }
+          tickWrite(el, function () { return fileMaterial(m, null, null); });
         };
         el.addEventListener("click", fire);
         el.addEventListener("keydown", function (e) {
@@ -5218,7 +5668,22 @@ function matFound(chemRows) {
         });
       });
       tb.querySelectorAll("[data-chem]").forEach(function (el) {
+         
+        var was = el.value, asked = null;
         el.addEventListener("change", async function () {
+           
+          if (el.getAttribute("data-col") === "percent" && asked !== el.value) {
+            var q = strengthQuestion(el.getAttribute("data-chem"), el.value.trim());
+            if (q) {
+              askStrengthModal(q, function (yes) {
+                closeModal();
+                if (!yes) { el.value = was; el.focus(); return; }
+                asked = el.value;
+                el.dispatchEvent(new Event("change", { bubbles: true }));
+              });
+              return;
+            }
+          }
           el.disabled = true;
           var patch = {};
           patch[el.getAttribute("data-col")] = el.value.trim() || null;
@@ -5917,9 +6382,49 @@ $("n3Back").addEventListener("click", function () { go("sheet", jobId); });
     if ($("n3Unc")) $("n3Unc").addEventListener("click", function () { uncertifyModal(); });
     $("n3Prt").addEventListener("click", async function () {
        
-      if (!certified && !(await saveWDI(null))) return;
-      renderWDI(jobId);
-      setTimeout(function () { window.print(); }, 60);
+      if (!src(w.inspector_licence, t.applicator_no)) {
+        toast("Section I cannot print without the inspector’s certification " +
+              "number, and there is none on file for " +
+              (src(w.inspector_name, t.name) || "whoever is assigned") +
+              ". An admin adds it under Settings, People.");
+        return;
+      }
+       
+      var goPrint = async function () {
+        if (!certified && !(await saveWDI(null))) return;
+        renderWDI(jobId);
+        setTimeout(function () { window.print(); }, 60);
+      };
+
+var pOn = val("n3Date"), pExp = pOn ? shiftISO(pOn, 90) : "";
+      if (pExp && pExp < todayISO()) {
+        var over = Math.round((new Date(todayISO() + "T12:00:00") -
+                               new Date(pExp + "T12:00:00")) / 86400000);
+        var say = function (iso) {
+          return new Date(iso + "T12:00:00").toLocaleDateString(
+            undefined, { month: "short", day: "numeric", year: "numeric" });
+        };
+        openModal("<h3>This report expired " + plural(over, "day") + " ago</h3>" +
+          '<p class="note">Inspected ' + esc(say(pOn)) +
+          ". The ninety days ran out " + esc(say(pExp)) + ".</p>" +
+          '<div class="msg bad">Page 2 says it is invalid for securing a ' +
+          "mortgage or settling a transfer. Printing it does not change that " +
+          "— the property has to be inspected again.</div>" +
+          '<p class="note">Whichever is chosen, the expiry date prints beside ' +
+          "the inspection date, so nobody holding this has to do the sum.</p>" +
+          '<div class="row">' +
+          '<button class="primary" id="epNo" type="button">Do not print it</button>' +
+          '<button class="act" id="epGo" type="button">Print it anyway</button>' +
+          "</div>");
+        $("epNo").addEventListener("click", closeModal);
+        $("epGo").addEventListener("click", async function () {
+          this.disabled = true;
+          closeModal();
+          await goPrint();
+        });
+        return;
+      }
+      await goPrint();
     });
 
     function val(id) { var e = $(id); return e ? e.value.trim() : ""; }
@@ -5932,7 +6437,7 @@ $("n3Back").addEventListener("click", function () { go("sheet", jobId); });
           return x.replace(/^\s+|\s+$/g, "");
         }).filter(function (x) { return x !== ""; });
          
-        o[a[0]] = { on: tick("n3o_" + a[0]) ? "true" : "false",
+        o[a[0]] = { on: tick("n3o_" + a[0]),
                     text: val("n3ot_" + a[0]), keys: keys };
       });
       return {
@@ -6150,10 +6655,16 @@ h += '<div class="n33-row co">' +
           esc(src(w.company_licence, co.business_licence) || "") + "</div></div>" +
           '<div class="n33-cell">' + cap("Date of Inspection") +
            
-          rule(w.inspection_date
-            ? new Date(w.inspection_date + "T12:00:00").toLocaleDateString(
-                undefined, { month: "short", day: "numeric", year: "numeric" })
-            : "") + "</div>" +
+          (function (d) {
+            var say = function (iso) {
+              return new Date(iso + "T12:00:00").toLocaleDateString(
+                undefined, { month: "short", day: "numeric", year: "numeric" });
+            };
+            return rule(d ? say(d) : "") +
+              (d ? cap("Ninety days from inspection",
+                       esc(say(shiftISO(d, 90)))) : "");
+          })(src(w.inspection_date, j.completed_date || j.scheduled_date)) +
+          "</div>" +
         "</div>" +
         '<div class="n33-row"><div class="n33-cell">' +
           cap("Address of Property Inspected") + rule(addr) + "</div></div>" +
@@ -7997,7 +8508,8 @@ var exList = [];
       "</div>";
 
     var fill = {
-      first: r.first_name || r.customer_name,
+       
+      first: (r.first_name ? r.first_name + " " : "") + r.customer_name,
       name: r.customer_name,
       address: addrLine(r.service_address, r.city, r.state, r.zip),
       phone: r.phone || "no phone on file",
@@ -8042,7 +8554,8 @@ var out = esc(body);
         "</div></div>" +
       '<div class="lto">' + esc(when.toLocaleDateString(undefined,
           { month: "long", day: "numeric", year: "numeric" })) + "<br><br>" +
-        "<b>" + esc(r.first_name || r.customer_name) + "</b><br>" +
+         
+        "<b>" + esc((r.first_name ? r.first_name + " " : "") + r.customer_name) + "</b><br>" +
          
         (function () {
           var mc = r.bill_to ? (custById(r.customer_id) || {}) : null;
@@ -8633,6 +9146,17 @@ function quoteOf(id) {
     return S.quotes.filter(function (q) { return q.id === id; })[0] || null;
   }
 
+var QUOTE_WORDS = { open: "Awaiting decision", quiet: "No reply",
+                      accepted: "Accepted", declined: "Refused" };
+   
+  function quoteSays(q) {
+    var w = QUOTE_WORDS[q.status] || q.status;
+    if (q.status !== "accepted") return w;
+    var bj = q.job_id ? jobById(q.job_id) : null;
+    if (bj && bj.status === "cancelled") return w + ", and the job was cancelled";
+    return w + (q.job_id ? ", in the book" : ", not in the book yet");
+  }
+
 function quoteAge(q) {
     var from = q.last_contact_date || q.sent_date || String(q.created_at).slice(0, 10);
     return Math.round((new Date(todayISO()) - new Date(from)) / 86400000);
@@ -8952,7 +9476,24 @@ function newQuoteModal(cid, pre) {
       return s.active !== false && s.price_basis && s.price_basis !== "flat";
     }).sort(function (a, b) { return (a.name || "") < (b.name || "") ? -1 : 1; });
 
+var openNow = S.quotes.filter(function (q) {
+      return q.customer_id === cid && (q.status === "open" || q.status === "quiet");
+    });
+    var armedDup = false;
     openModal("<h3>An estimate for " + esc(c ? c.name : "") + "</h3>" +
+      (openNow.length
+        ? '<div class="msg warn"><b>' + plural(openNow.length, "estimate") +
+          " already waiting on an answer</b>" +
+          openNow.map(function (q) {
+            return '<div class="dates">' + money(q.amount) +
+              (q.description ? " — " + esc(q.description) : "") +
+              (q.sent_date ? " · raised " + esc(fmtDate(q.sent_date)) : "") +
+              "</div>";
+          }).join("") +
+          "<div>A second one for the same work doubles what the dashboard says is " +
+          "waiting. Chase the one above, or withdraw it, unless this is different " +
+          "work.</div></div>"
+        : "") +
       (ps.length > 1
         ? '<label for="nqProp">Address</label><select id="nqProp" class="f">' +
           ps.map(function (p) {
@@ -9124,6 +9665,19 @@ $("nqAmt").focus();
       if (amt == null) { toast("Enter the price quoted."); return; }
       var what = $("nqWhat").value.trim();
       if (!what) { toast("Enter what the estimate is for."); return; }
+       
+      if (!armedDup) {
+        var same = openNow.filter(function (q) {
+          return Math.abs((Number(q.amount) || 0) - amt) < 0.005;
+        })[0];
+        if (same) {
+          armedDup = true;
+          this.textContent = "Raise it anyway";
+          toast("There is already an open estimate for " + money(amt) +
+                " on this customer. Press again to raise a second one.");
+          return;
+        }
+      }
       var svc = svcNow(), p = propNow();
       var row = {
         customer_id: cid,
@@ -9168,6 +9722,10 @@ $("nqAmt").focus();
       try {
         var r = await sb.from("quotes").insert(row).select();
         if (r.error) throw explain(r.error);
+         
+        if (!(r.data || []).length)
+          throw new Error("Nothing was recorded — the estimate was refused. " +
+            "Nothing has been saved and the form is still here.");
         S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
         await reload(["attention"]);
         closeModal();
@@ -9273,7 +9831,8 @@ document.body.classList.add("hassheetbar");
         " — " + esc(new Date(ev.voided_at).toLocaleString()) + ". It stays on the folder " +
         "because a contract is never deleted. Start a fresh form for the right figures.</div>";
     else if (ev.signed_on)
-      h += '<div class="msg noprint"><b>Signed on ' + esc(ev.signed_on) + ".</b> " +
+       
+      h += '<div class="msg noprint"><b>Signed on ' + esc(fmtFullDate(ev.signed_on)) + ".</b> " +
         "The grand total is fixed at the " + esc(pct) + "% it was signed at. " +
         "A signed form is not reopened — if it is wrong, void it and do a fresh one.</div>";
     else if (noDates)
@@ -9309,10 +9868,11 @@ h += '<div class="sheet">' +
 
 h += '<div class="rs-sec" style="border-top:none;margin-top:.2rem">' +
       '<div style="display:flex;gap:.9rem;align-items:center;flex-wrap:wrap">' +
+       
       '<div style="font-size:.76rem">Date: ' +
       (live ? '<input class="fline" id="evDate" type="date" style="width:9.5rem" value="' +
               esc(ev.form_date || "") + '">'
-            : "<b>" + esc(ev.form_date || "") + "</b>") + "</div>" +
+            : "<b>" + esc(fmtFullDate(ev.form_date)) + "</b>") + "</div>" +
       '<div style="display:flex;gap:.7rem;flex-wrap:wrap;margin-left:auto">' +
       EVAL_MODES.map(function (m) {
         return tickbox("data-emode", m, ev.mode === m, "<b>" + esc(m) + "</b>");
@@ -9408,9 +9968,10 @@ h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1.6fr 
         ? '<div style="font-size:.6rem;margin-top:.25rem">These figures are from a ' +
           "VOIDED form and are not owed.</div>"
         : "") +
+       
       (ev.signed_on
         ? '<div style="font-size:.58rem;text-align:center;margin-top:.2rem">Signed ' +
-          esc(ev.signed_on) + " — fixed at the rate it was signed at.</div>"
+          esc(fmtFullDate(ev.signed_on)) + " — fixed at the rate it was signed at.</div>"
         : '<div class="noprint" style="font-size:.58rem;color:#777;text-align:center;margin-top:.2rem">' +
           "Tax at " + esc(pct) + "%, the rate this form was started on.</div>") +
       '<div style="text-align:center;font-size:.68rem;margin-top:.35rem;font-weight:700">' +
@@ -9427,12 +9988,12 @@ if (contract)
         '<div class="fcols three">' +
         '<div><div class="lbl2">Work to start</div>' +
         (live ? '<input class="fline" id="evStart" type="date" value="' + esc(ev.start_date || "") + '">'
-              : '<div class="fld"><b>' + esc(ev.start_date || "") + "</b></div>") + "</div>" +
+              : '<div class="fld"><b>' + esc(fmtFullDate(ev.start_date)) + "</b></div>") + "</div>" +
         '<div><div class="lbl2">Work to be finished</div>' +
         (live ? '<input class="fline" id="evFinish" type="date" value="' + esc(ev.finish_date || "") + '">'
-              : '<div class="fld"><b>' + esc(ev.finish_date || "") + "</b></div>") + "</div>" +
+              : '<div class="fld"><b>' + esc(fmtFullDate(ev.finish_date)) + "</b></div>") + "</div>" +
         '<div><div class="lbl2">Date of this contract</div>' +
-        '<div class="fld"><b>' + esc(ev.form_date || "") + "</b></div></div></div>" +
+        '<div class="fld"><b>' + esc(fmtFullDate(ev.form_date)) + "</b></div></div></div>" +
         cancelNotice() + "</div>";
 
 h += '<div class="rs-sec"><div class="rs-band">Crawl space evaluation</div>' +
@@ -9465,13 +10026,14 @@ h += '<div class="rs-sec"><div style="display:flex;justify-content:space-between
       "<div>NJ CONTRACTOR #" + esc(co.nj_contractor || "") + "</div>" +
       "<div>BUSINESS # " + esc(co.business_licence || "") + "</div></div>" +
       '<div style="text-align:center;min-width:12rem">' +
+       
       (ev.signed_on && !ev.voided_at
         ? sigSVG(ev.signature, 200) +
-          '<div style="font-size:.58rem">Customer Signature · ' + esc(ev.signed_on) + "</div>"
+          '<div style="font-size:.58rem">Customer Signature · ' + esc(fmtFullDate(ev.signed_on)) + "</div>"
         : ev.signed_on
            
           ? '<div class="sigline"></div><div style="font-size:.58rem">Signature on the ' +
-            "voided original, " + esc(ev.signed_on) + "</div>"
+            "voided original, " + esc(fmtFullDate(ev.signed_on)) + "</div>"
           : '<div class="sigline"></div><div style="font-size:.58rem">Customer Signature</div>') +
       "</div></div></div>";
 
@@ -9486,11 +10048,25 @@ if (Object.keys(ev.service_basis || {}).some(function (k) {
     h += '<div class="foot"><span>' + esc(co.company_name || "") + "</span>" +
       "<span>" + esc(co.phone || "") + "</span></div></div>";
 
-if (ev.signed_on)
+if (ev.signed_on) {
+      var bjob = ev.job_id ? jobById(ev.job_id) : (q && q.job_id ? jobById(q.job_id) : null);
+       
+      var inBook = !!(ev.job_id || (q && q.job_id)) && !(bjob && bjob.status === "cancelled");
       h += '<div class="msg noprint" style="margin-top:.8rem">' +
         (q ? "The estimate behind it is <b>" + esc({ open: "Awaiting decision", quiet: "No reply", accepted: "Accepted", declined: "Refused" }[q.status] || q.status) + "</b> at " + money(q.amount) + "."
            : "Sold on the contract — it never went on the estimates list, and it does " +
-             "not go on one now.") + "</div>";
+             "not go on one now.") +
+         
+        (ev.voided_at
+          ? ""
+          : inBook
+            ? " In the book — " +
+              (bjob && bjob.scheduled_date ? esc(fmtFullDate(bjob.scheduled_date))
+                                           : "no day set yet") + "."
+            : " <b>The work is sold and not in the book yet.</b> " +
+              '<button class="act go" id="evBook" type="button">Add it to the schedule</button>') +
+        "</div>";
+    }
     else if (live)
       h += '<div class="msg noprint" style="margin-top:.8rem">' +
         (q
@@ -9524,6 +10100,18 @@ $("evBack").addEventListener("click", function () {
      
     if ($("evSign")) $("evSign").addEventListener("click", function () { signEvalModal(evalOf(id)); });
     if ($("evVoid")) $("evVoid").addEventListener("click", function () { voidEvalModal(evalOf(id)); });
+     
+    if ($("evBook")) $("evBook").addEventListener("click", function () {
+      var e2 = evalOf(id); if (!e2) return;
+      var names = Object.keys(e2.services || {}).join(", ");
+      bookModal({
+        customer_id: e2.customer_id, property_id: e2.property_id || null,
+        quote_id: e2.quote_id || null, eval_id: e2.id,
+        date: e2.start_date || null,
+        note: (names ? names + " — " : "") + "crawl space contract signed " +
+              fmtFullDate(e2.signed_on) + ", " + money(e2.subtotal) + " before tax"
+      });
+    });
     if ($("evQuote")) $("evQuote").addEventListener("click", function () {
       evalWrite(this, function () { return raiseEvalQuote(evalOf(id)); });
     });
@@ -9576,7 +10164,12 @@ evalField("evDate", function (v) {
     app.querySelectorAll("[data-eprice]").forEach(function (el) {
       el.addEventListener("change", function () {
         var name = el.getAttribute("data-eprice"), typed = el.value;
-        evalQuiet(el, function () {
+         
+        var settle = function () {
+          var v = ((evalOf(id) || {}).services || {})[name];
+          el.value = Number(v) > 0 ? v : "";
+        };
+        var writing = evalQuiet(el, function () {
           var n = readMoney(typed);
            
           if (n == null)
@@ -9585,6 +10178,8 @@ evalField("evDate", function (v) {
               : "“" + typed + "” isn’t a price for " + name + " — type it like 1850.");
           return setPrice(name, Math.max(0, n));
         });
+         
+        if (writing && writing.then) writing.then(settle); else settle();
       });
     });
     app.querySelectorAll("[data-earea]").forEach(function (el) {
@@ -9758,6 +10353,10 @@ if (ev.signed_on || ev.voided_at)
       sent_date: ev.form_date || todayISO(), status: "open", created_by: S.me.id
     }).select();
     if (r.error) throw explain(r.error);
+     
+    if (!(r.data || []).length)
+      throw new Error("The estimate did not save — nothing was put on the list, " +
+        "and nothing was linked to this form.");
     var q = (r.data || [])[0];
     var u = await sb.from("evaluations").update({ quote_id: q.id }).eq("id", ev.id).select();
      
@@ -9840,14 +10439,37 @@ function signEvalModal(ev) {
       $("scNo").addEventListener("click", closeModal);
       return;
     }
+     
+    if (ev.mode === "Contract") {
+      var unreadable = Object.keys(ev.services || {}).filter(function (k) {
+        return !/^[0-9]+(\.[0-9]+)?$/.test(String((ev.services || {})[k]));
+      });
+      if (unreadable.length || !(Number(ev.total) > 0)) {
+        openModal("<h3>The contract cannot be signed yet</h3>" +
+          '<p class="note">' +
+          (unreadable.length
+            ? "The price for <b>" + esc(unreadable.join("</b>, <b>")) + "</b> is not a figure " +
+              "the form can add up, so it prints on the contract and adds nothing to the " +
+              "Grand Total. Type it as digits only — 1200.00, no comma and no dollar sign."
+            : "A New Jersey home improvement contract states the price, and this one totals " +
+              money(0) + ". There is no reopening a signed contract — it could only be " +
+              "voided and done again — so put the prices in first.") +
+          "</p>" +
+          '<div class="row"><button class="primary" id="spNo" type="button">Back to the form</button></div>');
+        $("spNo").addEventListener("click", closeModal);
+        return;
+      }
+    }
     var isContract = ev.mode === "Contract";
     openModal("<h3>" + esc(c.name || "Customer") + "’s signature</h3>" +
       '<p class="note">It prints on the form. <b>Signing closes it for good</b> — there is no ' +
       "reopening a contract: a signed one that is wrong is voided and done again.</p>" +
+       
       (isContract
         ? '<div class="msg">They are signing a home improvement contract for <b>' +
-          money(ev.total) + "</b>, work starting " + esc(ev.start_date) + " and finished by " +
-          esc(ev.finish_date) + ". Their three-day right to cancel is printed on it — " +
+          money(ev.total) + "</b>, work starting " + esc(fmtFullDate(ev.start_date)) +
+          " and finished by " + esc(fmtFullDate(ev.finish_date)) +
+          ". Their three-day right to cancel is printed on it — " +
           "<b>they keep a copy</b>, and the three days run from when they get it.</div>"
         : "") +
       (!(Number(ev.total) > 0)
@@ -10825,28 +11447,37 @@ var PU = null;
       if (u.error.code === "42501") throw explain(u.error);
       absent = true;
     }
-    var recs = [], pct = [];
+    var recs = [], pct = [], recsFailed = false;
     if (!absent) {
        
-      recs = await all(function () {
-        return sb.from("v_application_records").select("*")
+      for (var pageAt = 0; ; pageAt += PAGE) {
+        var pg = await sb.from("v_application_records").select("*")
           .gte("applied_on", from).lte("applied_on", to)
-          .order("applied_on").order("sort_order");
-      });
+          .order("applied_on").order("sort_order").order("line_id")
+          .range(pageAt, pageAt + PAGE - 1);
+        if (pg.error) { recsFailed = true; recs = []; break; }
+        var got = pg.data || [];
+        recs = recs.concat(got);
+        if (got.length < PAGE) break;
+        if (pageAt > 400000) break;       
+      }
       pct = await soft(sb.from("v_percent_written_by_product").select("*")
                          .order("product_name"),
                        "v_percent_written_by_product",
                        "what strength has been written per product \u2014 run 0049");
     }
-     
-    PU = { year: y, used: u.error ? [] : (u.data || []),
+
+PU = { year: y, used: u.error ? [] : (u.data || []),
            gaps: g.error ? [] : (g.data || []), gapsFailed: !!g.error,
-           pct: pct, recs: recs, absent: absent, at: new Date() };
+           pct: pct, recs: recs, recsFailed: recsFailed,
+           absent: absent, at: new Date() };
   }
 
   async function renderPesticide() {
      
     if (!isOffice()) return renderDashboard();
+     
+    document.body.classList.add("deppaper");
     var y = Number(route.arg) || new Date().getFullYear();
     if (!PU || PU.year !== y) {
       app.innerHTML = '<div class="msg">Calculating ' + y + "\u2026</div>";
@@ -10885,8 +11516,33 @@ var qty = function (v, u) {
       return;
     }
 
-h += '<div class="card"><h2>Excluded from the totals' +
-      (gapsN ? " \u2014 " + plural(gapsN, "line") : "") + "</h2>";
+var GAPFIG = {
+      "no-amount":          ["out", "line"],
+      "unreadable-amount":  ["out", "line"],
+      "cancelled":          ["out", "line"],
+      "voided":             ["out", "line"],
+      "no-unit":            ["gal", "line"],
+      "ounces-not-stated":  ["gal", "line"],
+      "not-a-volume":       ["gal", "line"],
+      "unreadable-percent": ["pct", "line"],
+      "no-percent":         ["pct", "line"],
+      "no-epa-number":      ["in",  "line"],
+      "still-open":         ["in",  "line"],
+      "two-epa-numbers":    ["in",  "product"]
+    };
+    var GAPWORDS = {
+      "out": "No — in no figure below",
+      "gal": "In the quantity as written; in no gallons figure",
+      "pct": "In the quantity and the mixture; in no registered-product figure",
+      "in":  "Yes — counted in full below",
+      "?":   "Not known here — a kind this screen has not been taught"
+    };
+    var outN = PU.gaps.reduce(function (t, x) {
+      var m = GAPFIG[x.kind];
+      return t + (m && m[0] === "out" ? (Number(x.n) || 0) : 0);
+    }, 0);
+    h += '<div class="card"><h2>What the totals could not say' +
+      (outN ? " — " + plural(outN, "line") + " excluded" : "") + "</h2>";
     if (PU.gapsFailed) {
       h += '<div class="msg warn"><b>This list could not be read.</b> There may be ' +
         "lines in " + y + " that were not added up, so treat every figure below as " +
@@ -10896,13 +11552,18 @@ h += '<div class="card"><h2>Excluded from the totals' +
         "strength that could be read. The figures below are complete.</div>";
     } else {
       h += '<div class="msg warn"><b>The figures below are a floor, not a total.</b> ' +
-        "Each of these is a different problem and they are not added together.</div>" +
-        '<table class="lst"><tr><th>Problem</th><th class="r">Lines</th>' +
-        "<th>Which lines</th></tr>" +
+        "Each of these is a different problem, they are not added together, and only " +
+        "some of them take lines out of the figures — the third column says " +
+        "which.</div>" +
+        '<table class="lst"><thead><tr><th>Problem</th><th class="r">How many</th>' +
+        "<th>In the figures below?</th><th>Which lines</th></tr></thead><tbody>" +
         PU.gaps.map(function (x) {
-          return "<tr><td>" + esc(x.headline) + '</td><td class="r">' + x.n + "</td>" +
-            "<td>" + esc(x.detail || "") + "</td></tr>";
-        }).join("") + "</table>";
+          var m = GAPFIG[x.kind] || ["?", "line"];
+           
+          return "<tr><td>" + esc(x.headline) + '</td><td class="r">' +
+            esc(plural(Number(x.n) || 0, m[1])) + "</td><td>" +
+            esc(GAPWORDS[m[0]]) + "</td><td>" + esc(x.detail || "") + "</td></tr>";
+        }).join("") + "</tbody></table>";
     }
     h += "</div>";
 
@@ -10912,10 +11573,12 @@ h += '<div class="card"><h2>' +
     if (!PU.used.length) {
       h += '<div class="empty">No readable amount was recorded in ' + y + ".</div>";
     } else {
-      h += '<table class="lst"><tr><th>Product</th><th>EPA #</th>' +
+       
+      h += '<table class="lst"><thead><tr><th>Product</th><th>EPA #</th>' +
         '<th class="r">Lines</th><th class="r">Visits</th>' +
         '<th class="r">As written</th><th class="r">Mixture, gallons</th>' +
-        '<th class="r">Registered product, gallons</th><th>First \u2014 last</th></tr>' +
+        '<th class="r">Registered product, gallons</th><th>First — last</th>' +
+        "</tr></thead><tbody>" +
         PU.used.map(function (x) {
           return "<tr><td>" + esc(x.product_name) + "</td><td>" + esc(x.epa_number) + "</td>" +
              
@@ -10928,7 +11591,7 @@ h += '<div class="card"><h2>' +
             num(x.lines) + " lines</span></td>" +
             "<td>" + esc(fmtDate(x.first_applied)) + " \u2014 " +
             esc(fmtDate(x.last_applied)) + "</td></tr>";
-        }).join("") + "</table>" +
+        }).join("") + "</tbody></table>" +
         '<p class="note"><b>There is deliberately no total row.</b> Gallons of one product, ' +
         "pounds of another and a count of glueboards do not add up to a figure anybody " +
         "could defend. The mixture is the volume applied; the registered product " +
@@ -10940,53 +11603,76 @@ h += '<div class="card"><h2>' +
     h += "</div>";
 
 if (PU.pct.length) {
-      h += '<div class="card"><h2>What strength has been written</h2>' +
-        '<p class="note">Every distinct strength on file against each product. It asserts ' +
-        "nothing about which one is wrong \u2014 it counts, so a single 6 among forty " +
-        "0.06s reads as the one-off it is.</p>" +
-        '<table class="lst"><tr><th>Product</th><th>As written</th>' +
+       
+      var yearly = function (iso) {
+        if (!iso) return "—";
+        return new Date(iso + "T12:00:00").toLocaleDateString(undefined,
+          { year: "numeric", month: "short", day: "numeric" });
+      };
+       
+      h += '<div class="card"><h2>What strength has been written — every year ' +
+        "on file, not just " + y + "</h2>" +
+        '<p class="note">Every distinct strength on file against each product, over ' +
+        "the whole record and not only " + y + ". It asserts " +
+        "nothing about which one is wrong — it counts, so a single 6 among forty " +
+        "0.06s reads as the one-off it is. Every date below carries its year.</p>" +
+        '<table class="lst"><thead><tr><th>Product</th><th>As written</th>' +
         '<th class="r">As a percentage</th><th class="r">Lines</th>' +
-        "<th>First \u2014 last</th></tr>" +
+        "<th>First — last</th></tr></thead><tbody>" +
         PU.pct.map(function (x) {
-          return "<tr><td>" + esc(x.product_name) + "</td><td>" + esc(x.written || "\u2014") +
+          return "<tr><td>" + esc(x.product_name) + "</td><td>" + esc(x.written || "—") +
             '</td><td class="r">' +
             (x.as_a_percentage == null ? "could not be read" : esc(String(x.as_a_percentage))) +
-            '</td><td class="r">' + x.lines + "</td><td>" +
-            esc(fmtDate(x.first_used)) + " \u2014 " + esc(fmtDate(x.last_used)) +
+             
+            '</td><td class="r">' + num(x.lines) + "</td><td>" +
+            esc(yearly(x.first_used)) + " — " + esc(yearly(x.last_used)) +
             "</td></tr>";
-        }).join("") + "</table></div>";
+        }).join("") + "</tbody></table></div>";
     }
 
-h += '<div class="card"><h2>Every application in ' + y + " \u2014 " +
-      plural(PU.recs.length, "line") + "</h2>" +
-(PU.recs.length
-        ?       '<p class="note">One row per product line, which is the level of detail the record requires. ' +
-      "The words and the reading are shown side by side for comparison. " +
-      "<b>County is blank on every row</b> \u2014 there is no county anywhere in this " +
-      "database, and it is here so that it is found now rather than in front of an " +
-      "inspector.</p>"
-        : "");
-    if (!PU.recs.length) {
+h += '<div class="card"><h2>Every application in ' + y + " — " +
+      (PU.recsFailed ? "not read" : plural(PU.recs.length, "line")) + "</h2>";
+    if (PU.recsFailed) {
+       
+      h += '<div class="msg warn"><b>This list could not be read, so it is not on ' +
+        "this page.</b> Whether there are applications in " + y + ", and how many, " +
+        "is unknown here — an unread list is not an empty one. Do not file this " +
+        "sheet as a record of the year. Recalculate. If it persists, report it.</div>";
+    } else if (!PU.recs.length) {
       h += '<div class="empty">No application recorded in ' + y + ".</div>";
     } else {
-      h += '<div class="evalwrap"><table class="lst"><tr><th>Date</th><th>Address</th>' +
-        "<th>Target</th><th>Location</th><th>Product</th><th>EPA #</th>" +
+      h += '<p class="note">One row per product line, which is the level of detail the record requires. ' +
+        "The words and the reading are shown side by side for comparison. " +
+        "<b>County is blank on every row</b> — there is no county anywhere in this " +
+        "database, and the column is here so that it is found now rather than in front of an " +
+        "inspector.</p>" +
+         
+        '<div class="evalwrap"><table class="lst"><thead><tr><th>Date</th>' +
+        "<th>Customer</th><th>Address</th><th>County</th>" +
+        "<th>Target</th><th>Location</th><th>Method</th>" +
+        "<th>Product</th><th>EPA #</th>" +
         '<th>Strength</th><th>Amount</th><th class="r">Mixture gal</th>' +
-        '<th class="r">Product gal</th><th>Applicator #</th><th>Filed by</th></tr>' +
+        '<th class="r">Product gal</th><th>Applicator #</th>' +
+        "<th>Filed by</th></tr></thead><tbody>" +
         PU.recs.map(function (x) {
           return "<tr><td>" + esc(fmtDate(x.applied_on)) + "</td><td>" +
-            esc(x.address || "\u2014") +
-            (x.city ? ", " + esc(x.city) : "") + "</td><td>" +
+            esc(x.customer || "—") + "</td><td>" +
+            esc(x.address || "—") +
+            (x.city ? ", " + esc(x.city) : "") +
+            (x.zip ? " " + esc(x.zip) : "") + "</td><td>" +
+             
+            esc(x.county || "") + "</td><td>" +
             esc((x.target_pests || []).join(", ")) + "</td><td>" +
             esc((x.application_locations || []).join(", ")) + "</td><td>" +
-            esc(x.product_name) + "</td><td>" + esc(x.epa_number || "\u2014") + "</td><td>" +
-            esc(x.strength_written || "\u2014") + "</td><td>" +
-            esc(x.amount_written || "\u2014") + '</td><td class="r">' +
+            esc(x.method || "—") + "</td><td>" +
+            esc(x.product_name) + "</td><td>" + esc(x.epa_number || "—") + "</td><td>" +
+            esc(x.strength_written || "—") + "</td><td>" +
+            esc(x.amount_written || "—") + '</td><td class="r">' +
             esc(qty(x.mixture_gal, "")) + '</td><td class="r">' +
             esc(qty(x.product_gal, "")) + "</td><td>" +
-            esc(x.applicator_no || "\u2014") + "</td><td>" +
-            esc(x.filed_by || "\u2014") + "</td></tr>";
-        }).join("") + "</table></div>";
+            esc(x.applicator_no || "—") + "</td><td>" +
+            esc(x.filed_by || "—") + "</td></tr>";
+        }).join("") + "</tbody></table></div>";
     }
     h += "</div>";
 
@@ -11013,9 +11699,16 @@ h += '<div class="card"><h2>Every application in ' + y + " \u2014 " +
   }
 
   function renderLists() {
+     
     if (!isAdmin()) {
-      app.innerHTML = '<div class="msg bad">Only an administrator can change what prints ' +
-        "on the sheet.</div>";
+      app.innerHTML = "<h1>Your account</h1>" +
+        '<p class="sub">' +
+        (isOffice() ? "Your password, and the days the company is not working."
+                    : "Your password.") + "</p>" +
+        youCard() + (isOffice() ? closedCard() : "") +
+        '<p class="stamp">Prices, materials, the sheet’s lists and who works ' +
+        "here are an administrator’s to change.</p>";
+      wireLists();
       return;
     }
     var h = "<h1>Settings</h1>" +
@@ -11129,6 +11822,8 @@ var chemMissing = S.products.filter(function (m) {
       '<input id="setMatFind" class="f" type="search" placeholder="Find a product…" ' +
         'autocomplete="off" aria-label="Find a product">' +
       '<table class="lst"><tr><th>Product</th><th>Chemical name</th>' +
+       
+      "<th>Label %</th>" +
       "<th>EPA registration #</th><th>Leave-behind</th><th>On the grid</th></tr>" +
       '<tbody id="setMatBody">' +
       S.products.map(function (m) {
@@ -11137,8 +11832,15 @@ var chemMissing = S.products.filter(function (m) {
                (m.epa_number || "")).toLowerCase()) + '">' +
           '<td><input class="li" data-prod="' + m.id + '" data-col="name" value="' +
             esc(m.name) + '"></td>' +
-          '<td><input class="li" data-prod="' + m.id + '" data-col="chemical_name" value="' +
-            esc(m.chemical_name || "") + '" placeholder="off the label"></td>' +
+           
+          '<td><textarea class="li" data-prod="' + m.id + '" data-col="chemical_name" ' +
+            'rows="' +
+            Math.min(12, Math.max(1, Math.ceil((m.chemical_name || "").length / 15))) +
+            '" placeholder="off the label">' + esc(m.chemical_name || "") +
+            "</textarea></td>" +
+          '<td><input class="li" data-prod="' + m.id + '" data-col="label_percent" value="' +
+            esc(m.label_percent == null ? "" : m.label_percent) +
+            '" inputmode="decimal" placeholder="off the label"></td>' +
           '<td><input class="li" data-prod="' + m.id + '" data-col="epa_number" value="' +
             esc(m.epa_number || "") + '" placeholder="none printed"></td>' +
           '<td><select class="li" data-prod="' + m.id + '" data-col="needs_regs_summary">' +
@@ -11300,6 +12002,8 @@ var SET_OPEN_KEY = "ut_set_open";
         body.hidden = !open;
         btn.setAttribute("aria-expanded", open ? "true" : "false");
         card.classList.toggle("shut", !open);
+         
+        if (open) growCells(body);
       };
       card._fold(card.id === last);
       btn.addEventListener("click", function () {
@@ -11324,6 +12028,16 @@ var SET_OPEN_KEY = "ut_set_open";
     if (id === "set-sheet")
       LIST_KINDS.forEach(function (k) { openOneFold("set-list-" + esc(k[0])); });
     try { localStorage.setItem(SET_OPEN_KEY, id); } catch (e) {}
+  }
+
+function growCells(root) {
+    if (!root || !root.querySelectorAll) return;
+    var tas = root.querySelectorAll("textarea.li"), i;
+    for (i = 0; i < tas.length; i++) {
+      if (!tas[i].offsetParent) continue;
+      tas[i].style.height = "auto";
+      tas[i].style.height = (tas[i].scrollHeight + 2) + "px";
+    }
   }
 
   function wireLists() {
@@ -11400,7 +12114,18 @@ var SET_OPEN_KEY = "ut_set_open";
     if ($("goImport"))
       $("goImport").addEventListener("click", function () { go("import"); });
 
-app.querySelectorAll("input.li,select.li").forEach(function (el) {
+app.querySelectorAll("textarea.li").forEach(function (el) {
+      el.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); el.blur(); }
+      });
+      el.addEventListener("input", function () {
+        if (/[\r\n]/.test(el.value)) el.value = el.value.replace(/[\r\n]+/g, " ");
+        growCells(el.parentNode);
+      });
+    });
+    growCells(app);
+
+app.querySelectorAll("input.li,select.li,textarea.li").forEach(function (el) {
       el.addEventListener("change", async function () {
         var col = el.getAttribute("data-col");
         var tgt = null, key = null;
@@ -11451,6 +12176,15 @@ app.querySelectorAll("input.li,select.li").forEach(function (el) {
             return;
           }
           patch[col] = v === "" ? null : rn;
+        } else if (col === "label_percent") {
+           
+          var lp = v === "" ? null : Number(v.replace(/[^0-9.]/g, ""));
+          if (v !== "" && (!isFinite(lp) || !(lp > 0) || lp > 100)) {
+            toast("A label strength is a percentage between 0 and 100. Read it off the " +
+                  "label, and leave the cell empty if you are not sure.");
+            return;
+          }
+          patch.label_percent = lp;
         } else if (col === "name") {
           if (!v) { toast("A name is needed."); return; }
           patch[col] = v;
@@ -12337,6 +13071,87 @@ async function untickChem(row, el, back) {
 
 var VOID_REASONS = ["Recorded in error", "Wrong product", "Not actually applied"];
 
+var ADD_REASONS = ["It was applied and missed", "The paper sheet has it",
+                     "Wrong product recorded first"];
+
+function amendReasonModal(what, sub, then) {
+    openModal("<h3>Put " + esc(what) + " onto a record that is already filed?</h3>" +
+      (sub ? '<p class="note">' + esc(sub) + "</p>" : "") +
+      '<p class="note">This sheet is signed and has been opened for corrections, so ' +
+      "this is a record being <b>changed</b>, not one being written. Your name, the " +
+      "date and the reason go onto it and stay there, and it prints " +
+      "<b>Amended</b> from here on.</p>" +
+      '<div class="acts" style="margin-bottom:.3rem">' +
+      ADD_REASONS.map(function (r, i) {
+        return '<button class="act' + (i === 0 ? " go" : "") + '" data-ar="' + esc(r) +
+          '" type="button">' + esc(r) + "</button>";
+      }).join("") +
+      '<button class="act" id="arOther" type="button">Something else…</button></div>' +
+      '<div id="arFree" hidden><label for="arWhy">What happened?</label>' +
+      '<input id="arWhy" class="f" placeholder="say what happened">' +
+      '<div class="acts"><button class="act go" id="arGo" type="button">Put it on</button></div></div>' +
+      '<div class="row"><button class="act" id="arNo" type="button">Leave it off</button></div>');
+    $("arNo").addEventListener("click", closeModal);
+    $("arOther").addEventListener("click", function () {
+      $("arFree").hidden = false; $("arWhy").focus(); this.disabled = true;
+    });
+    $("modal").querySelectorAll("[data-ar]").forEach(function (b) {
+      b.addEventListener("click", function () { then(b.getAttribute("data-ar")); });
+    });
+    $("arGo").addEventListener("click", function () {
+      var why = $("arWhy").value.trim();
+      if (!why) { toast("Say what happened, or pick one of the reasons."); return; }
+      then(why);
+    });
+  }
+
+function strengthQuestion(chemId, typed) {
+    if (!typed) return "";
+    var row = S.chems.filter(function (c) { return c.id === chemId; })[0];
+    if (!row) return "";
+    var n = parseFloat(String(typed).replace(/[^0-9.]/g, ""));
+     
+    if (!isFinite(n) || !(n > 0)) return "";
+    var name = row.product_name || "This product";
+    if (n > 100)
+      return name + " at " + typed + "% — a strength is a share of the mix and " +
+             "cannot be more than the whole of it.";
+    var prod = S.products.filter(function (p) {
+      return (row.product_id && p.id === row.product_id) || p.name === row.product_name;
+    })[0];
+    if (prod && Number(prod.label_percent) > 0 && n > Number(prod.label_percent))
+      return name + " is " + prod.label_percent + "% on the label and you have typed " +
+             typed + "%. A mix cannot come out stronger than the concentrate it was " +
+             "made from.";
+    var seen = [];
+    S.chems.forEach(function (c) {
+      if (c.id === chemId || c.voided_at) return;
+      var same = (row.product_id && c.product_id === row.product_id) ||
+                 c.product_name === row.product_name;
+      if (same && Number(c.percent_num) > 0) seen.push(Number(c.percent_num));
+    });
+    if (seen.length < 3) return "";
+    var lo = Math.min.apply(null, seen), hi = Math.max.apply(null, seen);
+    if (n >= lo / 2 && n <= hi * 2) return "";
+     
+    return name + " has been filed " + seen.length + " times on this book" +
+           (lo === hi ? ", always at " + lo + "%. "
+                      : ", always between " + lo + "% and " + hi + "%. ") +
+           "You have typed " + typed + "%.";
+  }
+
+function askStrengthModal(sentence, then) {
+    openModal("<h3>Is that the strength?</h3>" +
+      '<div class="msg warn">' + esc(sentence) + "</div>" +
+      '<p class="note">It saves either way if you say so — the words you type are ' +
+      "the record, and nothing here stands between an application and its record. " +
+      "This is a question.</p>" +
+      '<div class="row"><button class="primary" id="stYes" type="button">Yes, that is what went down</button>' +
+      '<button class="act" id="stNo" type="button">Let me fix it</button></div>');
+    $("stYes").addEventListener("click", function () { then(true); });
+    $("stNo").addEventListener("click", function () { then(false); });
+  }
+
   function voidChemModal(row, j, back) {
     back = back || function () { go("sheet", j.id); };
     openModal("<h3>Take " + esc(row.product_name) + " off the record?</h3>" +
@@ -12487,6 +13302,67 @@ var LINE_VOID_REASONS = ["Ticked by mistake", "Wrong service", "Not carried out"
         btn.disabled = false;
       }
     }
+  }
+
+async function moneyInModal(invoiceId, back) {
+    var inv = S.invoices.filter(function (i) { return i.id === invoiceId; })[0];
+    if (!inv) { toast("That invoice could not be found — reload."); return; }
+    var c = custById(inv.customer_id);
+    var leave = back || closeModal;
+    openModal("<h3>Money in — " + esc(c ? c.name : "") + "</h3>" +
+      '<p class="note" id="miWait">Reading what is in…</p>');
+    var rows = null, failed = "";
+    try {
+      rows = await many(sb.from("payments").select("*")
+        .eq("invoice_id", invoiceId).eq("collected", true).is("cancelled_at", null));
+    } catch (e) { failed = e.message; }
+     
+    if (!$("miWait")) return;
+    var mine = isOffice();
+    openModal("<h3>Money in — " + esc(c ? c.name : "") + "</h3>" +
+      (failed
+        ? '<div class="msg bad">The payments could not be read, so this cannot say ' +
+          "what is in. " + esc(failed) + "</div>"
+         
+        : '<p class="note">' +
+          (Number(inv.total) > 0.004 ? money(inv.total) + " invoiced · " : "") +
+          plural(rows.length, "payment") + " in</p>" +
+          (rows.length
+            ? rows.map(function (p, i) {
+                return '<div class="item"><div class="top">' +
+                  '<span class="pill ok">' + esc(methodLabel(p.method)) +
+                  (p.check_number ? " #" + esc(p.check_number) : "") + "</span>" +
+                  '<span class="amt">' + money(p.amount_collected) + "</span></div>" +
+                  '<div class="dates">' + esc(fmtDate(String(p.collected_at).slice(0, 10))) +
+                  (personOf(p.recorded_by)
+                    ? " · recorded by " + esc(personOf(p.recorded_by).name) : "") +
+                  "</div>" +
+                  (mine
+                    ? '<div class="acts"><button class="act" data-mi="' + i +
+                      '" type="button">Payment issue…</button></div>'
+                    : "") + "</div>";
+              }).join("")
+            : '<div class="empty">Nothing is in against this invoice.</div>') +
+          '<p class="note">' + (mine
+            ? "A payment is never edited. <b>Payment issue</b> records what happened " +
+              "to it — a check that bounced, a refund, money recorded by mistake " +
+              "— beside the payment, which stays on the record."
+            : "Only the office can put a payment right.") + "</p>") +
+      '<div class="row"><button class="act" id="miNo" type="button">Close</button></div>');
+    $("miNo").addEventListener("click", leave);
+    $("modal").querySelectorAll("[data-mi]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        issueModal(rows[Number(b.getAttribute("data-mi"))]);
+         
+        var no = $("rvNo");
+        if (no) {
+          var goBack = no.cloneNode(false);
+          goBack.textContent = "Back";
+          no.parentNode.replaceChild(goBack, no);
+          goBack.addEventListener("click", function () { moneyInModal(invoiceId, back); });
+        }
+      });
+    });
   }
 
 var REV_KINDS = [
@@ -13050,6 +13926,15 @@ if (!c) {
         }
       }
 
+var agq = pre.quote_id ? quoteOf(pre.quote_id) : null;
+      if (agq)
+        h += '<div class="msg" style="margin-bottom:.8rem">' +
+          "<b>From an accepted estimate — " + money(agq.amount) + " agreed</b>" +
+          (agq.description ? '<div class="dates">' + esc(agq.description) + "</div>" : "") +
+          "<div>The services ticked below price themselves from the book. If the job " +
+          "prices up to something else, put the difference right on the invoice " +
+          "— this figure is what they said yes to.</div></div>";
+
 h += '<label>Services</label>' +
         '<div class="picklist" id="bksvc">' +
         (S.services.length
@@ -13071,7 +13956,9 @@ h += '<label>Services</label>' +
 
 h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
         '<div><label for="bkdate">Day</label>' +
-        '<input id="bkdate" class="f" type="date" value="' + esc(pre.date || route.date || todayISO()) + '"></div>' +
+        '<input id="bkdate" class="f" type="date" value="' + esc(pre.date || route.date || todayISO()) + '">' +
+         
+        '<div id="bkshut"></div></div>' +
         '<div><label for="bkwin">Morning or afternoon</label><select id="bkwin" class="f">' +
         WINDOWS.map(function (W) {
           return '<option value="' + W[0] + '"' + (pre.window === W[0] ? " selected" : "") + ">" +
@@ -13112,7 +13999,8 @@ h += '<label for="bkwho">Technician</label><select id="bkwho" class="f">' +
       $("bkNo").addEventListener("click", closeModal);
       if ($("bkNew"))
         $("bkNew").addEventListener("click", function () {
-           
+
+harvest();
           var back = function (id) { chosen = id; redraw(); };
           back.pre = pre;
           newCustomerModal(back);
@@ -13145,9 +14033,54 @@ h += '<label for="bkwho">Technician</label><select id="bkwho" class="f">' +
         });
         q.focus();
       }
+       
+      if ($("bkdate")) {
+        var sayBkShut = function () {
+          var box = $("bkshut");
+          if (!box) return;
+          var why = shutWhy($("bkdate").value);
+          box.innerHTML = why
+            ? '<div class="msg warn" style="margin:.35rem 0 0">Nobody is working that ' +
+              "day — " + esc(why) + ".</div>"
+            : "";
+        };
+        $("bkdate").addEventListener("change", sayBkShut);
+        $("bkdate").addEventListener("input", sayBkShut);
+        sayBkShut();
+      }
       $("bkGo").addEventListener("click", saveBooking);
     }
-    function redraw() { openModal(body()); wire(); }
+     
+    function harvest() {
+      if (!$("bkdate")) return;             
+      pre.date = $("bkdate").value || pre.date;
+      pre.window = $("bkwin").value;
+      pre.type = $("bktype").value;
+      pre.slots = $("bkslots").value;
+      pre.days = $("bkdays").value;
+      pre.hour = $("bkhour").value;
+      pre.who = $("bkwho").value;
+      pre.note = $("bknote").value;
+      if ($("bkprop")) pre.property_id = $("bkprop").value;
+      pre.svc = Array.prototype.slice.call(
+        $("bksvc").querySelectorAll("input:checked")).map(function (b) { return b.value; });
+    }
+     
+    function replant() {
+      var i, boxes;
+      if (pre.type !== undefined && $("bktype")) $("bktype").value = pre.type;
+      if (pre.slots !== undefined && $("bkslots")) $("bkslots").value = pre.slots;
+      if (pre.days !== undefined && $("bkdays")) $("bkdays").value = pre.days;
+      if (pre.hour !== undefined && $("bkhour")) $("bkhour").value = pre.hour;
+      if (pre.who !== undefined && $("bkwho")) $("bkwho").value = pre.who;
+      if (pre.note !== undefined && $("bknote")) $("bknote").value = pre.note;
+      if (pre.svc && $("bksvc")) {
+        boxes = $("bksvc").querySelectorAll("input[type=checkbox]");
+        for (i = 0; i < boxes.length; i++)
+          if (pre.svc.indexOf(boxes[i].value) >= 0) boxes[i].checked = true;
+      }
+    }
+    function redraw() { harvest(); openModal(body()); wire(); replant(); }
     redraw();
 
     async function saveBooking() {
@@ -13208,6 +14141,15 @@ var linkWarn = "";
           else S.quotes = await many(sb.from("quotes").select("*").is("voided_at", null));
         }
 
+if (pre.eval_id) {
+          var eu = await sb.from("evaluations").update({ job_id: job.id })
+            .eq("id", pre.eval_id).select();
+          if (eu.error || !(eu.data || []).length)
+            linkWarn += " — but the contract link did not save, so the contract will " +
+              "still say the work is not in the book";
+          else await readEvals();
+        }
+
 var lines = picked.map(function (el, i) {
           return { job_id: job.id, service_id: el.value,
                    service_name: el.getAttribute("data-name"),
@@ -13215,14 +14157,32 @@ var lines = picked.map(function (el, i) {
         });
         var lr = await sb.from("job_lines").insert(lines).select();
         if (lr.error) throw explain(lr.error);
+         
+        if (!(lr.data || []).length)
+          throw new Error("The services did not attach.");
 
         await reload(["jobs", "money", "attention"]);
         closeModal();
+         
         var total = (lr.data || []).reduce(function (n, l) { return n + Number(l.price || 0); }, 0);
+        var bookPrices = picked.some(function (el) {
+          var sv = (S.services || []).filter(function (s) { return s.id === el.value; })[0];
+          return !!sv && Number(sv.price) > 0;
+        });
+         
+        var priceSaid = total > 0 ? " · " + money(total) + " before tax"
+          : bookPrices ? " · the price did not come back — open the sheet"
+                       : " · to be priced";
+         
+        var agq = pre.quote_id ? quoteOf(pre.quote_id) : null;
+         
+        var agSaid = agq && Math.abs(total - (Number(agq.amount) || 0)) > 0.005
+          ? " · the estimate agreed " + money(agq.amount)
+          : "";
         var c = custById(chosen);
         toast("Booked — " + (c ? c.name : "") + " " + fmtDate(date) + " " +
               windowName(win).toLowerCase() +
-              (total > 0 ? " · " + money(total) + " before tax" : " · to be priced") +
+              priceSaid + agSaid +
               (typeof linkWarn === "string" ? linkWarn : ""));
         route.date = date;
         if (route.name !== "schedule") go("schedule"); else render();
@@ -13362,6 +14322,8 @@ function renderCustomers() {
     });
     S.jobs.forEach(function (j) {
       var iv = invByJob[j.id]; if (!iv) return;
+       
+      if (j.status !== "complete") return;
       var bl = balByInv[iv.id];
       if (bl && !bl.charge_withdrawn && !bl.voided_at)
         owedBy[j.customer_id] = (owedBy[j.customer_id] || 0) + (Number(bl.balance) || 0);
@@ -13413,6 +14375,9 @@ function openModal(html) {
     $("veil").classList.add("show");
     document.body.style.overflow = "hidden";
      
+    stampModal();
+    DISCARD_ASKED = 0;
+     
     setTimeout(function () {
       var fs = $("modal").querySelectorAll("input,select,textarea,button"), f = null, i;
       for (i = 0; i < fs.length; i++) {
@@ -13434,16 +14399,79 @@ function openModal(html) {
   $("veil").addEventListener("click", function (e) {
     if (screenLocked) return;
     if (e.target !== $("veil")) return;
-    if ($("modal").querySelector("canvas.sig,[data-p],[data-a],[data-snapkind],#snapRe")) {
-      toast("Use Back or Cancel — tapping the edge will not discard this.");
-      return;
-    }
-    closeModal();
+    if (mayDiscard("Use Back or Cancel — tapping the edge will not discard this.",
+                   "Tap the edge again"))
+      closeModal();
   });
   document.addEventListener("keydown", function (e) {
     if (screenLocked) return;
-    if (e.key === "Escape" && $("veil").classList.contains("show")) closeModal();
+    if (e.key !== "Escape" || !$("veil").classList.contains("show")) return;
+     
+    if (e.repeat) return;
+    if (mayDiscard("Use Back or Cancel — Escape will not discard this.",
+                   "Press Escape again"))
+      closeModal();
   });
+
+function fieldNow(el) {
+    if (el.type === "checkbox" || el.type === "radio") return el.checked ? "1" : "";
+    return String(el.value == null ? "" : el.value);
+  }
+  function stampModal() {
+    var fs = $("modal").querySelectorAll("input,select,textarea"), i;
+    for (i = 0; i < fs.length; i++)
+      if (fs[i]._was === undefined) fs[i]._was = fieldNow(fs[i]);
+  }
+  function modalTyped() {
+    var fs = $("modal").querySelectorAll("input,select,textarea"), i;
+    for (i = 0; i < fs.length; i++) {
+       
+      if (fs[i]._was === undefined || fs[i].disabled || fs[i].type === "hidden") continue;
+      if (fieldNow(fs[i]) !== fs[i]._was) return true;
+    }
+    return false;
+  }
+
+function wayOut() {
+    var bs = $("modal").querySelectorAll(".row button"), i, w;
+    for (i = bs.length - 1; i >= 0; i--) {
+      if (/(^| )primary( |$)/.test(bs[i].className)) continue;
+      w = bs[i].textContent.replace(/^\s+|\s+$/g, "");
+      if (/^(Cancel|Back|Close|Not now|Not yet|Leave it|Keep it|Keep waiting|Stay signed in)/i.test(w))
+        return w;
+    }
+    return "Cancel";
+  }
+
+var DISCARD_ASKED = 0;
+  function mayDiscard(refuse, again) {
+    if ($("modal").querySelector("canvas.sig,[data-p],[data-a],[data-snapkind],#snapRe")) {
+      toast(refuse);
+      return false;
+    }
+    if (!modalTyped()) return true;
+    var now = Date.now();
+    if (DISCARD_ASKED && now - DISCARD_ASKED > 400 && now - DISCARD_ASKED < 8000) {
+      DISCARD_ASKED = 0;
+      return true;
+    }
+    DISCARD_ASKED = now;
+    toast(again + " to throw this away, or " + wayOut() + " to keep it.");
+    return false;
+  }
+   
+  document.addEventListener("keydown", function (e) {
+    if (!e.repeat) return;
+    var space = e.key === " " || e.key === "Spacebar";
+    if (e.key !== "Enter" && !space) return;
+    if (!$("veil").classList.contains("show") &&
+        !$("lockveil").classList.contains("show")) return;
+    var t = e.target, tag = t ? t.tagName : "";
+    if (tag === "TEXTAREA" || (t && t.isContentEditable)) return;
+    if (space && (tag === "INPUT" || tag === "SELECT")) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
    
   $("lockveil").addEventListener("click", function (e) { e.stopPropagation(); });
 
@@ -13548,9 +14576,9 @@ function payModal(invoiceId) {
     }
      
     if (Number(b.balance) <= 0.004) {
-      toast(Number(b.collected) > 0
-        ? "That invoice is paid in full — nothing left to record."
-        : "There is nothing to charge on this invoice yet.");
+       
+      if (Number(b.collected) > 0.004) { moneyInModal(inv.id); return; }
+      toast("There is nothing to charge on this invoice yet.");
       return;
     }
     var c = custById(inv.customer_id);
@@ -13571,7 +14599,16 @@ function payModal(invoiceId) {
       '<label for="amt">Amount</label>' +
       '<input id="amt" class="f" inputmode="decimal" value="' + Number(b.balance).toFixed(2) + '">' +
       '<p class="note">Enter a lower amount for a part payment. Once recorded it cannot be ' +
-      "changed — only the office can reverse it. " +
+       
+      "changed. " +
+      (Number(b.collected) > 0.004
+        ? "If one has to be put right — a check that bounced, a refund, money " +
+          "recorded by mistake — the office does it under <b>Money already in</b> " +
+          "below, which records what happened beside the payment rather than editing " +
+          "it. "
+        : "If it has to be put right afterwards — a check that bounces, a refund " +
+          "— the office does that here: once money is against this sheet, this " +
+          "dialog lists it with <b>Payment issue</b> on each payment. ") +
       (jobDone
         ? "The job is complete, so the record is already filed; recording money " +
           "also locks the charges."
@@ -13580,12 +14617,20 @@ function payModal(invoiceId) {
        
       '<div id="payMsg"></div>' +
       '<div class="row"><button class="primary" id="payGo" type="button">Record the payment</button>' +
+       
+      (Number(b.collected) > 0.004
+        ? '<button class="act" id="payIn" type="button">Money already in…</button>'
+        : "") +
       '<button class="act" id="payNo" type="button">Cancel</button></div>');
     $("pm").addEventListener("change", function () {
       $("cknum").style.display = this.value === "check" ? "" : "none";
       $("ctxn").style.display = this.value === "card" ? "" : "none";
     });
     $("payNo").addEventListener("click", closeModal);
+     
+    if ($("payIn")) $("payIn").addEventListener("click", function () {
+      moneyInModal(inv.id, function () { payModal(inv.id); });
+    });
      
     var ref = "app-" + invoiceId + "-" + Date.now();
     $("payGo").addEventListener("click", function () { savePayment(inv, ref, this); });
@@ -13706,27 +14751,57 @@ function completePayment(p) {
     var posted = false;
     try {
        
-      var b = S.balances.filter(function (x) { return x.invoice_id === inv.id; })[0];
-      if (!b) throw new Error("That invoice has moved — close this and open it again.");
       var method = $("pm").value, raw = $("amt").value, amt = readMoney(raw);
-      if (amt == null) throw new Error('"' + raw + '" isn’t an amount — type it like 159.94');
-      if (amt <= 0) throw new Error("Type how much they handed over.");
-      if (amt > Number(b.balance) + 0.004) throw new Error("They only owe " + money(b.balance) + " on this invoice.");
       var ck = method === "check" ? $("ck").value.trim() : null;
-      if (method === "check" && !ck) throw new Error("A check needs the number printed on it.");
        
       var txn = method === "card" && $("ptxn") ? $("ptxn").value.trim() : "";
       var collected = method === "to-be-mailed" ? false
                     : method === "card" ? txn !== ""
                     : true;
+      if (amt == null) throw new Error('"' + raw + '" isn’t an amount — type it like 159.94');
+      if (amt <= 0) throw new Error("Type how much they handed over.");
+      if (method === "check" && !ck) throw new Error("A check needs the number printed on it.");
+       
+      var b = S.balances.filter(function (x) { return x.invoice_id === inv.id; })[0];
+      try {
+        var fresh = await many(sb.from("v_invoice_balances").select("*")
+                                 .eq("invoice_id", inv.id));
+        if (fresh.length) b = fresh[0];
+      } catch (eb) {   }
+      if (!b) throw new Error("That invoice has moved — close this and open it again.");
+       
+      if (Number(b.balance) <= 0.004)
+        throw new Error(Number(b.collected) > 0.004
+          ? money(b.collected) + " is already recorded against this sheet and nothing is " +
+            "left owed. Close this and look at Money already in before taking it again."
+          : "There is nothing to charge on this invoice.");
+      if (amt > Number(b.balance) + 0.004) throw new Error("They only owe " + money(b.balance) + " on this invoice.");
+       
+      var key = "app-" + inv.id + "-" + todayISO() + "-" + method + "-" + amt.toFixed(2) +
+                (btn.getAttribute("data-again") ? "-" + ref : "");
       var r = await sb.from("payments").insert({
         invoice_id: inv.id, job_id: inv.job_id, customer_id: inv.customer_id,
         method: method, amount_collected: amt, check_number: ck,
         processor: txn ? "authorize-net" : "manual",
         processor_txn_id: txn || null,
-        collected: collected, recorded_by: S.me.id, client_ref: ref
+        collected: collected, recorded_by: S.me.id, client_ref: key
       }).select();
-      if (r.error) throw explain(r.error);
+      if (r.error) {
+         
+        if (r.error.code === "23505" && /client_ref/.test(r.error.message || "") &&
+            !btn.getAttribute("data-again")) {
+          btn.setAttribute("data-again", "1");
+          btn.textContent = "Yes — a second payment";
+          throw new Error(money(amt) + " by " + methodLabel(method) + " is already " +
+            "recorded against this sheet today, so nothing was posted twice. If this " +
+            "really is a SECOND payment of the same amount, press the button again.");
+        }
+        throw explain(r.error);
+      }
+       
+      if (!(r.data || []).length)
+        throw new Error("Nothing came back from that write, so the payment is NOT " +
+          "recorded. Reload and check the sheet before taking the money again.");
        
       posted = true;
       await reload(["money", "attention"]);
@@ -13750,30 +14825,58 @@ function completePayment(p) {
     }
   }
 
-  async function remind(invoiceId, btn) {
+var REMIND_WAYS = [["printed", "Posted the sheet"], ["phone", "Rang them"],
+                     ["email", "Emailed it"]];
+  function remind(invoiceId) {
     var inv = S.invoices.filter(function (i) { return i.id === invoiceId; })[0];
-    if (!inv) return;
+    if (!inv) { toast("That invoice could not be found — reload."); return; }
     var b = S.balances.filter(function (x) { return x.invoice_id === inv.id; })[0];
     var c = custById(inv.customer_id);
-    btn.disabled = true;
-    try {
-      var owe = money(b ? b.balance : inv.total);
-      var r = await sb.from("reminders_sent").insert({
-        related_table: "invoices", related_id: inv.id, customer_id: inv.customer_id,
-        channel: "printed", sent_by: S.me.id,
-        body_snapshot: "Render sheet re-sent to request payment of " + owe
-      }).select();
-      if (r.error) throw explain(r.error);
-       
-      await sb.from("invoices").update({ resent_on: todayISO() }).eq("id", inv.id);
-      await sb.from("notes").insert({
-        related_table: "customers", related_id: inv.customer_id, user_id: S.me.id,
-        kind: "money", text: "Sheet re-sent to request payment of " + owe
-      });
-      toast("Reminder recorded — print the sheet and post it");
-       
-      btn.textContent = "Reminder recorded";
-    } catch (e) { toast(e.message); btn.disabled = false; }
+    var owe = money(b ? b.balance : inv.total);
+    openModal("<h3>Chase " + owe + " — " + esc(c ? c.name : "") + "</h3>" +
+      '<div class="msg warn"><b>Nothing is sent from here.</b> This app cannot post, ' +
+      "email or text anybody. It records that they were chased — printing the " +
+      "sheet and putting it in the post is yours to do.</div>" +
+      (inv.resent_on
+        ? '<div class="msg"><b>Already chased ' + esc(fmtDate(inv.resent_on)) +
+          ".</b> A second one is a second letter, and the folder gets a second " +
+          "line either way.</div>"
+        : "") +
+      '<label for="rmWay">How did it go out?</label><select id="rmWay" class="f">' +
+      REMIND_WAYS.map(function (w) {
+        return '<option value="' + w[0] + '">' + esc(w[1]) + "</option>";
+      }).join("") + "</select>" +
+      '<div class="row"><button class="primary" id="rmGo" type="button">Record it</button>' +
+      '<button class="act" id="rmNo" type="button">Cancel</button></div>');
+    $("rmNo").addEventListener("click", closeModal);
+    $("rmGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+         
+        var way = $("rmWay").value;
+        var said = (REMIND_WAYS.filter(function (w) { return w[0] === way; })[0] ||
+                    ["", way])[1];
+        var r = await sb.from("reminders_sent").insert({
+          related_table: "invoices", related_id: inv.id, customer_id: inv.customer_id,
+          channel: way, sent_by: S.me.id,
+          body_snapshot: said + " to request payment of " + owe
+        }).select();
+        if (r.error) throw explain(r.error);
+         
+        if (!(r.data || []).length)
+          throw new Error("Nothing was recorded — that is the office’s to do.");
+         
+        await sb.from("invoices").update({ resent_on: todayISO() }).eq("id", inv.id);
+        await sb.from("notes").insert({
+          related_table: "customers", related_id: inv.customer_id, user_id: S.me.id,
+          kind: "money", text: said + " to request payment of " + owe
+        });
+         
+        await reload(["money", "attention"]);
+        closeModal(); render();
+        toast("Chased — it is on the folder. Print the sheet and post it.");
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
   }
 
   function noteModal(customerId) {
@@ -13833,21 +14936,57 @@ function dismissModal(key, who) {
       "charge, a chargeback. It does <b>not</b> come back if the figure goes down, so if " +
       "part of it is paid later the rest stays off this list.</p>" +
       '<label for="dr">Why is it off the list?</label><select id="dr" class="f">' +
+       
+      '<option value="">Pick one…</option>' +
       '<option value="paid">They have paid</option><option value="scheduled">It is scheduled</option>' +
       '<option value="customer-declined">The customer declined</option>' +
       '<option value="no-action-needed">No action needed</option></select>' +
+       
+      '<div id="drSay"></div>' +
       '<label for="dn">Anything to add (optional)</label><input id="dn" class="f">' +
       '<div class="row"><button class="primary" id="dsGo" type="button">Take it off</button>' +
       '<button class="act" id="dsNo" type="button">Leave it</button></div>');
     $("dsNo").addEventListener("click", closeModal);
+     
+    $("dr").addEventListener("change", function () {
+      var n = $("drSay");
+      if (!n) return;
+      n.innerHTML = this.value === "paid" && bits[0] === "unpaid-completed"
+        ? '<div class="msg warn"><b>This records no money.</b> ' +
+          (amt > 0.004 ? money(amt) + " stays " : "The balance stays ") +
+          "owed on the sheet and out of the day’s takings — this only stops " +
+          "the row showing here. If it really was paid, close this and use " +
+          "<b>Record payment</b>.</div>"
+        : "";
+    });
     $("dsGo").addEventListener("click", async function () {
       this.disabled = true;
       try {
+         
+        var why = $("dr").value, extra = $("dn").value.trim(), cid = bits[3] || "";
+        if (!why) throw new Error("Pick why it is coming off the list.");
         var r = await sb.from("attention_actions").insert({
-          kind: bits[0], record_id: bits[1], action: "dismiss", reason: $("dr").value,
-          dismissed_amount: Number(bits[2]) || 0, note: $("dn").value.trim() || null,
+          kind: bits[0], record_id: bits[1], action: "dismiss", reason: why,
+          dismissed_amount: amt, note: extra || null,
           created_by: S.me.id }).select();
         if (r.error) throw explain(r.error);
+         
+        if (!(r.data || []).length)
+          throw new Error("Nothing came off the list — that is the office’s to do.");
+         
+        if (cid) {
+          var says = { paid: "marked as paid — NO payment was recorded",
+                       scheduled: "it is scheduled",
+                       "customer-declined": "the customer declined",
+                       "no-action-needed": "no action needed" };
+          await sb.from("notes").insert({
+            related_table: "customers", related_id: cid, user_id: S.me.id,
+            kind: "money",
+            text: "Taken off the follow-up list (" + (KINDS[bits[0]] || bits[0]) + ")" +
+              (amt > 0.004 ? " — " + money(amt) : "") + " — " +
+              (says[why] || why) + (extra ? ". " + extra : "")
+          });
+        }
         await reload(["attention"]); closeModal(); render();
         toast("Off the list — back on its own only if the figure goes up");
       } catch (e) { toast(e.message); this.disabled = false; }
@@ -13906,6 +15045,8 @@ async function renderCustomer(id) {
       });
     var owed = 0;
     jobs.forEach(function (j) {
+       
+      if (j.status !== "complete") return;
       var b = balOf(j.id);
       if (b && !b.charge_withdrawn && !b.voided_at) owed += Number(b.balance) || 0;
     });
@@ -14185,9 +15326,7 @@ var hArr = '<div class="card"><h2>Arrangements</h2>' +
             }
             return '<div class="dates"><a href="#" data-cfq="' + q.id + '">' +
                
-              money(q.amount) + " \u00b7 " +
-              esc({ open: "Awaiting decision", quiet: "No reply",
-                    accepted: "Accepted", declined: "Refused" }[q.status] || q.status) +
+              money(q.amount) + " · " + esc(quoteSays(q)) +
               "</a>" +
               (q.description ? " \u2014 " + esc(q.description) : "") + "</div>";
           }).join("")
@@ -14600,6 +15739,8 @@ async function customerCard(id) {
       .sort(function (a, b) { return (b.scheduled_date || "").localeCompare(a.scheduled_date || ""); });
     var owed = 0;
     jobs.forEach(function (j) {
+       
+      if (j.status !== "complete") return;
       var b = balOf(j.id); if (b && !b.charge_withdrawn && !b.voided_at) owed += Number(b.balance) || 0;
     });
     var notes = await many(sb.from("notes").select("*").eq("related_table", "customers")
@@ -14663,6 +15804,20 @@ async function customerCard(id) {
       })() +
        
       (function () {
+        var qs = S.quotes.filter(function (q) { return q.customer_id === id; })
+          .sort(function (a, b) {
+            return String(b.sent_date || "").localeCompare(String(a.sent_date || ""));
+          });
+        if (!qs.length) return "";
+        return '<p class="note" style="margin-top:.8rem">Estimates</p>' +
+          qs.map(function (q) {
+            return '<div class="dates" style="margin:.25rem 0">' + money(q.amount) +
+              " · " + esc(quoteSays(q)) +
+              (q.description ? " — " + esc(q.description) : "") + "</div>";
+          }).join("");
+      })() +
+       
+      (function () {
         var evs = evalsOf(id);
         return (isOffice()
           ? '<div class="acts" style="margin-top:.8rem"><button class="act" id="ccEval" ' +
@@ -14701,8 +15856,12 @@ async function customerCard(id) {
     if ($("ccBack")) $("ccBack").addEventListener("click", function () { markInactive(id, null); });
     if ($("ccProg"))
       $("ccProg").addEventListener("click", function () { programModal(id); });
+     
     if ($("ccQuote"))
-      $("ccQuote").addEventListener("click", function () { newQuoteModal(id); });
+      $("ccQuote").addEventListener("click", function () {
+        newQuoteModal(id);
+        veilThen(function () { customerCard(id); });
+      });
     if ($("ccEval"))
       $("ccEval").addEventListener("click", function () { newEvalModal(id); });
     $("modal").querySelectorAll("[data-eval]").forEach(function (a) {
@@ -14724,6 +15883,9 @@ var INACTIVE = [
     ["declined",    "They declined the service", "off the list until they request service"],
     ["unreachable", "They cannot be reached",       "set aside after three attempts"]
   ];
+   
+  var INACTIVE_LABEL = {};
+  INACTIVE.forEach(function (o) { INACTIVE_LABEL[o[0]] = o[1]; });
   function inactiveModal(id) {
     var c = custById(id); if (!c) return;
     openModal("<h3>" + esc(c.name) + " — no longer a customer</h3>" +
@@ -14758,7 +15920,8 @@ var INACTIVE = [
       toast((c ? c.name : "They") + (why
         ? " — " + ({ moved: "moved away", passed: "passed away", declined: "declined the service", unreachable: "nobody answers" }[why] || why) + ". Off the calling list and out of the post."
         : " — back on the calling list."));
-      render();
+       
+      dashRedraw();
     } catch (e) { toast(e.message); }
   }
 
