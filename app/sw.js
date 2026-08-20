@@ -29,15 +29,21 @@
      refused write never looking like it worked, and a service worker is the
      easiest place in a web app to break that promise by accident.
 
-   SO: THIS WORKER SERVES THE APP AND NOTHING ELSE. What the app then does about
-   having no data is the app's business, and app.html answers it -- see the
-   offline snapshot beside hydrate().
+   SO: THIS WORKER SERVES THE APP AND NOTHING ELSE -- and on its own that gets
+   you an app that opens and says "Could not load the book", which is what the owner
+   saw in airplane mode on 20 August 2026. Opening to a sentence about failure is
+   better than the dinosaur and is not what anybody wanted.
+   The other half is in app.html: snapSave() writes a fortnight and the reference
+   lists to localStorage after every good load, and start()'s catch falls back to
+   it. Neither half is much use without the other, and this comment named that
+   snapshot for a day before it existed -- if you are here because the app opens
+   empty, check snapLoad() before you change anything in this file.
    ========================================================================== */
 
 /* Stamped by tools/build_app.py from the built page's own hash, so a publish
    that changes one byte retires every old cache and one that changes nothing
    leaves them alone. Left as a literal here so this file runs unbuilt too. */
-var VERSION = "1253311769f3";
+var VERSION = "646487e6febf";
 var CACHE = "ut-shell-" + VERSION;
 
 /* RELATIVE, EVERY ONE. The app is published under /office-trial/app/ and is

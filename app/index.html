@@ -942,6 +942,8 @@ body.letters #app > *:not(#letterPrint){display:none!important}
     <button class="act" id="signout" type="button">Sign out</button>
   </div>
   <nav id="nav"></nav>
+  
+  <div id="offbar" class="noprint"></div>
 </header>
 
 <main id="app" style="display:none"></main>
@@ -1067,6 +1069,13 @@ var HOLI = {};
   function fmtLong(d) {
     return new Date(d + "T12:00:00").toLocaleDateString(undefined,
       { weekday: "long", month: "long", day: "numeric" });
+  }
+   
+  function fmtTimeStamp(iso) {
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return "the last time it had a signal";
+    return d.toLocaleString(undefined,
+      { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
   }
    
   function fmtFullDate(iso) {
@@ -1629,7 +1638,33 @@ async function sendMagicLink() {
       var wasLocked = "";
       try { wasLocked = localStorage.getItem("ut_locked") || ""; } catch (e) {}
       if (wasLocked) lockNow();
+       
+      snapSave();
     } catch (e) {
+
+var at = "";
+      try {
+        var sess = await sb.auth.getSession();
+        var uid = sess && sess.data && sess.data.session && sess.data.session.user
+          ? sess.data.session.user.id : "";
+        at = snapLoad(uid);
+      } catch (e2) { at = ""; }
+      if (at) {
+        OFFLINE = at;
+        route.name = isOffice() ? "schedule" : "field";
+        route.date = todayISO();
+        route.tech = inField() ? S.me.id
+          : (S.people.filter(function (p) { return p.is_technician && p.active; })
+              .sort(function (a, b) {
+                return String(a.name || "").localeCompare(String(b.name || ""));
+              })[0] || {}).id;
+        renderNav(); render();
+        touchIdle();
+        var lk = "";
+        try { lk = localStorage.getItem("ut_locked") || ""; } catch (e3) {}
+        if (lk) lockNow();
+        return;
+      }
       app.innerHTML = '<div class="msg bad"><b>Could not load the book.</b><br>' + esc(e.message) +
         '</div><div class="card"><div class="acts">' +
         '<button class="act go" id="retry" type="button">Try again</button>' +
@@ -1741,7 +1776,77 @@ off ? many(sb.from("service_catalog").select("*").order("sort_order").order("nam
     S.loadedAt = new Date();
   }
    
-  async function reloadLists() {
+  var SNAP_KEY = "ut_snap";
+  var SNAP_BACK = 7, SNAP_FWD = 21;           
+
+  function snapSave() {
+    try {
+      if (!S.jobs) return;
+      var from = shiftISO(todayISO(), -SNAP_BACK), to = shiftISO(todayISO(), SNAP_FWD);
+       
+      var jobs = S.jobs.filter(function (j) {
+        var a = j.scheduled_date, b = j.end_date || j.scheduled_date;
+        return a && b >= from && a <= to;
+      });
+      var jid = {}, cid = {};
+      jobs.forEach(function (j) { jid[j.id] = 1; if (j.customer_id) cid[j.customer_id] = 1; });
+      var mine = function (list, key) {
+        return (list || []).filter(function (x) { return jid[x[key || "job_id"]]; });
+      };
+      var snap = {
+        v: 1, who: S.me.id, at: new Date().toISOString(),
+         
+        me: S.me,
+        from: from, to: to,
+        people: S.people, areas: S.areas, settings: S.settings, menu: S.menu,
+        products: S.products, optRows: S.optRows, catalog: S.catalog,
+        closedDays: S.closedDays,
+        jobs: jobs,
+        customers: (S.customers || []).filter(function (c) { return cid[c.id]; }),
+        properties: (S.properties || []).filter(function (p) { return cid[p.customer_id]; }),
+        lines: mine(S.lines), sheets: mine(S.sheets), treatments: mine(S.treatments),
+        crew: mine(S.crew)
+      };
+       
+      var tid = {};
+      snap.treatments.forEach(function (t) { tid[t.id] = 1; });
+      snap.chems = (S.chems || []).filter(function (c) { return tid[c.treatment_id]; });
+      localStorage.setItem(SNAP_KEY, JSON.stringify(snap));
+    } catch (e) {
+       
+      try { localStorage.removeItem(SNAP_KEY); } catch (e2) {}
+    }
+  }
+
+function snapLoad(uid) {
+    var snap;
+    try { snap = JSON.parse(localStorage.getItem(SNAP_KEY) || "null"); } catch (e) { return ""; }
+    if (!snap || snap.v !== 1 || !snap.jobs || !snap.me) return "";
+     
+    if (!uid || snap.who !== uid) return "";
+    S.me = snap.me;
+    S.people = snap.people || []; S.areas = snap.areas || [];
+    S.settings = snap.settings || null; S.menu = snap.menu || [];
+    S.products = snap.products || []; S.optRows = snap.optRows || [];
+    S.opts = S.optRows.reduce(function (a, o) { (a[o.kind] = a[o.kind] || []).push(o.value); return a; }, {});
+    S.catalog = snap.catalog || []; S.closedDays = snap.closedDays || [];
+    S.jobs = snap.jobs; S.customers = snap.customers || []; S.properties = snap.properties || [];
+    S.lines = snap.lines || []; S.sheets = snap.sheets || []; S.treatments = snap.treatments || [];
+    S.chems = snap.chems || []; S.crew = snap.crew || [];
+     
+    S.invoices = []; S.balances = []; S.quotes = []; S.warranties = [];
+    S.attention = []; S.priceEx = []; S.programs = []; S.progLetters = [];
+    S.progExtras = []; S.calls = []; S.recalls = []; S.evals = [];
+    S.cis = []; S.cisItems = []; S.gaps = []; S.wdi = []; S.wdiStatus = [];
+    S.compEvents = [];
+    S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
+      return s.on_render_sheet !== false && s.active !== false;
+    });
+    S.loadedAt = new Date(snap.at);
+    return snap.at;
+  }
+
+async function reloadLists() {
     S.optRows = await many(sb.from("form_options").select("*").order("sort_order"));
     S.opts = S.optRows.reduce(function (a, o) { (a[o.kind] = a[o.kind] || []).push(o.value); return a; }, {});
     S.products = await many(sb.from("pesticide_products").select("*").order("sort_order"));
@@ -1922,12 +2027,20 @@ function sheetIsOpen(j) {
     ["barrier-disrupted", "The soil was dug up"]
   ];
 
+var OFFLINE_TABS = { schedule: 1, field: 1 };
+   
+  var OFFLINE_OK = { sheet: 1 };
+   
+  var OFFLINE = "";
+
 function renderNav() {
     var tabs = [];
      
     if (isOffice()) tabs.push(["dashboard", "Dashboard"], ["schedule", "Calendar"],
                               ["close", "Daily Close"], ["customers", "Customers"]);
     if (inField()) tabs.push(["field", isOffice() ? "My day" : "Today"]);
+     
+    if (OFFLINE) tabs = tabs.filter(function (t) { return OFFLINE_TABS[t[0]]; });
 
     $("nav").innerHTML = tabs.map(function (t) {
       return '<button type="button" data-go="' + t[0] + '"' +
@@ -1936,6 +2049,15 @@ function renderNav() {
     $("nav").querySelectorAll("[data-go]").forEach(function (b) {
       b.addEventListener("click", function () { go(b.dataset.go); });
     });
+     
+    if ($("offbar"))
+      $("offbar").innerHTML = OFFLINE
+        ? '<div class="msg warn" style="margin:.5rem 0 0">' +
+          "<b>No signal.</b> This is what was on the tablet at " +
+          esc(fmtTimeStamp(OFFLINE)) + " — the fortnight either side of today, " +
+          "and nothing else. <b>Nothing typed here will save</b> until there is a " +
+          "bar and the app is opened again.</div>"
+        : "";
     $("whoami").innerHTML = "<b>" + esc(S.me.name) + "</b> · " + esc({ admin: "Administrator", office: "Office", tech: "Technician" }[S.me.role] || S.me.role) +
       (S.me.is_technician ? " · Field" : "") +
        
@@ -2006,6 +2128,12 @@ if (!screenLocked && $("veil").classList.contains("show")) {
   }
 
   function render() {
+     
+    if (OFFLINE && !OFFLINE_TABS[route.name] && !OFFLINE_OK[route.name]) {
+      route.name = isOffice() ? "schedule" : "field";
+      route.date = route.date || todayISO();
+      renderNav();
+    }
      
     if (route.name !== "sheet" && route.name !== "plan" && route.name !== "eval" &&
         route.name !== "cis" && route.name !== "wdi")
