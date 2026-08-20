@@ -43,7 +43,7 @@
 /* Stamped by tools/build_app.py from the built page's own hash, so a publish
    that changes one byte retires every old cache and one that changes nothing
    leaves them alone. Left as a literal here so this file runs unbuilt too. */
-var VERSION = "d348b76e83c6";
+var VERSION = "09b415359478";
 var CACHE = "ut-shell-" + VERSION;
 
 /* RELATIVE, EVERY ONE. The app is published under /office-trial/app/ and is
@@ -103,8 +103,22 @@ self.addEventListener("fetch", function (e) {
   if (req.mode === "navigate") {
     e.respondWith(
       fetch(req).then(function (res) {
-        var copy = res.clone();
-        caches.open(CACHE).then(function (c) { c.put("./index.html", copy); });
+        /* ONLY A REAL ANSWER FROM OUR OWN ORIGIN GETS TO BE THE SHELL. This wrote
+           whatever came back, with no test at all, while the sub-resource branch
+           below guards on status and type -- an asymmetry with no reason behind
+           it. A truck-stop captive portal answering 200 with its own sign-in
+           page, or a host 5xx, would be written over the cached app; the next
+           cold start with no signal would then open THAT, and the installed app
+           has no address bar to escape it with.
+           `basic` is the check that matters: an opaque or redirected response is
+           somebody else's page wearing our URL. skipWaiting and clients.claim
+           mean a later good load still replaces a bad cache, but only if the app
+           can be reached to do the loading -- which is exactly what a poisoned
+           shell takes away. */
+        if (res && res.ok && res.type === "basic") {
+          var copy = res.clone();
+          caches.open(CACHE).then(function (c) { c.put("./index.html", copy); });
+        }
         return res;
       })["catch"](function () {
         return caches.match("./index.html").then(function (hit) {

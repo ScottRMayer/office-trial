@@ -180,6 +180,24 @@
   .field button.act,.field a.act,.modal button.act,.modal a.act{
     min-height:2.75rem;font-size:.9rem;padding:.5rem .95rem}
    
+  .n33ev .evlbl{white-space:nowrap}
+  @media (max-width:720px){
+    button.act,a.act{min-height:2.75rem}
+     
+    table.n33ev, table.n33ev tbody, table.n33ev tr, table.n33ev td{
+      display:block;width:auto}
+    table.n33ev thead, table.n33ev th{display:none}
+    table.n33ev tr{border-bottom:1px solid var(--rule);padding:.45rem 0}
+    table.n33ev tr:last-child{border-bottom:none}
+    table.n33ev .evlbl{white-space:normal;padding-bottom:.3rem}
+     
+    button.figure{min-height:2.75rem}
+     
+    nav button{min-height:2.75rem}
+     
+    .give button.act,.acts button.act{min-height:2.75rem}
+  }
+   
   a.call{font:inherit;font-size:.8rem;font-weight:600;color:var(--brand);
     text-decoration:underline;text-underline-offset:3px;padding:.34rem .1rem;
     display:inline-flex;align-items:center;gap:.25rem;white-space:nowrap}
@@ -406,7 +424,10 @@ button.gear{font:inherit;font-size:1.35rem;line-height:1;background:none;border:
     background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
   .mhead{background:var(--rule-soft);font-size:.64rem;letter-spacing:.08em;text-transform:uppercase;
     font-weight:700;color:var(--ink-soft);padding:.3rem .4rem;text-align:center}
-  .mcell{background:var(--card);min-height:5.4rem;padding:.25rem .3rem;cursor:pointer}
+   
+  .mcell{background:var(--card);min-height:5.4rem;padding:.25rem .3rem;cursor:pointer;
+    overflow:hidden}
+  .mcell .chipjob{min-width:0;overflow:hidden;white-space:nowrap}
   .mcell:hover{background:var(--brand-w)}
   .mcell.other{background:var(--paper);opacity:.55}
   .mcell.istoday{box-shadow:inset 0 0 0 2px var(--brand)}
@@ -1084,14 +1105,20 @@ var HOLI = {};
       { month: "long", day: "numeric", year: "numeric" });
   }
   function hr12(h) { var n = Number(h); return (n > 12 ? n - 12 : n) + (n >= 12 ? "pm" : "am"); }
+   
   function readMoney(v) {
-    var s = String(v == null ? "" : v).replace(/[$,\s]/g, "");
+    var raw = String(v == null ? "" : v).replace(/[$\s]/g, "");
+    if (/^\d+,\d{2}$/.test(raw)) raw = raw.replace(",", ".");
+    var s = raw.replace(/,/g, "");
     if (s === "") return null;
     return /^\d*\.?\d+$/.test(s) ? parseFloat(s) : null;
   }
    
   function readDiscount(v, subtotal) {
-    var s = String(v == null ? "" : v).replace(/[$,\s]/g, "");
+     
+    var s = String(v == null ? "" : v).replace(/[$\s]/g, "");
+    if (/^\d+,\d{2}(%?)$/.test(s)) s = s.replace(",", ".");
+    s = s.replace(/,/g, "");
     var pct = /%/.test(s);
     if (pct) s = s.replace(/%/g, "");
     if (!/^\d*\.?\d+$/.test(s)) return null;
@@ -1213,6 +1240,12 @@ if (rows.length === PAGE)
   }
   function explain(e) {
     var m = (e && e.message) || String(e);
+     
+    if ((typeof navigator !== "undefined" && navigator.onLine === false) ||
+        (e && e.name === "AuthRetryableFetchError") ||
+        /failed to fetch|network ?error|network request failed|load failed/i.test(m))
+      return new Error("No signal, so that did not reach the office. It has not been " +
+        "refused — nothing is saved, and it can be done again once there is a bar.");
     if (e && (e.code === "42501" || /row-level security|permission denied/i.test(m)))
       return new Error("You do not have access to that. If you should, your role needs changing.");
     if (/client_ref/.test(m)) return new Error("Already recorded — nothing posted twice.");
@@ -1393,11 +1426,11 @@ var OFFLINE_MS = 12 * 3600 * 1000;
        
       '<button class="act" id="lkOut" type="button" data-armed="0">Sign out</button>' +
       '<div id="lkOutWhy"></div></div>';
-    var unlock = function () {
+    var unlock = function (serverChecked) {
       screenLocked = false;
       try { localStorage.removeItem("ut_locked"); } catch (e) {}
        
-      armOffline($("lkPw") ? $("lkPw").value : "");
+      if (serverChecked) armOffline($("lkPw") ? $("lkPw").value : "");
       $("lockbox").innerHTML = "";
       $("lockveil").classList.remove("show");
        
@@ -1428,6 +1461,7 @@ var r;
           var off = await offlineUnlock(pw);
           if (off === "ok") {
             $("lkMsg").innerHTML = "";
+             
             unlock();
             toast("Unlocked with no signal — this works for 12 hours after the " +
                   "last time the password was checked.");
@@ -1455,7 +1489,8 @@ var r;
         return;
       }
       $("lkMsg").innerHTML = "";
-      unlock();
+       
+      unlock(true);
     };
 
 $("lkOut").addEventListener("click", async function () {
@@ -1949,11 +1984,21 @@ var custById = function (id) { return S.customers.filter(function (c) { return c
     return S.cisItems.filter(function (x) { return x.sheet_id === sid; })
       .sort(function (a, b) { return (a.sort_order || 0) - (b.sort_order || 0); });
   };
-   
+
+function withinFourteen(proposedISO, appliedISO) {
+    if (!proposedISO || !appliedISO) return true;
+    var p = String(proposedISO), a = String(appliedISO);
+    return a >= p && a <= shiftISO(p, 14);
+  }
   function cisCovers(cid, propId, onISO) {
+    var on = String(onISO || todayISO());
     return cisOf(cid).some(function (x) {
-      return (x.property_id == null || x.property_id === propId) &&
-             String(x.issued_on) <= String(onISO || todayISO());
+      if (!(x.property_id == null || x.property_id === propId)) return false;
+      if (String(x.issued_on) > on) return false;
+      var items = S.cisItems.filter(function (i) { return i.sheet_id === x.id; });
+       
+      if (!items.length) return true;
+      return items.some(function (i) { return withinFourteen(i.proposed_on, on); });
     });
   }
   var wdiOf = function (jid) {
@@ -2010,10 +2055,26 @@ function sheetIsOpen(j) {
   var isSFR = function (r) {
     return r.epa_number === SFR_EPA || /permethrin\s*sfr|sfr\s*permethrin/i.test(r.product_name || "");
   };
+
+function pctShow(v) {
+    var t = String(v == null ? "" : v);
+    return /^\s*\.\d/.test(t) ? t.replace(/^(\s*)\./, "$10.") : t;
+  }
+  var isStdRow = function (r) {
+    if (!isSFR(r)) return false;
+    var pc = String(r.percent == null ? "" : r.percent).replace(/[%\s]/g, "");
+    var am = String(r.amount || "").toLowerCase().replace(/\s+/g, " ").replace(/^\s+/, "");
+    return (pc === "0.25" || pc === ".25") &&
+           (am.indexOf("1/4 gal") === 0 || am.indexOf("¼ gal") === 0);
+  };
   var invOf   = function (id) { return S.invoices.filter(function (i) { return i.job_id === id; })[0] || null; };
   function balOf(jobId) {
     var i = invOf(jobId); if (!i) return null;
     return S.balances.filter(function (b) { return b.invoice_id === i.id; })[0] || null;
+  }
+   
+  function owes(b) {
+    return !!(b && !b.voided_at && !b.charge_withdrawn && Number(b.balance) > 0.004);
   }
   var techs = function () { return S.people.filter(function (p) { return p.is_technician && p.active; }); };
    
@@ -2032,6 +2093,19 @@ var OFFLINE_TABS = { schedule: 1, field: 1 };
   var OFFLINE_OK = { sheet: 1 };
    
   var OFFLINE = "";
+   
+  var SIGNAL_BACK = 0;
+  function offlineBackOn() {
+    if (!OFFLINE || SIGNAL_BACK) return;
+    SIGNAL_BACK = 1;
+    renderNav();                      
+  }
+  window.addEventListener("online", offlineBackOn);
+   
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" &&
+        typeof navigator !== "undefined" && navigator.onLine !== false) offlineBackOn();
+  });
 
 function renderNav() {
     var tabs = [];
@@ -2054,10 +2128,21 @@ function renderNav() {
       $("offbar").innerHTML = OFFLINE
         ? '<div class="msg warn" style="margin:.5rem 0 0">' +
           "<b>No signal.</b> This is what was on the tablet at " +
-          esc(fmtTimeStamp(OFFLINE)) + " — the fortnight either side of today, " +
-          "and nothing else. <b>Nothing typed here will save</b> until there is a " +
-          "bar and the app is opened again.</div>"
+           
+          esc(fmtTimeStamp(OFFLINE)) + " — the " + SNAP_BACK + " days behind today " +
+          "and the " + SNAP_FWD + " ahead, and nothing else. " +
+          "<b>Nothing typed here will save</b> until there is a signal." +
+          (SIGNAL_BACK
+            ? "<br><b>The signal is back.</b> Loading the book again will lose " +
+              "anything half-typed on this screen." +
+              '<div class="acts" style="margin-top:.4rem">' +
+              '<button class="act go" id="offAgain" type="button">Load the book again</button>' +
+              "</div>"
+            : "") +
+          "</div>"
         : "";
+    if ($("offAgain"))
+      $("offAgain").addEventListener("click", function () { location.reload(); });
     $("whoami").innerHTML = "<b>" + esc(S.me.name) + "</b> · " + esc({ admin: "Administrator", office: "Office", tech: "Technician" }[S.me.role] || S.me.role) +
       (S.me.is_technician ? " · Field" : "") +
        
@@ -2375,6 +2460,37 @@ var h = missingBanner() + "<h1>Dashboard</h1>" +
 
 var wlGaps = "", dwGaps = "", wlWdi = "", dwWdi = "", wlWdiUrgent = false;
     var wlStale = "", dwStale = "";
+    var wlOrphan = "", dwOrphan = "";
+
+var live = {}; S.people.forEach(function (p2) { if (p2.active !== false) live[p2.id] = 1; });
+    var orphan = S.jobs.filter(function (j) {
+      return j.status !== "complete" && j.status !== "cancelled" &&
+             j.assigned_to && !live[j.assigned_to];
+    }).sort(function (a2, b2) {
+      return String(a2.scheduled_date).localeCompare(String(b2.scheduled_date));
+    });
+    if (orphan.length) {
+      var oDays = {};
+      orphan.forEach(function (j) { if (j.scheduled_date) oDays[j.scheduled_date] = 1; });
+      wlOrphan = plural(orphan.length, "job") + " on " +
+        plural(Object.keys(oDays).length, "day") + ", nobody to do them";
+      dwOrphan = '<div class="drawer" id="dw-orphan" hidden>' +
+        '<p class="note">These are still on somebody who has been switched off. ' +
+        "Open the day and give them out, or switch the person back on.</p>" +
+        '<table class="lst"><tr><th>Day</th><th>Customer</th><th>Was on</th><th></th></tr>' +
+        orphan.slice(0, 30).map(function (j) {
+          var cc = custById(j.customer_id) || {}, pp = propOfJob(j) || {};
+          var who = personOf(j.assigned_to) || {};
+          return "<tr><td>" + esc(fmtDate(j.scheduled_date)) + "</td><td>" +
+            esc(cc.name || "(customer not loaded)") +
+            '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
+            "<td>" + esc(who.name || "somebody no longer here") + "</td>" +
+            '<td><button class="act" data-job="' + j.id + '" type="button">The job</button></td></tr>';
+        }).join("") + "</table>" +
+        (orphan.length > 30
+          ? '<p class="note">' + (orphan.length - 30) + " more — the rest are on the Calendar.</p>"
+          : "") + "</div>";
+    }
 
 function tile(key, cls, label, big, what, n, calm) {
       return '<div class="bucket ' + cls + (n ? "" : " calm") + '" data-drawer="' + key +
@@ -2605,10 +2721,8 @@ var book = '<div class="card"><h2>The schedule</h2>' +
       '<div class="week7">';
     for (var wd = 0; wd < 7; wd++) {
       var dISO = shiftISO(todayISO(), wd);
-      var dJobs = S.jobs.filter(function (j) {
-        return j.scheduled_date === dISO &&
-               ["cancelled"].indexOf(j.status) < 0;
-      });
+       
+      var dJobs = jobsOn(dISO);
       var dD = new Date(dISO + "T12:00:00");
       book += '<div class="d7' + (wd === 0 ? " istoday" : "") +
         (shutOn(dISO) ? " shut" : "") + '" data-goday="' + dISO + '">' +
@@ -2642,6 +2756,11 @@ h += money3 + dwOwed + dwRisk + dwBoxes + book;
           ? '<div class="wline" data-drawer="stale" aria-expanded="false">' +
             '<span class="wnm">Booked and not finished</span>' +
             '<span class="pill warn">' + esc(wlStale) + "</span></div>" + dwStale
+          : "") +
+        (wlOrphan
+          ? '<div class="wline" data-drawer="orphan" aria-expanded="false">' +
+            '<span class="wnm">Nobody to do them</span>' +
+            '<span class="pill warn">' + esc(wlOrphan) + "</span></div>" + dwOrphan
           : "") +
         "</div>";
 
@@ -3319,7 +3438,7 @@ var noWin = all.filter(function (j) { return !windowOf(j); });
       (techsOnJob(j).length > 1 ? " · " + techsOnJob(j).length + " technicians" : "") + "</div></span>" +
       '<span style="text-align:right">' +
         (j.status === "complete"
-          ? (b && Number(b.balance) > 0.004
+          ? (owes(b)
               ? '<span class="pill warn">' + money(b.balance) + " owed</span>"
               : '<span class="pill ok">Complete</span>')
           : (j.status === "rained-out" ? '<span class="pill">Rained out</span>'
@@ -3396,8 +3515,11 @@ function monthView(d) {
       return j.scheduled_date && j.scheduled_date.slice(0, 7) === monthNum && j.status !== "cancelled";
     }).length;
 
-    var h = '<div class="daynav noprint" style="margin-top:-.4rem">' +
-      '<span class="pill">' + plural(total, "job") + " booked this month</span>";
+var h = '<div class="daynav noprint" style="margin-top:-.4rem">' +
+      '<span class="pill">' +
+      (OFFLINE
+        ? plural(total, "job") + " on this tablet — not the whole month"
+        : plural(total, "job") + " booked this month") + "</span>";
      
     var due = boxesDue().filter(function (b) {
       return b.w.y === Number(first.slice(0, 4)) && b.w.m === Number(first.slice(5, 7));
@@ -3538,9 +3660,10 @@ var waiting = isOffice()
           var chips = [];
           if (sh && sh.signed_on) chips.push('<span class="pill ok">signed</span>');
           if (tr) chips.push('<span class="pill ok">record filed</span>');
-          if (b && Number(b.collected) > 0)
-            chips.push('<span class="pill ' + (Number(b.balance) > 0.004 ? "warn" : "ok") + '">' +
-              (Number(b.balance) > 0.004 ? "part paid" : "paid") + "</span>");
+           
+          if (b && Number(b.collected) > 0 && !b.voided_at && !b.charge_withdrawn)
+            chips.push('<span class="pill ' + (owes(b) ? "warn" : "ok") + '">' +
+              (owes(b) ? "part paid" : "paid") + "</span>");
           if (j.status === "complete") chips.push('<span class="pill ok">complete</span>');
           if (j.status === "rained-out") chips.push('<span class="pill">rained out</span>');
           return '<div class="item tap" data-job="' + j.id + '" style="border-left:4px solid ' +
@@ -3621,7 +3744,13 @@ function jobModal(jobId, field) {
                                                         : "priced on the job") +
          
         (inv && Number(inv.discount) > 0 ? " · after " + money(inv.discount) + " off" : "") +
-        (Number(b.collected) > 0 ? " · " + money(b.collected) + " in · " + money(b.balance) + " owed" : "") : "") +
+         
+        (Number(b.collected) > 0
+          ? " · " + money(b.collected) + " in · " +
+            (Number(b.overpaid) > 0.004
+              ? money(b.overpaid) + " to come back"
+              : money(b.balance) + " owed")
+          : "") : "") +
          
         agreedNote(j.id) +
       "</div></div>";
@@ -3730,9 +3859,12 @@ h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size
       (b && (b.voided_at || b.charge_withdrawn)
         ? '<span class="pill warn">' +
           (b.voided_at ? "voided — never owed" : "charge withdrawn") + "</span>"
-        : b && Number(b.balance) > 0.004
+        : owes(b)
           ? '<button class="act go" data-act="pay">Record payment</button>'
-          : '<span class="pill ok">nothing owed</span>') +
+           
+          : OFFLINE
+            ? '<span class="pill">what is owed is not on this tablet</span>'
+            : '<span class="pill ok">nothing owed</span>') +
        
       (isOffice() && b && !b.voided_at && !b.charge_withdrawn
         ? '<button class="act" data-act="notowed">Will not collect…</button>'
@@ -3798,6 +3930,14 @@ h += '<div class="card" style="margin:.9rem 0 0"><b>The sign, and what was ' +
            ? '<button class="act" data-act="rain" type="button">Mark rained out — keep the sheet</button>' : "") +
          (j.status === "rained-out"
            ? '<button class="act" data-act="unrain" type="button">Put it back on the board…</button>' : "") +
+          
+         (j.status === "scheduled"
+           ? '<button class="act" data-act="noaccess" type="button">Nobody could get in…</button>' +
+             (isOffice()
+               ? '<button class="act" data-act="cancel" type="button">Call the job off…</button>' : "")
+           : "") +
+         (j.status === "cancelled" || j.status === "no-access"
+           ? '<button class="act" data-act="uncancel" type="button">Put it back on the board…</button>' : "") +
          "</div>";
 
     openModal(h);
@@ -3821,6 +3961,9 @@ h += '<div class="card" style="margin:.9rem 0 0"><b>The sign, and what was ' +
     if (A("complete")) A("complete").addEventListener("click", function () { completePrompt(j, this); });
     if (A("uncomplete")) A("uncomplete").addEventListener("click", function () { uncompleteModal(j); });
     if (A("rain")) A("rain").addEventListener("click", function () { rainOutModal(j); });
+    if (A("cancel")) A("cancel").addEventListener("click", function () { cancelModal(j, "cancelled"); });
+    if (A("noaccess")) A("noaccess").addEventListener("click", function () { cancelModal(j, "no-access"); });
+    if (A("uncancel")) A("uncancel").addEventListener("click", function () { uncancelModal(j); });
     if (A("unrain")) A("unrain").addEventListener("click", function () { unrainModal(j); });
     wireCompliance(function () { jobModal(j.id); }, $("modal"));
     $("modal").querySelectorAll("[data-give]").forEach(function (b) {
@@ -3959,12 +4102,19 @@ function moveDayModal(j, back) {
     var sayMvFull = function () {
       var box = $("mvfull");
       if (!box) return;
+       
+      var why = shutWhy($("mvDate").value);
       var say = tooMuchNote(j.assigned_to, $("mvDate").value, $("mvWin").value,
                             slotsOf(j), j.id);
-      box.innerHTML = say
-        ? '<div class="msg warn" style="margin:.35rem 0 0">' + esc(say) +
-          " Move it anyway if that is the plan.</div>"
-        : "";
+      box.innerHTML =
+        (why
+          ? '<div class="msg warn" style="margin:.35rem 0 0">Nobody is working that ' +
+            "day — " + esc(why) + ". Move it there anyway if that is the plan.</div>"
+          : "") +
+        (say
+          ? '<div class="msg warn" style="margin:.35rem 0 0">' + esc(say) +
+            " Move it anyway if that is the plan.</div>"
+          : "");
     };
     ["mvDate", "mvWin"].forEach(function (id) {
       $(id).addEventListener("change", sayMvFull);
@@ -4212,9 +4362,11 @@ if (!sup.applicator_no) {
 
 var trNow = trOf(j.id);
         var body = {
-          job_id: j.id, date: j.scheduled_date || todayISO(),
+          job_id: j.id,
           target_pests: P, application_locations: L
         };
+         
+        if (!trNow) body.date = j.completed_date || todayISO();
          
         if (!trNow) body.tech_id = S.me.id;
         if (!trNow || !trNow.completed_at) body.completed_at = new Date().toISOString();
@@ -4480,8 +4632,13 @@ async function ceWrite(row, btn, dup, after) {
       if (pos.coords.accuracy != null)
         row.gps_accuracy_m = Number(Number(pos.coords.accuracy).toFixed(1));
     }
-     
-    var r = await sb.from("compliance_events").insert(row).select();
+
+var r;
+    try {
+      r = await sb.from("compliance_events").insert(row).select();
+    } catch (e) {
+      r = { error: e || new Error("Failed to fetch") };
+    }
     if (r.error) {
        
       if (r.error.code === "23505") {
@@ -4731,13 +4888,146 @@ function uncompleteModal(j) {
       closeModal(); render();
        
       var b = balOf(j.id);
-      toast(b && !b.voided_at && !b.charge_withdrawn && Number(b.balance) > 0.004
+      toast(owes(b)
         ? "Marked complete — " + money(b.balance) + " still to collect"
         : "Marked complete");
     } catch (e) { toast(e.message); btn.disabled = false; }
   }
 
-var RAIN_REASONS = ["Raining now", "Ground too wet", "Too windy to spray"];
+var CANCEL_REASONS = ["The customer cancelled", "They have sold the house",
+                        "Booked twice by mistake"];
+  var NOACCESS_REASONS = ["Nobody home", "Gate locked", "Dog loose in the yard"];
+
+function cancelBlocker(j) {
+    if (j.status === "complete")
+      return "This job is marked complete. Take it back off complete first, and " +
+             "say why — then it can be called off.";
+    if (trOf(j.id))
+      return "A pesticide record is filed against this job, so somebody has been " +
+             "and applied something. A visit that happened cannot be cancelled. " +
+             "If the charge is the problem, use Will not collect.";
+    var sh = sheetOf(j.id);
+    if (sh && sh.signed_on)
+      return "The customer has signed the sheet for this job, so the visit " +
+             "happened. If the charge is the problem, use Will not collect.";
+    var b = balOf(j.id);
+    if (b && Number(b.collected) > 0.004)
+      return "There is " + money(b.collected) + " against this job. Money in means " +
+             "the visit happened — give it back or move it to the right sheet " +
+             "under Payment issue, and then call the job off.";
+    return "";
+  }
+
+  function cancelModal(j, kind) {
+    var no = cancelBlocker(j);
+    if (no) {
+      openModal("<h3>This one cannot be called off</h3>" +
+        '<div class="msg warn">' + esc(no) + "</div>" +
+        '<div class="row"><button class="act" id="cxBack" type="button">Back</button></div>');
+      $("cxBack").addEventListener("click", function () { jobModal(j.id); });
+      return;
+    }
+    var away = kind === "no-access";
+    var reasons = away ? NOACCESS_REASONS : CANCEL_REASONS;
+    openModal("<h3>" + (away ? "Nobody could get in?" : "Call this job off?") + "</h3>" +
+      '<p class="note">' +
+      (away
+        ? "The visit is recorded as attempted and nobody got in. It stays on " +
+          esc(fmtDate(j.scheduled_date)) + " so the day says what happened."
+        : "It comes off the work to be done and stays on " +
+          esc(fmtDate(j.scheduled_date)) + " with the reason, so the calendar still " +
+          "says why nothing happened that day.") +
+      " Nothing is billed and no invoice is touched. It can be put back on the " +
+      "board afterwards.</p>" +
+      '<div class="acts" style="margin-bottom:.3rem">' +
+      reasons.map(function (r, i) {
+        return '<button class="act' + (i === 0 ? " go" : "") + '" data-cx="' + esc(r) +
+          '" type="button">' + esc(r) + "</button>";
+      }).join("") +
+      '<button class="act" id="cxOther" type="button">Something else…</button></div>' +
+      '<div id="cxFree" hidden><label for="cxWhy">Why is it not going ahead?</label>' +
+      '<input id="cxWhy" class="f" placeholder="say why — it goes on the job">' +
+      '<div class="acts"><button class="act go" id="cxGo" type="button">' +
+      (away ? "Record it" : "Call it off") + "</button></div></div>" +
+      '<div class="row"><button class="act" id="cxNo" type="button">Leave it booked</button></div>');
+    $("cxNo").addEventListener("click", function () { jobModal(j.id); });
+    $("cxOther").addEventListener("click", function () {
+      $("cxFree").hidden = false; $("cxWhy").focus(); this.disabled = true;
+    });
+    $("modal").querySelectorAll("[data-cx]").forEach(function (b) {
+      b.addEventListener("click", function () { callOff(j, this, b.getAttribute("data-cx"), kind); });
+    });
+    $("cxGo").addEventListener("click", function () {
+      var why = $("cxWhy").value.trim();
+      if (!why) { toast("Say why — it goes on the job."); return; }
+      callOff(j, this, why, kind);
+    });
+  }
+
+  async function callOff(j, btn, why, kind) {
+    btn.disabled = true;
+    try {
+      if (!why) throw new Error("Say why, or pick one of the reasons.");
+       
+      var no = cancelBlocker(j);
+      if (no) throw new Error(no);
+      var r = await sb.from("jobs").update({
+        status: kind === "no-access" ? "no-access" : "cancelled",
+        cancel_reason: why, cancelled_on: todayISO(), cancelled_by: S.me.id
+      }).eq("id", j.id).select();
+      if (r.error) throw explain(r.error);
+       
+      if (!(r.data || []).length)
+        throw new Error("That did not save — the database refused it.");
+      await sb.from("notes").insert({
+        related_table: "customers", related_id: j.customer_id, user_id: S.me.id,
+        kind: "call",
+        text: (kind === "no-access" ? "Nobody could get in — " : "Job called off — ") + why
+      });
+      await reload(["jobs", "attention"]);
+      closeModal(); render();
+      toast(kind === "no-access" ? "Recorded — nobody got in" : "Called off — " + why);
+    } catch (e) { toast(e.message); btn.disabled = false; }
+  }
+
+function uncancelModal(j) {
+    var away = j.status === "no-access";
+    openModal("<h3>Put this job back on the board?</h3>" +
+      '<p class="note">It goes back to booked on ' + esc(fmtDate(j.scheduled_date)) +
+      ", and " + (away ? "the note that nobody got in" : "the reason it was called off") +
+      " comes off it — the day, the reason and who recorded it, all three. A line " +
+      "goes on the customer’s folder saying so, because one went on when it was " +
+      "recorded.</p>" +
+      (j.cancel_reason
+        ? '<div class="msg">It was ' + (away ? "recorded" : "called off") + " as: <b>" +
+          esc(j.cancel_reason) + "</b></div>"
+        : "") +
+      '<div class="row"><button class="primary" id="ucGo" type="button">Put it back on</button>' +
+      '<button class="act" id="ucNo" type="button">Leave it</button></div>');
+    $("ucNo").addEventListener("click", function () { jobModal(j.id); });
+    $("ucGo").addEventListener("click", async function () {
+      this.disabled = true;
+      try {
+        var r = await sb.from("jobs").update({
+          status: "scheduled", cancel_reason: null,
+          cancelled_on: null, cancelled_by: null
+        }).eq("id", j.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That did not save — the database refused it.");
+        await sb.from("notes").insert({
+          related_table: "customers", related_id: j.customer_id, user_id: S.me.id,
+          kind: "call", text: "Back on the board — " +
+            (away ? "another visit to be arranged." : "the customer wants it after all.")
+        });
+        await reload(["jobs", "attention"]);
+        closeModal(); render();
+        toast("Back on the board for " + fmtDate(j.scheduled_date));
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+  }
+
+  var RAIN_REASONS = ["Raining now", "Ground too wet", "Too windy to spray"];
 
   function rainOutModal(j) {
     openModal("<h3>Stop for the weather?</h3>" +
@@ -4893,13 +5183,20 @@ function printModeModal(jobId, then) {
     var c = custById(j.customer_id) || {}, p = propOfJob(j) || {};
     var inv = invOf(j.id), b = balOf(j.id);
     var sh = sheetOf(j.id) || {}, tr = trOf(j.id);
-    var chems = tr ? chemsOf(tr.id) : [], hasStd = chems.some(isSFR);
+    var chems = tr ? chemsOf(tr.id) : [], hasStd = chems.some(isStdRow);
     var ls = linesOf(j.id), t = personOf(j.assigned_to) || {};
      
     var lineIsScratch = function () {
       return isAdmin() && sheetIsOpen(j) && !(b && Number(b.collected) > 0.004);
     };
-    var sup = personOf(t.works_under) || t, co = S.settings || {};
+     
+    var recT = tr ? (personOf(tr.tech_id) || t) : t;
+    var recSup = tr
+      ? (personOf(tr.supervisor_id) || personOf(recT.works_under) || recT)
+      : (personOf(t.works_under) || t);
+     
+    var recNo = (tr && tr.applicator_no) || recSup.applicator_no || "";
+    var sup = recSup, co = S.settings || {};
 
 var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
     var reopened = !!sh.unlocked_at;
@@ -4981,19 +5278,22 @@ document.body.classList.add("hassheetbar");
         : "") +
 
 (isOffice() ? '<span class="barsep" aria-hidden="true">Documents</span>' : "") +
+      (isOffice() && OFFLINE
+        ? '<span class="empty" style="font-size:.72rem">need a signal</span>'
+        : "") +
        
-      (isOffice()
+      (isOffice() && !OFFLINE
         ? '<button class="act doc" id="plan" type="button">' +
           (planOf(jobId) ? "Service Plan ✓" : "Service Plan") + "</button>"
         : "") +
        
-      (isOffice()
+      (isOffice() && !OFFLINE
         ? '<button class="act doc" id="cisBtn" type="button">' +
           (cisCovers(j.customer_id, j.property_id, j.completed_date || j.scheduled_date)
             ? "Information Sheet \u2713" : "Information Sheet") + "</button>"
         : "") +
        
-      (isOffice()
+      (isOffice() && !OFFLINE
         ? '<button class="act doc" id="wdiBtn" type="button">' +
           (wdiOf(jobId) ? "NPMA-33 \u2713" : "NPMA-33") + "</button>"
         : "") +
@@ -5033,10 +5333,17 @@ document.body.classList.add("hassheetbar");
         "</div>";
     }
     else if (!S.services.length)
-      h += '<div class="msg warn noprint">The list of services is empty, so the ' +
-        "<b>Type of service</b> boxes have nothing to print. " +
-        (isAdmin() ? "Add them under <b>Settings</b>."
-                   : "Ask an admin to add them under Settings.") + "</div>";
+       
+      h += '<div class="msg warn noprint">' +
+        (isOffice()
+          ? "The list of services is empty, so the <b>Type of service</b> boxes " +
+            "have nothing to print. " +
+            (isAdmin() ? "Add them under <b>Settings</b>."
+                       : "Ask an admin to add them under Settings.")
+          : "The list of services did not load, so the <b>Type of service</b> " +
+            "boxes have nothing to print. Everything else on this sheet works. " +
+            "Reload once there is a signal; if it keeps happening, tell the " +
+            "office.") + "</div>";
 
 document.body.classList.add("rspaper");
 
@@ -5071,8 +5378,11 @@ var priorSeen = S.jobs.filter(function (x) {
     h += '<div class="rs-sec" style="border-top:none;margin-top:.2rem">' +
       '<div style="display:flex;gap:.9rem;align-items:flex-start;flex-wrap:wrap">' +
       '<div class="custblk" style="flex:1 1 15rem;min-width:0;font-size:.76rem;line-height:1.6">' +
-         
-        "<div>Date: <b>" + esc(j.scheduled_date ? fmtLetter(j.scheduled_date) : "") + "</b></div>" +
+
+"<div>Date: <b>" +
+        esc(((tr && tr.date) || j.completed_date || j.scheduled_date)
+              ? fmtLetter((tr && tr.date) || j.completed_date || j.scheduled_date)
+              : "") + "</b></div>" +
         "<div>Customer: <b>" + esc((c.first_name ? c.first_name + " " : "") + (c.name || "")) + "</b></div>" +
         "<div>Address: <b>" + esc(p.address || "") + "</b>" +
         (p.label && !p.is_primary
@@ -5099,7 +5409,9 @@ var priorSeen = S.jobs.filter(function (x) {
          
         techs().concat(t.id && !techs().some(function (x) { return x.id === t.id; })
                          ? [t] : []).map(function (x) {
-          return "<div>" + chkBox(x.id === j.assigned_to) + " " + esc(x.name) + "</div>";
+           
+          return "<div>" + chkBox(x.id === recT.id || onJob(j, x.id)) +
+                 " " + esc(x.name) + "</div>";
         }).join("") +
          
         '<div style="margin-top:.15rem">' +
@@ -5299,13 +5611,13 @@ h += '<div class="rs-sec"><div class="rs-band">Materials used ' +
       "<th>%</th><th>NAME/EPA #</th><th>AMOUNT</th></tr>" +
       "<tbody>" + matPadRows(chems) + "</tbody></table>" +
       (tr ? voidedNote(tr.id) : "") +
-      '<div style="font-size:.6rem;margin-top:.3rem">Applied by <b>' + esc(t.name || "") + "</b>" +
+      '<div style="font-size:.6rem;margin-top:.3rem">Applied by <b>' + esc(recT.name || "") + "</b>" +
        
-      (crewNames(j, j.assigned_to).length
-        ? " with <b>" + esc(crewNames(j, j.assigned_to).join(", ")) + "</b>" : "") +
-      (sup.applicator_no
-        ? " under DEP certification <b>" + esc(sup.applicator_no) + "</b>" +
-          (sup.id !== t.id ? " (" + esc(sup.name) + ")" : "")
+      (crewNames(j, recT.id).length
+        ? " with <b>" + esc(crewNames(j, recT.id).join(", ")) + "</b>" : "") +
+      (recNo
+        ? " under DEP certification <b>" + esc(recNo) + "</b>" +
+          (recSup.id !== recT.id ? " (" + esc(recSup.name) + ")" : "")
         : "") +
       (tr && tr.completed_at
         ? " · finished " + new Date(tr.completed_at).toLocaleTimeString(undefined,
@@ -5391,6 +5703,13 @@ h += '<div class="rs-sec noprint"><div class="rs-band">Photographs</div>' +
 
 h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">' +
       '<div style="flex:1 1 22rem;min-width:0">' + DEP_NOTICE + "</div>" +
+       
+      (OFFLINE
+        ? '<div style="flex:1 1 100%;font-size:.6rem;border:1px solid #111;' +
+          'padding:.2rem .35rem;margin-bottom:.3rem"><b>No signal when this was ' +
+          "printed — the money on this sheet is not on the tablet.</b> " +
+          "Ring the office for the figure.</div>"
+        : "") +
       '<div class="money" style="margin:0;min-width:12rem">' +
       "<div>Service Fee" + (ls.length > 1 ? " (" + ls.length + ")" : "") + "</div><div>" +
        
@@ -5415,8 +5734,11 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
       "<div>Payment Received</div><div>" +
       (b && Number(b.collected) > 0 ? money(b.collected) : "&nbsp;") + "</div>" +
        
-      (b && !b.voided_at && !b.charge_withdrawn && Number(b.balance) > 0.004
+      (owes(b)
         ? '<div class="tot">Still Owed</div><div class="tot">' + money(b.balance) + "</div>" : "") +
+       
+      (b && Number(b.overpaid) > 0.004
+        ? '<div class="tot">To Come Back</div><div class="tot">' + money(b.overpaid) + "</div>" : "") +
       "</div></div>" +
        
       (canDiscount(inv)
@@ -5424,8 +5746,12 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
           '<button class="act" id="discBtn" type="button">' + discountLabel(inv) +
           "</button></div>"
         : "") +
+       
       '<div class="paylin" style="display:flex;justify-content:space-between;gap:1rem;margin-top:.4rem;font-size:.7rem">' +
-      "<div>• <b>Payment due at time of service</b> •</div>" +
+      (b && (b.voided_at || b.charge_withdrawn)
+        ? "<div>• <b>" + (b.voided_at ? "This charge was cancelled" : "No payment is being sought") +
+          "</b> • &nbsp;nothing is owed on this sheet</div>"
+        : "<div>• <b>Payment due at time of service</b> •</div>") +
       "<div>• <b>Credit Cards Accepted</b> • &nbsp;<b>MASTERCARD · VISA · DISCOVER</b></div></div>" +
       '<div class="sigrow" style="display:flex;justify-content:space-between;gap:1rem;margin-top:.6rem;' +
       'align-items:flex-end;font-size:.74rem"><div>Customer signature: ' +
@@ -5433,14 +5759,17 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
         ? sigSVG(sh.signature, 190) + '<span style="font-size:.58rem;color:#666">signed on site ' +
           esc(sh.signed_on) + "</span>"
         : '<span style="display:inline-block;border-bottom:1px solid #333;width:150px">&nbsp;</span>') +
-      "</div><div>Technician: <b>" + esc(t.name || "") + "</b>" +
+      "</div><div>Technician: <b>" + esc(recT.name || "") + "</b>" +
       (crewNames(j, j.assigned_to).length
         ? " and <b>" + esc(crewNames(j, j.assigned_to).join(", ")) + "</b>" : "") +
       "</div></div></div>";
 
-    h += '<div class="foot"><span>DEP APPLICATOR #' + esc(co.dep_applicator || "") + "</span>" +
-      "<span>NJ CONTRACTOR #" + esc(co.nj_contractor || "") + "</span>" +
-      "<span>BUSINESS # " + esc(co.business_licence || "") + "</span></div></div>";
+var coDep = (tr && tr.company_dep_applicator) || co.dep_applicator || "";
+    var coNJ  = (tr && tr.company_nj_contractor)  || co.nj_contractor  || "";
+    var coBiz = (tr && tr.company_business_no)    || co.business_licence || "";
+    h += '<div class="foot"><span>DEP APPLICATOR #' + esc(coDep) + "</span>" +
+      "<span>NJ CONTRACTOR #" + esc(coNJ) + "</span>" +
+      "<span>BUSINESS # " + esc(coBiz) + "</span></div></div>";
 
     app.innerHTML = h;
 
@@ -5752,7 +6081,8 @@ function relockModal() {
       if (!now) {
         var body = {
           job_id: j.id, tech_id: j.assigned_to || S.me.id,
-          date: j.scheduled_date || todayISO(),
+           
+          date: j.completed_date || todayISO(),
           target_pests: [], application_locations: []
         };
         Object.keys(patch).forEach(function (k) { body[k] = patch[k]; });
@@ -5826,7 +6156,8 @@ function relockModal() {
       if (!now) {
         var body = {
           job_id: j.id, tech_id: j.assigned_to || S.me.id,
-          date: j.scheduled_date || todayISO(),
+           
+          date: j.completed_date || todayISO(),
           target_pests: [], application_locations: []
         };
         if (col === "method") body.method = val; else body[col] = [val];
@@ -5891,7 +6222,8 @@ if (!cur.length && col !== "disrupted_locations")
       if (!rec) {
         var i = await sb.from("treatment_records").insert({
           job_id: j.id, tech_id: j.assigned_to || S.me.id,
-          date: j.scheduled_date || todayISO(),
+           
+          date: j.completed_date || todayISO(),
           target_pests: [], application_locations: []
         }).select();
         if (i.error) throw explain(i.error);
@@ -5920,7 +6252,16 @@ if (!cur.length && col !== "disrupted_locations")
                line.amount_unit == null)
         toast(prod.name + " is on the record — but there is no unit on '" + amt + "'.");
       else
-        toast(prod.name + " added to the application record");
+         
+        var trNow2 = trOf(j.id);
+        var lack = [];
+        if (!trNow2 || !(trNow2.target_pests || []).length) lack.push("no target pest");
+        if (!trNow2 || !(trNow2.application_locations || []).length) lack.push("nowhere it was applied");
+        toast(prod.name + " added to the application record" +
+          (lack.length
+            ? " — but it still names " + lack.join(" and ") +
+              ". The job cannot be marked complete until it does."
+            : ""));
     }
 
 function matFound(chemRows) {
@@ -5938,7 +6279,8 @@ function matFound(chemRows) {
       var half = Math.ceil(list.length / 2) || 1, html = "";
       var cell = function (r, col, ph) {
         if (!r) return "";
-        if (!live) return '<span class="fcellv">' + esc(r[col] || "") + "</span>";
+        if (!live) return '<span class="fcellv">' +
+          esc(col === "percent" ? pctShow(r[col]) : (r[col] || "")) + "</span>";
          
         return '<input class="fcell" data-chem="' + r.id + '" data-col="' + col +
           '"' + (col === "amount" ? "" : ' inputmode="decimal"') +
@@ -6008,7 +6350,7 @@ function matFound(chemRows) {
         "<th>Product / EPA registration #</th><th style=\"width:6rem\">Amount</th></tr>" +
         (chemRows.length
           ? chemRows.map(function (r) {
-              return "<tr><td>" + esc(r.percent || "") + "</td><td>" + esc(r.product_name) +
+              return "<tr><td>" + esc(pctShow(r.percent)) + "</td><td>" + esc(r.product_name) +
                 (r.epa_number ? " — EPA #" + esc(r.epa_number) : "") + "</td><td>" +
                 esc(r.amount || "") + "</td></tr>";
             }).join("")
@@ -6704,14 +7046,14 @@ var f = src(w.finding, "");
       "That is refused by the database, not by this screen \u2014 a report saying " +
       "\u201cno visible evidence\u201d over a line describing live termites would go " +
       "to a closing saying both.</p>" +
-      '<table class="lst"><tr><th></th><th>Description and location</th></tr>' +
+      '<table class="lst n33ev"><tr><th></th><th>Description and location</th></tr>' +
       [["live", "1. Live insects", "live_insects"],
        ["dead", "2. Dead insects, parts, frass, shelter tubes, exit holes, staining", "dead_insects"],
        ["dmg",  "3. Visible damage", "damage"]].map(function (row) {
         var seenCol = row[0] === "dmg" ? "damage_seen" : row[0] + "_seen";
         var on = carry ? !!carry[seenCol] : !!w[seenCol];
         var txt = carry ? carry[row[2]] : w[row[2]];
-        return "<tr><td style=\"white-space:nowrap\"><label>" +
+        return '<tr><td class="evlbl"><label>' +
           '<input type="checkbox" id="n3s_' + row[0] + '"' + (on ? " checked" : "") +
           dis + "> " + esc(row[1]) + "</label></td>" +
           '<td><input class="f" id="n3t_' + row[0] + '" value="' +
@@ -6754,7 +7096,9 @@ h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
 h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
       "<h2>Section V \u2014 comments and attachments</h2>" +
       fld("n3Com", "Additional comments",
-          inp("n3Com", src(w.comments, (sheetOf(j.id) || {}).notes),
+           
+          inp("n3Com",
+              w.signed_on ? (w.comments || "") : src(w.comments, (sheetOf(j.id) || {}).notes),
               "these are an integral part of the report")) +
       fld("n3Att", "Attachments",
           inp("n3Att", w.attachments,
@@ -7187,8 +7531,9 @@ h += '<div class="n33-sec">Section V. Additional Comments and Attachments ' +
       '<span style="font-weight:400;font-size:.55rem">(these are an integral part ' +
       "of the report)</span></div>" +
       '<div class="n33-lines">' +
-       
-      '<div class="n33-rule">' + esc(src(w.comments, (sheetOf(j.id) || {}).notes)) +
+
+'<div class="n33-rule">' +
+      esc(w.signed_on ? (w.comments || "") : src(w.comments, (sheetOf(j.id) || {}).notes)) +
       "</div>" +
       '<div class="n33-rule">&nbsp;</div><div class="n33-rule">&nbsp;</div>' +
       '<div class="n33-obs"><div style="font-size:.6rem">Attachments</div>' +
@@ -11726,17 +12071,25 @@ if (r) {
             (moved ? ' <span class="pill">moved</span>' : "") + "</td></tr>";
         }).join("") + "</table>" +
         (drift.length
+           
           ? '<p class="note">The reported figures do not move. <b>Money taken</b> drifts ' +
             "when a later payment lands against one of this month\u2019s invoices, which is " +
-            "ordinary. <b>Work finished</b> and <b>Sales tax</b> drift only if a charge on a " +
-            "job finished inside this month changed \u2014 which a closed month refuses " +
-            "(0050), so if either of those two moved, report it.</p>"
+            "ordinary \u2014 and, for a month closed before 20 August 2026, when a payment " +
+            "in it was later returned, because those figures did not subtract a bounced " +
+            "cheque. <b>Sales tax</b> drifts on any month closed before 19 August 2026: " +
+            "the basis changed to accrual that day, so the figure as it stands now is " +
+            "worked out a different way from the one that was filed. Neither is a fault " +
+            "and neither needs reporting. <b>Work finished</b> is the one to ask about: " +
+            "a closed month refuses a change to a charge on a job finished inside it " +
+            "(0050), so if that figure has moved, say so before anybody reopens " +
+            "anything.</p>"
           : '<p class="note">Nothing has changed since it closed.</p>') +
         "</div>";
     }
 
 var over = addMonths(todayISO().slice(0, 8) + "01", 0) > mon;
-    h += '<div class="card"><h2>' + (shut ? "Reopening it" : "Closing the month") + "</h2>";
+     
+    h += '<div class="card noprint"><h2>' + (shut ? "Reopening it" : "Closing the month") + "</h2>";
     if (!isAdmin()) {
       h += '<p class="note">Closing a month is an admin\u2019s to do. ' +
         "Everything on this screen is yours to read.</p>";
@@ -11856,6 +12209,15 @@ async function shutMonth(btn) {
       '<p class="note">It will accept payments and corrections dated inside it again. ' +
       "The reopening is recorded against your name with the reason you give, and the " +
       "figures are worked out afresh when you close it again.</p>" +
+       
+      (String(MC.mon) < "2026-08-01"
+        ? '<div class="msg warn">This month was filed before the tax basis changed ' +
+          "on 19 August 2026, and before returned money began coming out of a " +
+          "month’s takings on 20 August. Closing it again will file <b>different " +
+          "figures from the ones on the return</b> — the table above shows which. " +
+          "If the return has gone in, that is a conversation with the accountant " +
+          "before it is a button.</div>"
+        : "") +
       '<label for="moWhy">Why it is being reopened</label>' +
       '<input id="moWhy" class="f" placeholder="a check that was missed \u00b7 a payment on the wrong day">' +
       '<div class="row"><button class="primary" id="moGo" type="button">Reopen it</button>' +
@@ -12650,7 +13012,79 @@ app.querySelectorAll("input.li,select.li,textarea.li").forEach(function (el) {
         await reloadLists(); renderLists();
       });
     });
-     
+
+function stillOn(uid) {
+      return S.jobs.filter(function (j) {
+         
+        return j.status !== "complete" && j.status !== "cancelled" &&
+               j.status !== "no-access" && onJob(j, uid);
+      }).sort(function (a, b) {
+        return String(a.scheduled_date).localeCompare(String(b.scheduled_date));
+      });
+    }
+    function standDownModal(uid, el) {
+      var p = personOf(uid) || {}, mine = stillOn(uid);
+      var days = {}; mine.forEach(function (j) { days[j.scheduled_date] = 1; });
+      var others = techs().filter(function (t) { return t.id !== uid; });
+      openModal("<h3>" + esc(p.name || "This person") + " is no longer working here?</h3>" +
+        (mine.length
+          ? '<div class="msg warn"><b>' + plural(mine.length, "job") + "</b> still to be " +
+            "done " + (Object.keys(days).length > 1
+              ? "across " + plural(Object.keys(days).length, "day") + ", " +
+                esc(fmtDate(mine[0].scheduled_date)) + " to " +
+                esc(fmtDate(mine[mine.length - 1].scheduled_date))
+              : "on " + esc(fmtDate(mine[0].scheduled_date))) +
+            ".</div>" +
+            '<p class="note">Switching them off does not move the work. It stays on ' +
+            "the calendar under their name, and the only place it shows is the day " +
+            "book, one day at a time.</p>"
+          : '<p class="note">Nothing is booked on them from today, so nothing is ' +
+            "left behind.</p>") +
+        (mine.length && others.length
+          ? '<label for="sdWho">Hand the work to</label>' +
+            '<select id="sdWho" class="f"><option value="">Leave it unassigned — it ' +
+            "goes in the pool on each day</option>" +
+            others.map(function (t) {
+              return '<option value="' + esc(t.id) + '">' + esc(t.name) + "</option>";
+            }).join("") + "</select>"
+          : "") +
+        '<div class="row"><button class="primary" id="sdGo" type="button">' +
+        (mine.length ? "Switch off and hand it over" : "Switch them off") + "</button>" +
+        '<button class="act" id="sdNo" type="button">Leave them working</button></div>');
+      $("sdNo").addEventListener("click", closeModal);
+      $("sdGo").addEventListener("click", async function () {
+        this.disabled = true;
+        try {
+          var to = $("sdWho") ? ($("sdWho").value || null) : null;
+          var i, r;
+           
+          for (i = 0; i < mine.length; i++) {
+            if (mine[i].assigned_to === uid) {
+              r = await sb.from("jobs").update({ assigned_to: to })
+                    .eq("id", mine[i].id).select();
+              if (r.error) throw explain(r.error);
+              if (!(r.data || []).length)
+                throw new Error("A job would not move — nothing has been switched off.");
+            }
+             
+            await sb.from("job_crew").delete()
+              .eq("job_id", mine[i].id).eq("tech_id", uid);
+          }
+          r = await sb.from("profiles").update({ active: false }).eq("id", uid).select();
+          if (r.error) throw explain(r.error);
+          if (!(r.data || []).length)
+            throw new Error("The work moved, but switching them off did not save.");
+          S.people = await many(sb.from("profiles").select("id,name,email,role,is_technician,active,applicator_no,works_under"));
+          await reload(["jobs"]);
+          closeModal(); renderLists();
+          toast(mine.length
+            ? esc(p.name) + " switched off — " + plural(mine.length, "job") + " " +
+              (to ? "given to " + (personOf(to) || {}).name : "put in the pool")
+            : esc(p.name) + " switched off");
+        } catch (e) { toast(e.message); this.disabled = false; }
+      });
+    }
+
     app.querySelectorAll("[data-flag]").forEach(function (el) {
       el.addEventListener("click", async function () {
         var tgt = null, key = null;
@@ -12661,6 +13095,11 @@ app.querySelectorAll("input.li,select.li,textarea.li").forEach(function (el) {
         }
         if (!tgt) return;
         var col = el.getAttribute("data-flag"), now = el.classList.contains("on");
+         
+        if (tgt[1] === "profiles" && col === "active" && now) {
+          standDownModal(key, el);
+          return;
+        }
         var patch = {}; patch[col] = !now;
         el.disabled = true;
         var q = sb.from(tgt[1]).update(patch);
@@ -12875,8 +13314,11 @@ function tzOffsetMs(tz, when) {
 
 work = await many(sb.from("jobs").select("*")
         .eq("status", "complete").eq("completed_date", D));
+       
       openToday = await many(sb.from("jobs").select("*")
-        .eq("scheduled_date", D).in("status", ["scheduled", "rained-out", "no-access"]));
+        .lte("scheduled_date", D)
+        .or("end_date.gte." + D + ",and(end_date.is.null,scheduled_date.gte." + D + ")")
+        .in("status", ["scheduled", "rained-out", "no-access"]));
       carriedRaw = await many(sb.from("jobs").select("*")
         .gte("scheduled_date", shiftISO(D, -CARRY_DAYS)).lt("scheduled_date", D)
         .in("status", ["scheduled", "rained-out", "no-access"]).order("scheduled_date"));
@@ -13242,8 +13684,10 @@ h += '<div class="card"><h2>Bank deposit — ' + money(drawer) + "</h2>" +
 
 if (taxDue > 0.004)
       h += '<div class="card"><h2>Sales tax on this day’s completed work</h2>' +
-        '<p class="note"><b>' + money(taxDue) + "</b> of tax on " + money(taxable) +
-        " of work. That is the State’s money, not the company’s.</p>" +
+         
+        '<p class="note"><b>' + money(taxDue) + "</b> of tax, added up invoice by " +
+        "invoice, on " + money(taxable) + " of work. That is the State’s money, " +
+        "not the company’s.</p>" +
         '<p class="note" style="margin:0">Tax on the work finished, not a slice of the ' +
         "deposit.</p></div>";
 
@@ -13337,7 +13781,8 @@ if (openToday.length)
         openToday.map(function (j) { return openJobLine(j, D); }).join("") + "</div>";
 
     var carried = carriedRaw.filter(function (j) {
-       
+
+if (runsOn(j, D)) return false;
       return j.status === "rained-out" || j.status === "no-access" ||
              !!j.rained_out_on || !!sheetBy[j.id];
     });
@@ -14169,8 +14614,10 @@ function draw() {
       if (mode) return drawReason();
       openModal(head() +
         '<div class="msg"><b>The work was done. Payment is not being pursued.</b><br>' +
-        "It stays on their record as work done, comes off what they owe, and is out of the " +
-        "month’s takings." +
+         
+        "It stays on their record as work done and comes off what they owe. The " +
+        "month’s completed work and its sales tax both drop by this charge; money " +
+        "already taken is not touched." +
         (got > 0.004
           ? "<br>The " + money(got) + " already in stays in. This only stops us asking for " +
             "the " + money(owed) + " left."
@@ -14461,22 +14908,31 @@ harvest();
         var q = $("bkq");
         q.addEventListener("input", function () {
           var t = q.value.trim().toLowerCase();
+           
           var hits = !t ? [] : S.customers.filter(function (c) {
-            if (c.inactive_reason) return false;
              
             var addr = propsOf(c.id).map(function (pp) { return pp.address || ""; }).join(" ");
             return (addr + " " + c.name + " " + (c.first_name || "") + " " + (c.phone || ""))
               .toLowerCase().indexOf(t) >= 0;
+          }).sort(function (x, y) {
+             
+            return (x.inactive_reason ? 1 : 0) - (y.inactive_reason ? 1 : 0);
           }).slice(0, 8);
           $("bkhits").innerHTML = hits.length
             ? hits.map(function (c) {
                 var pp = propsOf(c.id)[0] || {};
                 return '<button class="pickrow" type="button" data-pick="' + c.id + '">' +
-                  "<span><b>" + esc(c.name) + "</b> " + esc(pp.address || "") + "</span>" +
+                  "<span><b>" + esc(c.name) + "</b> " + esc(pp.address || "") +
+                  (c.inactive_reason
+                    ? ' <span class="pill warn">no longer a customer — ' +
+                      esc(c.inactive_reason) + "</span>"
+                    : "") + "</span>" +
                   '<span class="pickamt">' + esc(c.phone || "") + "</span></button>";
               }).join("")
-            : (t ? '<div class="empty" style="padding:.4rem .5rem">No customer found. ' +
-                   "Use <b>New customer</b>.</div>" : "");
+            : (t ? '<div class="empty" style="padding:.4rem .5rem">Nobody on file ' +
+                   "matches that — check the spelling, or use <b>New customer</b>. " +
+                   "Customers marked no longer a customer are included in this " +
+                   "search.</div>" : "");
           $("bkhits").querySelectorAll("[data-pick]").forEach(function (b) {
             b.addEventListener("click", function () { chosen = b.getAttribute("data-pick"); redraw(); });
           });
@@ -14503,9 +14959,18 @@ harvest();
         var sayBkFull = function () {
           var box = $("bkfull");
           if (!box) return;
-          var say = tooMuchNote($("bkwho").value, $("bkdate") ? $("bkdate").value : "",
-                                $("bkwin") ? $("bkwin").value : "",
-                                $("bkslots") ? Number($("bkslots").value) : 1);
+          var day = $("bkdate") ? $("bkdate").value : "";
+          var win = $("bkwin") ? $("bkwin").value : "";
+          var need = $("bkslots") ? Number($("bkslots").value) : 1;
+          var say = tooMuchNote($("bkwho").value, day, win, need);
+           
+          if (!say && !$("bkwho").value && day && win) {
+            var room = techs().length * perWindow();
+            var used = sumLoad(jobsOn(day), win);
+            if (used + Math.max(1, need) > room)
+              say = "Nobody is picked, and the day is already " + used + " of " +
+                    room + " that " + windowName(win).toLowerCase() + ".";
+          }
           box.innerHTML = say
             ? '<div class="msg warn" style="margin:.35rem 0 0">' + esc(say) +
               " Book it anyway if that is the plan.</div>"
@@ -15810,8 +16275,8 @@ var hArr = '<div class="card"><h2>Arrangements</h2>' +
                 (q.void_reason ? " \u2014 " + esc(q.void_reason) : "") + "</div>";
             }
             return '<div class="dates"><a href="#" data-cfq="' + q.id + '">' +
-               
-              money(q.amount) + " · " + esc(quoteSays(q)) +
+
+money(q.amount) + " before tax · " + esc(quoteSays(q)) +
               "</a>" +
               (q.description ? " \u2014 " + esc(q.description) : "") + "</div>";
           }).join("")
@@ -15846,7 +16311,7 @@ var hJobs = '<div class="card"><h2>Every job</h2>';
             '<span class="pill' + (j.status === "complete" ? " ok" : "") + '">' +
             esc(statusLabel(j.status)) + "</span>" +
              
-            (b && j.status === "complete" && Number(b.balance) > 0.004
+            (owes(b) && j.status === "complete"
               ? '<span class="pill warn">' + money(b.balance) + " owed</span>" : "") +
             '<span class="amt">' + (b ? money(b.total) : "\u2014") + "</span></div>" +
             '<div class="why">' +
@@ -16324,7 +16789,7 @@ async function customerCard(id) {
         return '<div class="dates" style="margin:.25rem 0"><a href="#" data-sheet="' + j.id + '">' +
           fmtDate(j.scheduled_date) + " — " +
           esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ") || j.type) + "</a>" +
-          (b ? " · " + money(b.total) + (Number(b.balance) > 0.004 ? " (" + money(b.balance) + " owed)" : "") : "") +
+          (b ? " · " + money(b.total) + (owes(b) ? " (" + money(b.balance) + " owed)" : "") : "") +
           "</div>";
       }).join("") +
       (notes.length ? '<p class="note" style="margin-top:.8rem">Notes</p>' + notes.map(function (n) {
