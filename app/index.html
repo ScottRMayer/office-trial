@@ -1315,7 +1315,12 @@ var IDLE_MS = 20 * 60 * 1000;
         return installed ? "" :
           '<button class="act" id="lkLink" type="button">Email a sign-in link</button>';
       })() +
-      '<button class="act" id="lkOut" type="button">Sign out</button></div>';
+      "</div>" +
+       
+      '<div style="margin-top:.9rem;padding-top:.7rem;border-top:1px solid var(--rule)">' +
+       
+      '<button class="act" id="lkOut" type="button" data-armed="0">Sign out</button>' +
+      '<div id="lkOutWhy"></div></div>';
     var unlock = function () {
       screenLocked = false;
       try { localStorage.removeItem("ut_locked"); } catch (e) {}
@@ -1358,8 +1363,28 @@ var r;
       $("lkMsg").innerHTML = "";
       unlock();
     };
-     
-    $("lkOut").addEventListener("click", async function () {
+
+$("lkOut").addEventListener("click", async function () {
+      var why = $("lkOutWhy");
+      if (this.getAttribute("data-armed") !== "1") {
+        this.setAttribute("data-armed", "1");
+        this.textContent = "Yes, sign out";
+        if (why)
+          why.innerHTML = '<div class="msg warn" style="margin:.5rem 0 0">' +
+            "Signing back in needs a signal. Under a house with none, there is no " +
+            "way back in. If you only want your own work back, type your password " +
+            "above instead — signing out is for handing this to somebody else." +
+            '</div><button class="act" id="lkStay" type="button" ' +
+            'style="margin-top:.5rem">Not now</button>';
+        var stay = $("lkStay"), btn = this;
+        if (stay) stay.addEventListener("click", function () {
+          btn.setAttribute("data-armed", "0");
+          btn.textContent = "Sign out";
+          if (why) why.innerHTML = "";
+        });
+        return;
+      }
+      this.disabled = true;
       try { localStorage.removeItem("ut_locked"); } catch (e) {}
       await sb.auth.signOut(); location.reload();
     });
@@ -11321,6 +11346,8 @@ var MC = null;
       '<span style="flex:1"></span>' +
       '<button class="act" id="mcRefresh" type="button">Recalculate</button>' +
        
+      '<button class="act" id="mcPrint" type="button">🖨 Print</button>' +
+       
       '<button class="act" id="mcPest" type="button">Pesticide used in ' +
         esc(mon.slice(0, 4)) + "</button>" +
       '<button class="act" id="mcDay" type="button">Back to the Daily Close</button></div>';
@@ -11475,6 +11502,8 @@ var over = addMonths(todayISO().slice(0, 8) + "01", 0) > mon;
         MC = null; renderMonthClose();
       });
     if ($("mcDay")) $("mcDay").addEventListener("click", function () { go("close"); });
+     
+    if ($("mcPrint")) $("mcPrint").addEventListener("click", function () { window.print(); });
      
     if ($("mcPest")) $("mcPest").addEventListener("click", function () {
       go("pesticide", Number(route.mon.slice(0, 4)));
