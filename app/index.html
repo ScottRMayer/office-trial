@@ -630,7 +630,10 @@ button.gear{font:inherit;font-size:1.35rem;line-height:1;background:none;border:
   .n33 + .n33{page-break-before:always}
   .n33two{font-family:ui-serif,Georgia,serif;font-size:.74rem;line-height:1.45}
 
-.n33-frame{flex:1 1 auto;border:1px solid #111;border-radius:2px}
+.n33-draft{text-align:center;font-weight:800;font-size:.7rem;letter-spacing:.14em;
+    text-transform:uppercase;padding:.2rem .3rem;color:#111;
+    border-bottom:2px solid #111}
+  .n33-frame{flex:1 1 auto;border:1px solid #111;border-radius:2px}
   .n33-foot{flex:0 0 auto;display:flex;justify-content:space-between;
     align-items:flex-end;gap:.8rem;padding-top:.22rem;
     font-size:.5rem;line-height:1.32;color:#333}
@@ -1288,6 +1291,66 @@ if (rows.length === PAGE)
 var IDLE_MS = 20 * 60 * 1000;
   var idleAt = 0, idleTimer = null, screenLocked = false;
 
+var OFFLINE_MS = 12 * 3600 * 1000;
+  var OFFLINE_ITER = 310000;
+  var OFFLINE_KEY = "ut_off";
+
+  function b64(bytes) {
+    var s = "", i;
+    for (i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function unb64(str) {
+    var raw = atob(str), out = new Uint8Array(raw.length), i;
+    for (i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+    return out;
+  }
+  function subtleOK() {
+    return typeof crypto !== "undefined" && crypto.subtle &&
+           typeof TextEncoder !== "undefined" && typeof btoa === "function";
+  }
+  async function pbkdf2(pw, salt, iter) {
+    var key = await crypto.subtle.importKey(
+      "raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]);
+    var bits = await crypto.subtle.deriveBits(
+      { name: "PBKDF2", salt: salt, iterations: iter, hash: "SHA-256" }, key, 256);
+    return new Uint8Array(bits);
+  }
+   
+  async function armOffline(pw) {
+    if (!pw || !subtleOK() || !S.me || !S.me.id) return;
+    try {
+      var salt = crypto.getRandomValues(new Uint8Array(16));
+      var h = await pbkdf2(pw, salt, OFFLINE_ITER);
+      localStorage.setItem(OFFLINE_KEY, JSON.stringify({
+        v: 1, who: S.me.id, salt: b64(salt), iter: OFFLINE_ITER,
+        hash: b64(h), until: Date.now() + OFFLINE_MS
+      }));
+    } catch (e) { clearOffline(); }
+  }
+  function clearOffline() {
+    try { localStorage.removeItem(OFFLINE_KEY); } catch (e) {}
+  }
+   
+  async function offlineUnlock(pw) {
+    if (!pw || !subtleOK()) return "none";
+    var rec;
+    try { rec = JSON.parse(localStorage.getItem(OFFLINE_KEY) || "null"); } catch (e) { rec = null; }
+    if (!rec || rec.v !== 1 || !rec.hash || !rec.salt) return "none";
+     
+    if (!S.me || rec.who !== S.me.id) { clearOffline(); return "none"; }
+    if (!rec.until || Date.now() > rec.until) { clearOffline(); return "expired"; }
+    try {
+      var want = unb64(rec.hash);
+      var got = await pbkdf2(pw, unb64(rec.salt), rec.iter || OFFLINE_ITER);
+      if (got.length !== want.length) return "no";
+       
+      var diff = 0, i;
+      for (i = 0; i < want.length; i++) diff |= (want[i] ^ got[i]);
+      return diff === 0 ? "ok" : "no";
+    } catch (e) { return "none"; }
+  }
+
   function lockNow() {
     if (screenLocked || !S.me) return;
     screenLocked = true;
@@ -1324,6 +1387,8 @@ var IDLE_MS = 20 * 60 * 1000;
     var unlock = function () {
       screenLocked = false;
       try { localStorage.removeItem("ut_locked"); } catch (e) {}
+       
+      armOffline($("lkPw") ? $("lkPw").value : "");
       $("lockbox").innerHTML = "";
       $("lockveil").classList.remove("show");
        
@@ -1350,9 +1415,29 @@ var r;
           /failed to fetch|network ?error|network request failed/i.test(
             String(r.error.message || ""));
         if (noSignal) {
+           
+          var off = await offlineUnlock(pw);
+          if (off === "ok") {
+            $("lkMsg").innerHTML = "";
+            unlock();
+            toast("Unlocked with no signal — this works for 12 hours after the " +
+                  "last time the password was checked.");
+            return;
+          }
+          if (off === "no") {
+            $("lkMsg").innerHTML = '<div class="msg bad">That password does not ' +
+              "match the one this tablet last checked.</div>";
+            $("lkGo").disabled = false; $("lkPw").value = ""; $("lkPw").focus();
+            return;
+          }
           $("lkMsg").innerHTML = '<div class="msg bad">No signal, so the password ' +
             "could not be checked. It has not been refused — try again once " +
-            "there is a bar.</div>";
+            "there is a bar." +
+            (off === "expired"
+              ? " This tablet could open without a signal for 12 hours after the " +
+                "last check, and that has run out."
+              : "") +
+            "</div>";
           $("lkGo").disabled = false; $("lkPw").focus();
           return;
         }
@@ -1386,7 +1471,7 @@ $("lkOut").addEventListener("click", async function () {
       }
       this.disabled = true;
       try { localStorage.removeItem("ut_locked"); } catch (e) {}
-      await sb.auth.signOut(); location.reload();
+      clearOffline(); await sb.auth.signOut(); location.reload();
     });
     $("lkGo").addEventListener("click", go);
     $("lkPw").addEventListener("keydown", function (e) { if (e.key === "Enter") go(); });
@@ -1409,8 +1494,16 @@ $("lkOut").addEventListener("click", async function () {
     if ($("lkPw")) $("lkPw").focus();
   }
 
-function cannotUnlock() {
-    return typeof navigator !== "undefined" && navigator.onLine === false;
+function offlineWindowLive() {
+    try {
+      var rec = JSON.parse(localStorage.getItem(OFFLINE_KEY) || "null");
+      return !!(rec && rec.v === 1 && rec.hash && rec.until && Date.now() < rec.until &&
+                S.me && rec.who === S.me.id);
+    } catch (e) { return false; }
+  }
+  function cannotUnlock() {
+    if (typeof navigator === "undefined" || navigator.onLine !== false) return false;
+    return !offlineWindowLive();
   }
 
   function touchIdle() {
@@ -1451,7 +1544,7 @@ $("signin").addEventListener("click", doSignIn);
       this.disabled = true;
        
       await WRITEQ;
-      await sb.auth.signOut(); location.reload();
+      clearOffline(); await sb.auth.signOut(); location.reload();
     });
   });
 
@@ -1498,9 +1591,17 @@ async function sendMagicLink() {
        
       try { localStorage.removeItem("ut_locked"); } catch (e) {}
       await start();
+       
+      armOffline(pw);
     } catch (e) { $("gateMsg").innerHTML = '<div class="msg bad">' + esc(e.message) + "</div>"; }
     finally { b.disabled = false; }
   }
+   
+  try {
+    if ("serviceWorker" in navigator && location.protocol !== "file:")
+      navigator.serviceWorker.register("sw.js")["catch"](function () {});
+  } catch (e) {}
+
   sb.auth.getSession().then(function (r) {
     if (r.data && r.data.session) return start();
      
@@ -1534,7 +1635,7 @@ async function sendMagicLink() {
         '<button class="act go" id="retry" type="button">Try again</button>' +
         '<button class="act" id="startOver" type="button">Sign in as someone else</button></div></div>';
       $("retry").addEventListener("click", start);
-      $("startOver").addEventListener("click", async function () { await sb.auth.signOut(); location.reload(); });
+      $("startOver").addEventListener("click", async function () { clearOffline(); await sb.auth.signOut(); location.reload(); });
     }
   }
 
@@ -5696,14 +5797,17 @@ function matFound(chemRows) {
         html += [list[i], list[i + half]].map(function (m) {
           if (!m) return "<td></td><td></td><td></td>";
           var r = found(m);
+           
+          var nm = r ? (r.product_name || m.name) : m.name;
+          var ep = r ? r.epa_number : m.epa_number;
           return "<td>" + cell(r, "percent", "%") + "</td>" +
              
             '<td class="matname' + (r ? " on" : (live ? "" : " dead")) + '"' +
             (live && !r ? ' data-mat="' + esc(m.id) + '" role="checkbox" aria-checked="false" tabindex="0"'
                         : (r ? ' data-filed="' + esc(r.id) + '" title="Tap to take this product off the record."'
                              : ' data-shut="1"')) + ">" +
-            chkBox(!!r) + "<span>" + esc(m.name) +
-            (m.epa_number ? '<span class="epa">EPA #' + esc(m.epa_number) + "</span>" : "") +
+            chkBox(!!r) + "<span>" + esc(nm) +
+            (ep ? '<span class="epa">EPA #' + esc(ep) + "</span>" : "") +
             "</span></td><td>" + cell(r, "amount", "90 gal") + "</td>";
         }).join("");
         html += "</tr>";
@@ -6517,7 +6621,7 @@ h += '<div class="card noprint" style="max-width:52rem;margin:0 auto .8rem">' +
         "receipt of both pages, so a date after the ninety days shows on the list.</p>" +
         "</div>";
 
-h += n33Page1(co, c, p, j, t, w, obs, carry) + n33Page2();
+h += n33Page1(co, c, p, j, t, w, obs, carry) + n33Page2(!w.signed_on);
 
     app.innerHTML = h;
 
@@ -6661,8 +6765,17 @@ function certifyModal() {
         "certified afresh — with who took it off and why on the report.</div>" +
         '<label for="cfDate">Date certified</label>' +
         '<input id="cfDate" class="f" type="date" value="' + todayISO() + '">' +
+         
+        '<label for="cfSig">Your signature (optional)</label>' +
+        '<canvas class="sig" id="cfSig" width="600" height="200"></canvas>' +
+        '<p class="note">Sign here and it prints in Section I. Leave it empty and ' +
+        "the form prints the blank rule to sign by hand, as it does now.</p>" +
+        '<div class="acts" style="margin-top:.4rem">' +
+        '<button class="act" id="cfClr" type="button">Clear</button></div>' +
         '<div class="row"><button class="primary" id="cfGo" type="button">Certify</button>' +
         '<button class="act" id="cfNo" type="button">Not yet</button></div>');
+      initSig("cfSig");
+      $("cfClr").addEventListener("click", function () { SIG.strokes = []; drawSig(); });
       $("cfNo").addEventListener("click", closeModal);
       $("cfGo").addEventListener("click", async function () {
         this.disabled = true;
@@ -6677,6 +6790,10 @@ function certifyModal() {
           patch.company_licence = co.business_licence || null;
           patch.property_address =
             addrLine(p.address, p.city, co.state || "NJ", p.zip) || null;
+           
+          var cfStrokes = SIG.strokes.filter(function (s) { return s.length >= 4; });
+          if (cfStrokes.length)
+            patch.signature = { w: SIG.cv.width, h: SIG.cv.height, strokes: cfStrokes };
           var r = w.id
             ? await sb.from("wdi_reports").update(patch).eq("id", w.id).select()
             : await sb.from("wdi_reports").insert(
@@ -6781,6 +6898,10 @@ function n33Page1(co, c, p, j, t, w, obs, carry) {
     var addr = src(w.property_address, addrLive);
 
     var h = '<div class="sheet n33"><div class="n33-frame">';
+
+if (!w.signed_on)
+      h += '<div class="n33-draft">Draft — not certified — not for use in a ' +
+           "real estate transaction</div>";
 
 h += '<div class="n33-row" style="grid-template-columns:1fr auto">' +
       '<div class="n33-cell" style="font-size:1.02rem;font-weight:800">' +
@@ -6947,7 +7068,7 @@ h += '<div class="n33-row two" style="border-top:1px solid #111">' +
       esc(N33_FOOT2) + '</div><div class="n33-pg">' + esc(pg) + "</div></div>";
   }
 
-function n33Page2() {
+function n33Page2(draft) {
     var items = [
       ["About the Inspection:",
        "A visual inspection was conducted in the readily accessible areas of the " +
@@ -7013,6 +7134,8 @@ function n33Page2() {
        "destroying insects and the need for treatment."]
     ];
     var h = '<div class="sheet n33 n33two"><div class="n33-frame">' +
+      (draft ? '<div class="n33-draft">Draft — not certified — not for use in a ' +
+               "real estate transaction</div>" : "") +
       '<div class="n33-body">' +
       '<div style="font-size:1rem;font-weight:700;line-height:1.2;margin-bottom:.4rem">' +
       "Important Consumer Information Regarding<br>the Scope and Limitations of the " +
