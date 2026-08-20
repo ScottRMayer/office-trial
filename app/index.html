@@ -4437,8 +4437,23 @@ var CE_ACTS = [
       d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   }
    
+  function ceSeen(jobId, kind) {
+    var e = ceOf(jobId, kind);
+    if (e) return { at: e.occurred_at, who: e.actor_name, gps: e.gps_lat,
+                    id: e.id, log: true };
+    var tr = trOf(jobId);
+    if (!tr) return null;
+    if (kind === "sign-posted" && tr.sign_posted_at)
+      return { at: tr.sign_posted_at, log: false };
+    if (kind === "sign-removed" && tr.sign_removed_at)
+      return { at: tr.sign_removed_at, log: false };
+     
+    if (kind === "regs-given" && tr.regs_given) return { at: null, log: false };
+    return null;
+  }
+   
   var ceOffer = function (j, k) {
-    return k !== "sign-removed" || !!ceOf(j.id, "sign-posted");
+    return k !== "sign-removed" || !!ceSeen(j.id, "sign-posted");
   };
 
 function ceFix(done) {
@@ -4540,14 +4555,19 @@ var CE_WHY = ["Tapped by mistake", "Wrong job", "It did not actually happen"];
 
 function ceStrip(j) {
     return '<table class="lst">' + CE_ACTS.map(function (a) {
-      var e = ceOf(j.id, a[0]);
+      var e = ceSeen(j.id, a[0]);
       return '<tr><td style="width:11rem">' + esc(a[1]) + "</td><td>" +
         (e
-          ? "<b>" + esc(ceWhen(e.occurred_at)) + "</b> " +
-            '<span class="empty">' + esc(e.actor_name || "") +
-            (e.gps_lat != null ? " · position recorded" : "") + "</span> " +
-            '<button class="act" data-ce-undo="' + e.id + '" type="button" ' +
-            'style="padding:.1rem .4rem;font-size:.72rem">Correct this entry</button>'
+           
+          ? "<b>" + esc(e.at ? ceWhen(e.at) : "Recorded") + "</b> " +
+             
+            (e.log
+              ? '<span class="empty">' + esc(e.who || "") +
+                (e.gps != null ? " · position recorded" : "") + "</span> " +
+                '<button class="act" data-ce-undo="' + e.id + '" type="button" ' +
+                'style="padding:.1rem .4rem;font-size:.72rem">Correct this entry</button>'
+              : '<span class="empty">from the treatment record, before the ' +
+                "compliance log</span>")
           : (ceOffer(j, a[0])
               ? '<button class="act go" data-ce-add="' + j.id + "|" + a[0] +
                 '" type="button">' + esc(a[2]) + "</button>"
@@ -4561,10 +4581,10 @@ function ceStrip(j) {
     if (NEEDS_RECORD.indexOf(j.type) < 0) return "";
     return '<div class="acts" style="margin-top:.35rem">' +
       CE_ACTS.map(function (a) {
-        var e = ceOf(j.id, a[0]);
+        var e = ceSeen(j.id, a[0]);
         if (e)
-          return '<span class="pill ok">' + esc(a[2]) + " " +
-            esc(ceWhen(e.occurred_at)) + "</span>";
+          return '<span class="pill ok">' + esc(a[2]) +
+            (e.at ? " " + esc(ceWhen(e.at)) : "") + "</span>";
         return ceOffer(j, a[0])
           ? '<button class="act" data-ce-add="' + j.id + "|" + a[0] +
             '" type="button">' + esc(a[2]) + "</button>"
@@ -4574,7 +4594,8 @@ function ceStrip(j) {
    
   function ceGapBtn(r) {
     var k = r.job_id ? CE_FOR_GAP[r.gap] : null;
-    if (!k || ceOf(r.job_id, k)) return "";
+     
+    if (!k || ceSeen(r.job_id, k)) return "";
     return '<button class="act go" data-ce-add="' + r.job_id + "|" + k +
       '" type="button" style="padding:.1rem .4rem;font-size:.72rem">' +
       esc(ceLabel(k)) + "</button> ";
@@ -4600,14 +4621,16 @@ function ceStrip(j) {
 
 function completePrompt(j, btn) {
     if (NEEDS_RECORD.indexOf(j.type) < 0) { completeJob(j, btn); return; }
-    var ask = ["sign-posted", "cis-given"].filter(function (k) { return !ceOf(j.id, k); });
-    var done = ["sign-posted", "cis-given"].filter(function (k) { return !!ceOf(j.id, k); });
+     
+    var ask = ["sign-posted", "cis-given"].filter(function (k) { return !ceSeen(j.id, k); });
+    var done = ["sign-posted", "cis-given"].filter(function (k) { return !!ceSeen(j.id, k); });
     if (!ask.length) { completeJob(j, btn); return; }
     openModal("<h3>Before the job is marked complete</h3>" +
       (done.length
         ? '<div class="msg good">' + done.map(function (k) {
-            var e = ceOf(j.id, k);
-            return esc(ceLabel(k)) + " " + esc(ceWhen(e.occurred_at));
+            var e = ceSeen(j.id, k);
+            return esc(ceLabel(k)) +
+              (e.at ? " " + esc(ceWhen(e.at)) : " — on the treatment record");
           }).join("<br>") + "</div>"
         : "") +
       '<p class="note">Each one is recorded with your name and the time. Nothing ' +
@@ -5334,7 +5357,7 @@ var regsOwed = chems.some(function (r) {
     });
     h += '<div class="rs-sec noprint"><div class="rs-band">Warning sign and documents</div>' +
       ceStrip(j) +
-      (regsOwed && !ceOf(j.id, "regs-given")
+      (regsOwed && !ceSeen(j.id, "regs-given")
         ? '<div class="msg warn"><b>The regulations are required here</b> \u2014 a ' +
           "termiticide that is not a bait.</div>"
         : "") +
