@@ -60,11 +60,8 @@
   .who{font-size:.82rem;color:var(--ink-soft);white-space:nowrap}
   .who b{color:var(--ink)}
    
-  nav{display:flex;gap:.25rem;overflow-x:auto;margin-top:.5rem;
-    -webkit-overflow-scrolling:touch;
-    mask-image:linear-gradient(to right,#000 calc(100% - 1.6rem),transparent);
-    -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 1.6rem),transparent)}
-  @media (min-width:721px){ nav{mask-image:none;-webkit-mask-image:none} }
+  nav{display:flex;flex-wrap:wrap;gap:.25rem;overflow-x:auto;margin-top:.5rem;
+    -webkit-overflow-scrolling:touch}
   nav button{font:inherit;font-size:.86rem;font-weight:600;white-space:nowrap;
     padding:.35rem .75rem;border-radius:20px;border:1px solid transparent;
     background:none;color:var(--ink-soft);cursor:pointer}
@@ -314,6 +311,11 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
     border:1px solid var(--rule);background:var(--paper);color:var(--ink-soft)}
   button.tgl.on{background:var(--brand-w);border-color:var(--brand);color:var(--brand)}
   button.tgl:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+   
+  @media (max-width:720px){
+    button.tgl{min-height:2.75rem;min-width:2.75rem}
+    input.li,select.li{min-height:2.5rem}
+  }
   .chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.7rem}
   .chip{display:inline-flex;align-items:center;gap:.3rem;font-size:.82rem;padding:.2rem .3rem .2rem .55rem;
     border:1px solid var(--rule);border-radius:14px;background:var(--paper)}
@@ -323,9 +325,11 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .chip .x:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
   .addrow{display:flex;gap:.4rem;align-items:center}
   .addrow input{flex:1}
-   
-  button.gear{font:inherit;font-size:1.35rem;line-height:1;background:none;border:none;
-    cursor:pointer;color:var(--ink-soft);padding:.1rem .25rem;border-radius:4px}
+
+button.gear{font:inherit;font-size:1.35rem;line-height:1;background:none;border:none;
+    cursor:pointer;color:var(--ink-soft);padding:.1rem .25rem;border-radius:4px;
+    min-width:2.25rem;min-height:2.25rem;
+    display:inline-flex;align-items:center;justify-content:center}
   button.gear:hover{color:var(--brand);background:var(--brand-w)}
   button.gear:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
   select.li{width:100%;font:inherit;font-size:.84rem;padding:.22rem .3rem;
@@ -511,6 +515,9 @@ table.lst{width:100%;border-collapse:collapse;font-size:.86rem;display:block;ove
   .fcols.three{grid-template-columns:1fr 1fr 1.15fr;gap:0 .8rem}
   @media (max-width:720px){
     .fcols,.fcols.five,.fcols.three,.fcols.two{grid-template-columns:1fr 1fr}
+     
+    .chkbtn{min-height:2.75rem}
+    .fline,.fcell{min-height:2.75rem}
      
     table.matpick col.pct{width:3.2rem} table.matpick col.amt{width:4.2rem}
     table.matpick{font-size:.72rem}
@@ -838,6 +845,8 @@ body.letters #app > *:not(#letterPrint){display:none!important}
     .sheet.rspad .penline{display:inline-block;width:3.4rem;border-bottom:1px solid #000}
     .sheet.rspad .penrule{border-bottom:1px solid #000;height:.62rem;margin-top:.12rem}
     .sheet.rspad .fline{font-size:.54rem;border-bottom-color:#000}
+     
+    .sheet.rspad .chkbtn,.sheet.rspad .fline,.sheet.rspad .fcell{min-height:0}
      
     .sheet.rspad ::placeholder{color:transparent}
     .sheet.rspad ::-webkit-input-placeholder{color:transparent}
@@ -1321,9 +1330,27 @@ var IDLE_MS = 20 * 60 * 1000;
       if (!pw) return;
       $("lkGo").disabled = true;
       $("lkMsg").innerHTML = '<div class="msg">Checking…</div>';
-       
-      var r = await sb.auth.signInWithPassword({ email: S.me.email || "", password: pw });
+
+var r;
+      try {
+        r = await sb.auth.signInWithPassword({ email: S.me.email || "", password: pw });
+      } catch (e) {
+        r = { error: e || new Error("Failed to fetch") };
+      }
       if (r.error) {
+         
+        var noSignal =
+          (typeof navigator !== "undefined" && navigator.onLine === false) ||
+          r.error.name === "AuthRetryableFetchError" ||
+          /failed to fetch|network ?error|network request failed/i.test(
+            String(r.error.message || ""));
+        if (noSignal) {
+          $("lkMsg").innerHTML = '<div class="msg bad">No signal, so the password ' +
+            "could not be checked. It has not been refused — try again once " +
+            "there is a bar.</div>";
+          $("lkGo").disabled = false; $("lkPw").focus();
+          return;
+        }
         $("lkMsg").innerHTML = '<div class="msg bad">That password does not match.</div>';
         $("lkGo").disabled = false; $("lkPw").value = ""; $("lkPw").focus();
         return;
@@ -1357,12 +1384,18 @@ var IDLE_MS = 20 * 60 * 1000;
     if ($("lkPw")) $("lkPw").focus();
   }
 
+function cannotUnlock() {
+    return typeof navigator !== "undefined" && navigator.onLine === false;
+  }
+
   function touchIdle() {
     idleAt = Date.now();
     if (idleTimer) return;
     idleTimer = setInterval(function () {
       if (!S.me || screenLocked) return;
-      if (Date.now() - idleAt >= IDLE_MS) lockNow();
+      if (Date.now() - idleAt < IDLE_MS) return;
+      if (cannotUnlock()) return;
+      lockNow();
     }, 30 * 1000);
   }
 
@@ -1372,7 +1405,7 @@ var IDLE_MS = 20 * 60 * 1000;
    
   document.addEventListener("visibilitychange", function () {
     if (document.visibilityState === "visible" && S.me && !screenLocked &&
-        Date.now() - idleAt >= IDLE_MS) lockNow();
+        Date.now() - idleAt >= IDLE_MS && !cannotUnlock()) lockNow();
   });
 
 $("signin").addEventListener("click", doSignIn);
@@ -1811,6 +1844,19 @@ function goBack(fallback) {
   }
 
   window.addEventListener("popstate", function () {
+     
+    if (MODAL_POPPING) { MODAL_POPPING = 0; return; }
+
+if (!screenLocked && $("veil").classList.contains("show")) {
+      MODAL_HIST = 0;
+      if (mayDiscard("Use Back or Cancel — swiping back will not discard this.",
+                     "Swipe back again"))
+        closeModal();
+      else
+        try { history.pushState({ utModal: 1 }, ""); MODAL_HIST = 1; } catch (e) {}
+      return;
+    }
+
     if (!NAV.length) return;           
     navRestore(NAV.pop());
   });
@@ -2787,6 +2833,37 @@ function slotsInWindow(j, w) {
     return out;
   }
   var onJob = function (j, techId) { return techsOnJob(j).indexOf(techId) >= 0; };
+   
+  function sumLoad(list, w) {
+    var T = techs();
+    return list.reduce(function (n, j) {
+      var on = techsOnJob(j).filter(function (id) {
+        return T.some(function (t) { return t.id === id; });
+      }).length;
+      return n + (w ? slotsInWindow(j, w) : slotsOf(j)) * Math.max(1, on);
+    }, 0);
+  }
+   
+  function techLoad(techId, iso, w, exceptId) {
+    if (!techId || !iso) return 0;
+    return jobsOn(iso).reduce(function (n, j) {
+      if (j.id === exceptId || !onJob(j, techId)) return n;
+      return n + (w ? slotsInWindow(j, w) : slotsOf(j));
+    }, 0);
+  }
+   
+  function tooMuchNote(techId, iso, w, need, exceptId) {
+     
+    if (!techId || !iso || !w) return "";
+    var room = perWindow(), has = techLoad(techId, iso, w, exceptId);
+    var want = Math.max(1, Number(need) || 1);
+    if (has + want <= room) return "";
+    var p = personOf(techId);
+     
+    return (p ? p.name.split(" ")[0] : "That technician") + " already has " +
+      has + " of " + room + " slots that " + windowName(w).toLowerCase() +
+      ", and this needs " + want + ".";
+  }
   var crewNames = function (j, exceptId) {
     return techsOnJob(j).filter(function (id) { return id !== exceptId; })
       .map(function (id) { var pp = personOf(id); return pp ? pp.name.split(" ")[0] : "?"; });
@@ -2921,9 +2998,7 @@ function dayBook(d) {
       var pool = inWin.filter(function (j) { return !techsOnJob(j).length; });
       var room = T.length * cap;
        
-      var used = sumSlots(pool, key) + T.reduce(function (n, t) {
-        return n + sumSlots(inWin.filter(function (j) { return onJob(j, t.id); }), key);
-      }, 0);
+      var used = sumLoad(inWin, key);
 
       h += '<div class="winhdr"><h2>' + esc(windowText(key)) + "</h2>" +
         '<span class="pill' + (used > room ? " warn" : "") + '">' +
@@ -2997,9 +3072,13 @@ var noWin = all.filter(function (j) { return !windowOf(j); });
 
 (withAssign === true && isOffice()
         ? '<span class="give noprint">' +
+           
           techs().map(function (t) {
+            var full = tooMuchNote(t.id, route.date, windowOf(j),
+                                   slotsInWindow(j, windowOf(j)), j.id);
             return '<button class="act" data-take="' + j.id + "|" + t.id +
-              '" type="button">' + esc(t.name.split(" ")[0]) + "</button>";
+              '" type="button"' + (full ? ' title="' + esc(full) + '"' : "") + ">" +
+              esc(t.name.split(" ")[0]) + (full ? " · full" : "") + "</button>";
           }).join("") + "</span>"
         : "") +
       "</div>";
@@ -3024,7 +3103,7 @@ function weekView(d) {
           ? WINDOWS.map(function (W) {
               var inW = js.filter(function (j) { return occupies(j, W[0]); });
               return inW.length ? '<span class="' +
-                (sumSlots(inW, W[0]) > room ? "over" : "") + '">' +
+                (sumLoad(inW, W[0]) > room ? "over" : "") + '">' +
                 W[0].toUpperCase() + " " + inW.length + "</span>" : "";
             }).filter(Boolean).join(" ") +
             (loose ? '<span class="over">? ' + loose + "</span>" : "") || js.length
@@ -3164,9 +3243,13 @@ var waiting = isOffice()
               : "") +
             '<div class="acts">' +
             techs().map(function (t) {
+              var full = tooMuchNote(t.id, d, windowOf(j),
+                                     slotsInWindow(j, windowOf(j)), j.id);
               return '<button class="act' + (t.id === S.me.id ? " go" : "") + '" data-take="' +
-                j.id + "|" + t.id + '" type="button">' +
-                (t.id === S.me.id ? "Assign to me" : esc(t.name.split(" ")[0])) + "</button>";
+                j.id + "|" + t.id + '" type="button"' +
+                (full ? ' title="' + esc(full) + '"' : "") + ">" +
+                (t.id === S.me.id ? "Assign to me" : esc(t.name.split(" ")[0])) +
+                (full ? " · full" : "") + "</button>";
             }).join("") +
             '<button class="act" data-job="' + j.id + '" type="button">Open the job</button>' +
             "</div></div>";
@@ -3579,14 +3662,20 @@ function moveDayModal(j, back) {
       (span > 1 ? " · " + plural(span, "day") : "") + "</p>" +
       '<div class="acts" style="margin-bottom:.7rem">' +
       quick.map(function (q) {
-        return '<button class="act" data-push="' + q[0] + '" type="button">' + q[1] +
+         
+        var pfull = tooMuchNote(j.assigned_to, shiftISO(base, Number(q[0])),
+                                windowOf(j), slotsOf(j), j.id);
+        return '<button class="act" data-push="' + q[0] + '" type="button"' +
+          (pfull ? ' title="' + esc(pfull) + '"' : "") + ">" + q[1] +
           '<span class="empty" style="font-size:.7rem"> ' +
-          esc(fmtDate(shiftISO(base, Number(q[0])))) + "</span></button>";
+          esc(fmtDate(shiftISO(base, Number(q[0])))) +
+          (pfull ? " · full" : "") + "</span></button>";
       }).join("") + "</div>" +
       '<label for="mvDate">Or select a date</label>' +
-       
-      '<input id="mvDate" class="f" type="date" min="' + esc(base) +
-      '" value="' + esc(shiftISO(base, 1)) + '">' +
+
+'<input id="mvDate" class="f" type="date" min="' + esc(base) +
+      '" max="' + esc(shiftISO(base, 1095)) +
+      '" value="' + esc(from > base ? from : shiftISO(base, 1)) + '">' +
       '<label for="mvWin">Morning or afternoon</label><select id="mvWin" class="f">' +
       WINDOWS.map(function (W) {
         return '<option value="' + W[0] + '"' + (windowOf(j) === W[0] ? " selected" : "") +
@@ -3595,6 +3684,8 @@ function moveDayModal(j, back) {
       (span > 1
         ? '<p class="note">It runs ' + plural(span, "day") + ", so the whole run moves.</p>"
         : "") +
+       
+      '<div id="mvfull"></div>' +
       '<div class="row"><button class="primary" id="mvGo" type="button">Move the job</button>' +
       '<button class="act" id="mvNo" type="button">' +
       (back ? "Back" : "Cancel") + "</button></div>");
@@ -3608,6 +3699,22 @@ function moveDayModal(j, back) {
     $("mvGo").addEventListener("click", function () {
       doMove($("mvDate").value, $("mvWin").value, this);
     });
+     
+    var sayMvFull = function () {
+      var box = $("mvfull");
+      if (!box) return;
+      var say = tooMuchNote(j.assigned_to, $("mvDate").value, $("mvWin").value,
+                            slotsOf(j), j.id);
+      box.innerHTML = say
+        ? '<div class="msg warn" style="margin:.35rem 0 0">' + esc(say) +
+          " Move it anyway if that is the plan.</div>"
+        : "";
+    };
+    ["mvDate", "mvWin"].forEach(function (id) {
+      $(id).addEventListener("change", sayMvFull);
+      $(id).addEventListener("input", sayMvFull);
+    });
+    sayMvFull();
     async function doMove(to, win, btn) {
       if (!to) { toast("Which day?"); return; }
        
@@ -3744,14 +3851,20 @@ if (!sup.applicator_no) {
       '<label>Target pests</label><div id="pests" class="grid4" style="display:grid;' +
       'grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));margin-bottom:.8rem">' +
       pests.map(function (x) {
-        return '<div class="box" data-p="' + esc(x) + '"><span class="chk' +
+         
+        return '<div class="box' + (canWrite ? "" : " dead") + '"' +
+          (canWrite ? ' data-p="' + esc(x) + '"' : ' data-shut="1"') +
+          '><span class="chk' +
           (chosen.p.indexOf(x) >= 0 ? " on" : "") + '">' + (chosen.p.indexOf(x) >= 0 ? "✓" : "") +
           "</span>" + esc(x) + "</div>";
       }).join("") + "</div>" +
       '<label>Areas treated</label><div id="locs" style="display:grid;' +
       'grid-template-columns:repeat(auto-fit,minmax(9rem,1fr));margin-bottom:.8rem">' +
       areasL.map(function (x) {
-        return '<div class="box" data-a="' + esc(x) + '"><span class="chk' +
+         
+        return '<div class="box' + (canWrite ? "" : " dead") + '"' +
+          (canWrite ? ' data-a="' + esc(x) + '"' : ' data-shut="1"') +
+          '><span class="chk' +
           (chosen.a.indexOf(x) >= 0 ? " on" : "") + '">' + (chosen.a.indexOf(x) >= 0 ? "✓" : "") +
           "</span>" + esc(x) + "</div>";
       }).join("") + "</div>" +
@@ -3849,6 +3962,12 @@ var trNow = trOf(j.id);
          
         if (!trNow) body.tech_id = S.me.id;
         if (!trNow || !trNow.completed_at) body.completed_at = new Date().toISOString();
+         
+        if (amendWhy) {
+          body.amended_at = new Date().toISOString();
+          body.amended_by = S.me.id;
+          body.amend_reason = amendWhy;
+        }
         var r = trNow
           ? await sb.from("treatment_records").update(body).eq("id", trNow.id).select()
           : await sb.from("treatment_records").insert(body).select();
@@ -5541,8 +5660,10 @@ function matFound(chemRows) {
       var cell = function (r, col, ph) {
         if (!r) return "";
         if (!live) return '<span class="fcellv">' + esc(r[col] || "") + "</span>";
+         
         return '<input class="fcell" data-chem="' + r.id + '" data-col="' + col +
-          '" inputmode="decimal" placeholder="' + ph + '" value="' + esc(r[col] || "") + '">';
+          '"' + (col === "amount" ? "" : ' inputmode="decimal"') +
+          ' placeholder="' + ph + '" value="' + esc(r[col] || "") + '">';
       };
       for (var i = 0; i < half; i++) {
         html += "<tr>";
@@ -9158,8 +9279,9 @@ function agreedOn(jobId) {
 function agreedNote(jobId) {
     var q = agreedOn(jobId);
     if (!q) return "";
+     
     return '<div class="why" style="margin-top:.2rem">Agreed on the estimate: <b>' +
-      esc(money(q.amount)) + "</b>" +
+      esc(money(q.amount)) + "</b> before tax" +
       (q.description ? " · " + esc(q.description) : "") + "</div>";
   }
 
@@ -13974,7 +14096,10 @@ h += '<label>Services</label>' +
 
 h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
         '<div><label for="bkdate">Day</label>' +
-        '<input id="bkdate" class="f" type="date" value="' + esc(pre.date || route.date || todayISO()) + '">' +
+         
+        '<input id="bkdate" class="f" type="date" min="' + esc(todayISO()) +
+        '" max="' + esc(shiftISO(todayISO(), 1095)) +
+        '" value="' + esc(pre.date || route.date || todayISO()) + '">' +
          
         '<div id="bkshut"></div></div>' +
         '<div><label for="bkwin">Morning or afternoon</label><select id="bkwin" class="f">' +
@@ -14002,7 +14127,9 @@ h += '<label for="bkwho">Technician</label><select id="bkwho" class="f">' +
         '<option value="">Unassigned</option>' +
         techs().map(function (t) {
           return '<option value="' + t.id + '">' + esc(t.name) + "</option>";
-        }).join("") + "</select>";
+        }).join("") + "</select>" +
+         
+        '<div id="bkfull"></div>';
 
       h += '<label for="bknote">Notes for the technician</label>' +
         '<input id="bknote" class="f" placeholder="side door, dog on the property"' +
@@ -14065,6 +14192,26 @@ harvest();
         $("bkdate").addEventListener("change", sayBkShut);
         $("bkdate").addEventListener("input", sayBkShut);
         sayBkShut();
+      }
+       
+      if ($("bkwho") && $("bkfull")) {
+        var sayBkFull = function () {
+          var box = $("bkfull");
+          if (!box) return;
+          var say = tooMuchNote($("bkwho").value, $("bkdate") ? $("bkdate").value : "",
+                                $("bkwin") ? $("bkwin").value : "",
+                                $("bkslots") ? Number($("bkslots").value) : 1);
+          box.innerHTML = say
+            ? '<div class="msg warn" style="margin:.35rem 0 0">' + esc(say) +
+              " Book it anyway if that is the plan.</div>"
+            : "";
+        };
+        ["bkwho", "bkdate", "bkwin", "bkslots"].forEach(function (id) {
+          if (!$(id)) return;
+          $(id).addEventListener("change", sayBkFull);
+          $(id).addEventListener("input", sayBkFull);
+        });
+        sayBkFull();
       }
       $("bkGo").addEventListener("click", saveBooking);
     }
@@ -14305,6 +14452,9 @@ if (billAddr && billAddr !== svcAddr) {
           var up = await sb.from("properties").update(patch)
             .eq("customer_id", made.id).eq("is_primary", true).select();
           if (up.error) throw explain(up.error);
+           
+          if (!(up.data || []).length)
+            throw new Error("The community and month box did not save.");
         }
         S.customers = await all(function () { return sb.from("customers").select("*").order("name").order("id"); });
         S.properties = await all(function () { return sb.from("properties").select("*").order("id"); });
@@ -14396,6 +14546,10 @@ function openModal(html) {
     stampModal();
     DISCARD_ASKED = 0;
      
+    if (!MODAL_HIST) {
+      try { history.pushState({ utModal: 1 }, ""); MODAL_HIST = 1; } catch (e) {}
+    }
+     
     setTimeout(function () {
       var fs = $("modal").querySelectorAll("input,select,textarea,button"), f = null, i;
       for (i = 0; i < fs.length; i++) {
@@ -14412,6 +14566,12 @@ function openModal(html) {
      
     $("veil").classList.remove("show"); $("veil").classList.remove("wide");
     $("modal").innerHTML = ""; document.body.style.overflow = "";
+     
+    if (MODAL_HIST) {
+      MODAL_HIST = 0;
+      MODAL_POPPING = 1;
+      try { history.back(); } catch (e) { MODAL_POPPING = 0; }
+    }
   }
    
   $("veil").addEventListener("click", function (e) {
@@ -14462,6 +14622,8 @@ function wayOut() {
   }
 
 var DISCARD_ASKED = 0;
+   
+  var MODAL_HIST = 0, MODAL_POPPING = 0;
   function mayDiscard(refuse, again) {
     if ($("modal").querySelector("canvas.sig,[data-p],[data-a],[data-snapkind],#snapRe")) {
       toast(refuse);
@@ -15378,7 +15540,8 @@ var hJobs = '<div class="card"><h2>Every job</h2>';
               : "no date") + "</span>" +
             '<span class="pill' + (j.status === "complete" ? " ok" : "") + '">' +
             esc(statusLabel(j.status)) + "</span>" +
-            (b && Number(b.balance) > 0.004
+             
+            (b && j.status === "complete" && Number(b.balance) > 0.004
               ? '<span class="pill warn">' + money(b.balance) + " owed</span>" : "") +
             '<span class="amt">' + (b ? money(b.total) : "\u2014") + "</span></div>" +
             '<div class="why">' +
