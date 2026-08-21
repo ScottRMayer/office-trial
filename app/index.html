@@ -1217,7 +1217,7 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
             invoices: [], balances: [], quotes: [], evals: [], warranties: [], attention: [],
             progLetters: [], progExtras: [], closedDays: [], calls: [], recalls: [],
             cis: [], cisItems: [], gaps: [], wdi: [], wdiStatus: [],
-            markouts: [], holidays: [], markoutStatus: [],
+            markouts: [], holidays: [], leadCheck: [], markoutStatus: [],
             compEvents: [],
             loadedAt: null };
   var route = { name: "dashboard", arg: null, date: todayISO(), tech: null,
@@ -1880,9 +1880,11 @@ off ? many(sb.from("service_catalog").select("*").order("sort_order").order("nam
        
       soft(sb.from("markouts").select("*").order("valid_from", { ascending: false }),
            "markouts", "the dig tickets - run supabase/migrations/0071"),
-      soft(sb.from("business_holidays").select("*").order("on_date"),
-           "business_holidays",
-           "the holidays the four business days are counted against - run supabase/migrations/0071"),
+      soft(sb.from("v_business_holidays").select("*").order("on_date"),
+           "v_business_holidays",
+           "the holidays the four business days are counted against - run supabase/migrations/0072"),
+      off ? soft(sb.from("v_markout_lead_check").select("*"), "v_markout_lead_check",
+                 "the check that reads the dig lead time back off the tickets - run supabase/migrations/0072") : [],
       off ? soft(sb.from("v_markout_status").select("*"), "v_markout_status",
                  "the dig watchlist - run supabase/migrations/0071") : []
     ]);
@@ -1901,7 +1903,7 @@ off ? many(sb.from("service_catalog").select("*").order("sort_order").order("nam
     S.cis = r[28]; S.cisItems = r[29]; S.gaps = r[30];
     S.wdi = r[31]; S.wdiStatus = r[32];
     S.compEvents = r[33];
-    S.markouts = r[34]; S.holidays = r[35]; S.markoutStatus = r[36];
+    S.markouts = r[34]; S.holidays = r[35]; S.leadCheck = r[36]; S.markoutStatus = r[37];
      
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
@@ -1976,7 +1978,7 @@ function snapLoad(uid) {
     S.cis = []; S.cisItems = []; S.gaps = []; S.wdi = []; S.wdiStatus = [];
     S.compEvents = [];
      
-    S.markoutStatus = [];
+    S.markoutStatus = []; S.leadCheck = [];
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
     });
@@ -2042,9 +2044,12 @@ async function reload(what) {
       S.markouts = await soft(sb.from("markouts").select("*")
                                 .order("valid_from", { ascending: false }),
                               "markouts", "the dig tickets");
-      if (isOffice())
+      if (isOffice()) {
         S.markoutStatus = await soft(sb.from("v_markout_status").select("*"),
                                      "v_markout_status", "the dig watchlist");
+        S.leadCheck = await soft(sb.from("v_markout_lead_check").select("*"),
+                                 "v_markout_lead_check", "the dig lead-time check");
+      }
     }
     if (isOffice() && (!what || what.indexOf("cis") >= 0)) {
       S.cis = await soft(sb.from("consumer_sheets").select("*")
@@ -2518,7 +2523,7 @@ function breaksGround(serviceId) {
     return linesOf(j.id).some(function (l) { return breaksGround(l.service_id); });
   }
 
-  function holidayOn(iso) {
+function holidayOn(iso) {
     return (S.holidays || []).some(function (h) { return h.on_date === iso; });
   }
 
@@ -2718,6 +2723,7 @@ var h = missingBanner() + "<h1>Dashboard</h1>" +
 
 var wlGaps = "", dwGaps = "", wlWdi = "", dwWdi = "", wlWdiUrgent = false;
     var wlMk = "", dwMk = "", wlMkUrgent = false;
+    var wlLead = "", dwLead = "";
     var wlStale = "", dwStale = "";
     var wlOrphan = "", dwOrphan = "";
 
@@ -2906,6 +2912,24 @@ if ((S.markoutStatus || []).length) {
         }).join("") + "</div>";
     }
 
+if ((S.leadCheck || []).length) {
+      wlLead = plural(S.leadCheck.length, "ticket") +
+        " disagreeing with the " + plural(markoutLead(), "business day");
+      dwLead = '<div class="drawer" id="dw-lead" hidden>' +
+        '<p class="note">The dates One Call printed on these tickets do not match ' +
+        "what this system counts. Either a holiday is missing or wrong, or the " +
+        "lead time is not " + markoutLead() + ". Worth one call to the centre.</p>" +
+        '<table class="lst"><tr><th>Ticket</th><th>Called in</th><th>Opened</th>' +
+        "<th>Days</th></tr>" +
+        S.leadCheck.slice(0, 8).map(function (r) {
+          return "<tr><td>" + esc(r.request_no || "") + "</td>" +
+            "<td>" + esc(fmtDate(r.transmitted_on)) + "</td>" +
+            "<td>" + esc(fmtDate(r.valid_from)) + "</td>" +
+            '<td><b style="color:var(--risk)">' + esc(String(r.observed_days)) +
+              "</b> not " + esc(String(r.expected_days)) + "</td></tr>";
+        }).join("") + "</table></div>";
+    }
+
     if (S.wdiStatus.length) {
       var wk = {};
       S.wdiStatus.forEach(function (x) {
@@ -3062,8 +3086,13 @@ var book = '<div class="card"><h2>The schedule</h2>' +
 
 h += money3 + dwOwed + dwRisk + dwBoxes + book;
 
-if (wlGaps || wlWdi || wlStale || wlOrphan || wlMk)
+if (wlGaps || wlWdi || wlStale || wlOrphan || wlMk || wlLead)
       h += '<div class="card watch"><h2>Needs attention</h2>' +
+        (wlLead
+          ? '<div class="wline" data-drawer="lead" aria-expanded="false">' +
+            '<span class="wnm">Dig lead time</span>' +
+            '<span class="pill warn">' + esc(wlLead) + "</span></div>" + dwLead
+          : "") +
          
         (wlMk
           ? '<div class="wline" data-drawer="markout" aria-expanded="false">' +
