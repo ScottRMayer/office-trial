@@ -1217,6 +1217,7 @@ var S = { me: null, people: [], areas: [], settings: null, menu: [], products: [
             invoices: [], balances: [], quotes: [], evals: [], warranties: [], attention: [],
             progLetters: [], progExtras: [], closedDays: [], calls: [], recalls: [],
             cis: [], cisItems: [], gaps: [], wdi: [], wdiStatus: [],
+            markouts: [], holidays: [], markoutStatus: [],
             compEvents: [],
             loadedAt: null };
   var route = { name: "dashboard", arg: null, date: todayISO(), tech: null,
@@ -1875,7 +1876,15 @@ off ? many(sb.from("service_catalog").select("*").order("sort_order").order("nam
       softAll(function () {
         return sb.from("compliance_events").select("*").order("occurred_at").order("id");
       }, "compliance_events",
-         "the compliance toggles — run supabase/migrations/0058")
+         "the compliance toggles — run supabase/migrations/0058"),
+       
+      soft(sb.from("markouts").select("*").order("valid_from", { ascending: false }),
+           "markouts", "the dig tickets - run supabase/migrations/0071"),
+      soft(sb.from("business_holidays").select("*").order("on_date"),
+           "business_holidays",
+           "the holidays the four business days are counted against - run supabase/migrations/0071"),
+      off ? soft(sb.from("v_markout_status").select("*"), "v_markout_status",
+                 "the dig watchlist - run supabase/migrations/0071") : []
     ]);
      
     S.people = r[0]; S.areas = r[1]; S.settings = r[2][0] || null; S.menu = r[3];
@@ -1892,6 +1901,7 @@ off ? many(sb.from("service_catalog").select("*").order("sort_order").order("nam
     S.cis = r[28]; S.cisItems = r[29]; S.gaps = r[30];
     S.wdi = r[31]; S.wdiStatus = r[32];
     S.compEvents = r[33];
+    S.markouts = r[34]; S.holidays = r[35]; S.markoutStatus = r[36];
      
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
@@ -1928,7 +1938,9 @@ off ? many(sb.from("service_catalog").select("*").order("sort_order").order("nam
         customers: (S.customers || []).filter(function (c) { return cid[c.id]; }),
         properties: (S.properties || []).filter(function (p) { return cid[p.customer_id]; }),
         lines: mine(S.lines), sheets: mine(S.sheets), treatments: mine(S.treatments),
-        crew: mine(S.crew)
+        crew: mine(S.crew),
+         
+        markouts: mine(S.markouts), holidays: S.holidays
       };
        
       var tid = {};
@@ -1956,12 +1968,15 @@ function snapLoad(uid) {
     S.jobs = snap.jobs; S.customers = snap.customers || []; S.properties = snap.properties || [];
     S.lines = snap.lines || []; S.sheets = snap.sheets || []; S.treatments = snap.treatments || [];
     S.chems = snap.chems || []; S.crew = snap.crew || [];
+    S.markouts = snap.markouts || []; S.holidays = snap.holidays || [];
      
     S.invoices = []; S.balances = []; S.quotes = []; S.warranties = [];
     S.attention = []; S.priceEx = []; S.programs = []; S.progLetters = [];
     S.progExtras = []; S.calls = []; S.recalls = []; S.evals = [];
     S.cis = []; S.cisItems = []; S.gaps = []; S.wdi = []; S.wdiStatus = [];
     S.compEvents = [];
+     
+    S.markoutStatus = [];
     S.services = (S.catalog.length ? S.catalog : S.menu).filter(function (s) {
       return s.on_render_sheet !== false && s.active !== false;
     });
@@ -2022,6 +2037,14 @@ async function reload(what) {
       if (isOffice())
         S.wdiStatus = await soft(sb.from("v_wdi_status").select("*"),
                                  "v_wdi_status", "the ninety-day list");
+    }
+    if (!what || what.indexOf("markouts") >= 0) {
+      S.markouts = await soft(sb.from("markouts").select("*")
+                                .order("valid_from", { ascending: false }),
+                              "markouts", "the dig tickets");
+      if (isOffice())
+        S.markoutStatus = await soft(sb.from("v_markout_status").select("*"),
+                                     "v_markout_status", "the dig watchlist");
     }
     if (isOffice() && (!what || what.indexOf("cis") >= 0)) {
       S.cis = await soft(sb.from("consumer_sheets").select("*")
@@ -2471,6 +2494,106 @@ var WDI = {
   };
   function wdiLabel(w) { return WDI[w] || w; }
 
+var MARKOUT = {
+    "too late to call":       "Inside the four business days",
+    "call the dig in":        "No dig called in yet",
+    "ticket expired":         "The ticket has run out",
+    "not valid yet":          "The marks are not out yet"
+  };
+  function markoutLabel(m) { return MARKOUT[m] || m; }
+
+function breaksGround(serviceId) {
+    if (!serviceId) return false;
+     
+    var list = (S.catalog && S.catalog.length) ? S.catalog : (S.menu || []);
+    for (var i = 0; i < list.length; i++)
+      if (list[i].id === serviceId) return !!list[i].needs_markout;
+    return false;
+  }
+
+  function markoutNeeded(j) {
+    if (!j) return false;
+    if (j.type === "termite-warranty-work" || j.type === "renewal" ||
+        j.type === "callback-retreatment") return true;
+    return linesOf(j.id).some(function (l) { return breaksGround(l.service_id); });
+  }
+
+  function holidayOn(iso) {
+    return (S.holidays || []).some(function (h) { return h.on_date === iso; });
+  }
+
+  function markoutLead() {
+    var n = Number((S.settings || {}).markout_lead_days);
+    return n > 0 ? n : 4;
+  }
+
+function bizDaysBack(iso, n) {
+    if (!iso || !(n > 0)) return iso;
+    var d = iso, got = 0, guard = 0;
+    while (got < n && guard < 400) {
+      d = shiftISO(d, -1); guard += 1;
+      var dow = new Date(d + "T12:00:00").getDay();
+      if (dow !== 0 && dow !== 6 && !holidayOn(d)) got += 1;
+    }
+    return d;
+  }
+  function markoutCallBy(iso) { return bizDaysBack(iso, markoutLead()); }
+
+function markoutMoveNote(j) {
+    var st = markoutState(j);
+    if (!st) return "";
+    var m = st.ticket;
+    if (!m)
+      return '<div class="msg warn">No dig is called in for this one. Whatever ' +
+        "date is picked, the call has to go in " +
+        plural(markoutLead(), "business day") + " before it.</div>";
+    return '<div class="msg warn">Ticket ' + esc(m.request_no) + " covers " +
+      esc(fmtDate(m.valid_from)) + " to " + esc(fmtDate(m.expires_on)) +
+      ". A date outside that needs a new one called in.</div>";
+  }
+
+  function markoutsOf(jobId) {
+    return (S.markouts || []).filter(function (m) { return m.job_id === jobId; })
+      .sort(function (a, b) {
+        return a.valid_from === b.valid_from
+          ? (a.created_at < b.created_at ? 1 : -1)
+          : (a.valid_from < b.valid_from ? 1 : -1);
+      });
+  }
+
+function markoutState(j) {
+    if (!j || !markoutNeeded(j) || !j.scheduled_date) return null;
+    if (j.status === "complete" || j.status === "cancelled" || j.status === "no-access")
+      return null;
+     
+    if (trOf(j.id) || (sheetOf(j.id) || {}).signed_on) return null;
+    var d = j.scheduled_date, m = markoutsOf(j.id)[0] || null;
+    if (!m) {
+      var by = markoutCallBy(d);
+      return by < todayISO()
+        ? { state: "too late to call", ticket: null, warn: true, callBy: by,
+            say: "It had to go in by " + fmtDate(by) + " for a job on " +
+                 fmtDate(d) + ". The date has to move, or the dig has to be " +
+                 "called in as an emergency." }
+        : { state: "call the dig in", ticket: null, warn: true, callBy: by,
+            say: "It has to go in by " + fmtDate(by) +
+                 (by === todayISO() ? " - that is today." : ".") };
+    }
+    if (m.expires_on < d)
+      return { state: "ticket expired", ticket: m, warn: true, callBy: null,
+               say: "Ticket " + m.request_no + " ran out " + fmtDate(m.expires_on) +
+                    " and the job is on " + fmtDate(d) + ". A new one has to be called in." };
+     
+    if (m.valid_from > d)
+      return { state: "not valid yet", ticket: m, warn: true, callBy: null,
+               say: "Ticket " + m.request_no + " does not open until " +
+                    fmtDate(m.valid_from) + ", and nothing may be dug before the marks are out." };
+    return { state: "", ticket: m, warn: false, callBy: null,
+             say: "Ticket " + m.request_no + " covers " + fmtDate(m.valid_from) +
+                  " to " + fmtDate(m.expires_on) + "." +
+                  (m.start_by ? " Start-by date " + fmtDate(m.start_by) + "." : "") };
+  }
+
 var PROPERTY_KINDS = [
     "Rental property",
     "Second home",
@@ -2594,6 +2717,7 @@ var h = missingBanner() + "<h1>Dashboard</h1>" +
       '<p class="sub">Calls to make: ' + esc(span) + "</p>";
 
 var wlGaps = "", dwGaps = "", wlWdi = "", dwWdi = "", wlWdiUrgent = false;
+    var wlMk = "", dwMk = "", wlMkUrgent = false;
     var wlStale = "", dwStale = "";
     var wlOrphan = "", dwOrphan = "";
 
@@ -2726,7 +2850,63 @@ if (S.gaps.length) {
         }).join("") + "</div>";
     }
 
-if (S.wdiStatus.length) {
+if ((S.markoutStatus || []).length) {
+      var mkG = {};
+      S.markoutStatus.forEach(function (x) {
+        (mkG[x.state] = mkG[x.state] || { n: 0, u: x.urgency, rows: [] });
+        mkG[x.state].n += 1; mkG[x.state].rows.push(x);
+      });
+      var mkKeys = Object.keys(mkG).sort(function (a, b) {
+        return mkG[a].u - mkG[b].u || mkG[b].n - mkG[a].n;
+      });
+      var mkLate = (mkG["too late to call"] || { n: 0 }).n;
+      var mkDead = (mkG["ticket expired"] || { n: 0 }).n;
+       
+      var mkIds = {};
+      S.markoutStatus.forEach(function (x) { if (x.job_id) mkIds[x.job_id] = 1; });
+      var mkN = Object.keys(mkIds).length || S.markoutStatus.length;
+       
+      var mkSoon = null;
+      S.markoutStatus.forEach(function (x) {
+        if (x.state !== "call the dig in" || !x.call_by) return;
+        if (mkSoon === null || x.call_by < mkSoon) mkSoon = x.call_by;
+      });
+      wlMk = plural(mkN, "job") + " needing a dig called in" +
+        (mkLate ? " \u00b7 " + mkLate + " already past calling in" : "") +
+        (mkDead ? " \u00b7 " + plural(mkDead, "ticket") + " no longer covering the job" : "") +
+        (mkSoon !== null
+          ? " \u00b7 next call by " + (mkSoon === todayISO() ? "today" : fmtDate(mkSoon))
+          : "");
+      wlMkUrgent = !!(mkLate || mkDead);
+      dwMk = '<div class="drawer" id="dw-markout" hidden>' +
+        mkKeys.map(function (k) {
+          var g = mkG[k];
+          return '<div style="margin:.5rem 0 .2rem"><b>' + esc(markoutLabel(k)) + "</b> " +
+            '<span class="empty">' + g.n + "</span></div>" +
+            '<table class="lst"><tr><th>Customer</th>' +
+            "<th>Job</th><th>Call in by</th><th></th></tr>" +
+            g.rows.slice().sort(function (a, b) {
+              return (a.call_by || "") < (b.call_by || "") ? -1 : 1;
+            }).slice(0, 6).map(function (r) {
+              return "<tr>" +
+                "<td>" + esc(r.customer_name || "") +
+                  (r.address ? ' <span class="empty">' + esc(r.address) + "</span>" : "") +
+                "</td>" +
+                "<td>" + esc(fmtDate(r.scheduled_date)) + "</td>" +
+                "<td>" + (r.call_by
+                  ? (r.call_by < todayISO()
+                      ? '<b style="color:var(--risk)">' + esc(fmtDate(r.call_by)) + ", gone</b>"
+                      : esc(fmtDate(r.call_by)))
+                  : esc(r.request_no || "")) + "</td>" +
+                "<td>" + (r.job_id
+                  ? '<button class="act" data-mkjob="' + r.job_id +
+                    '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The job</button>'
+                  : "") + "</td></tr>";
+            }).join("") + "</table>";
+        }).join("") + "</div>";
+    }
+
+    if (S.wdiStatus.length) {
       var wk = {};
       S.wdiStatus.forEach(function (x) {
         (wk[x.state] = wk[x.state] || { n: 0, u: x.urgency, rows: [] });
@@ -2882,8 +3062,15 @@ var book = '<div class="card"><h2>The schedule</h2>' +
 
 h += money3 + dwOwed + dwRisk + dwBoxes + book;
 
-    if (wlGaps || wlWdi || wlStale)
+if (wlGaps || wlWdi || wlStale || wlOrphan || wlMk)
       h += '<div class="card watch"><h2>Needs attention</h2>' +
+         
+        (wlMk
+          ? '<div class="wline" data-drawer="markout" aria-expanded="false">' +
+            '<span class="wnm">Digs to call in</span>' +
+            '<span class="pill' + (wlMkUrgent ? " warn" : "") + '">' + esc(wlMk) +
+            "</span></div>" + dwMk
+          : "") +
         (wlGaps
           ? '<div class="wline" data-drawer="gaps" aria-expanded="false">' +
              
@@ -3232,6 +3419,7 @@ acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|
       if (box) box.hidden = true;
     });
     on("[data-wdijob]", function (b) { go("wdi", b.getAttribute("data-wdijob")); });
+    on("[data-mkjob]", function (b) { jobModal(b.getAttribute("data-mkjob")); });
     on("[data-pay]", function (b) { payModal(b.dataset.pay); });
     on("[data-remind]", function (b) { remind(b.dataset.remind, b); });
     on("[data-notowed]", function (b) { notOwedModal(b.dataset.notowed); });
@@ -3962,7 +4150,22 @@ function jobModal(jobId, field) {
         agreedNote(j.id) +
       "</div></div>";
 
-if (isOffice() && !field) {
+var mkNow = markoutState(j);
+    if (mkNow) {
+      var mkOff = isOffice() && !field;
+      h += '<div class="msg ' + (mkNow.warn ? "warn" : "good") + '">' +
+        "<b>" + esc(mkNow.warn ? markoutLabel(mkNow.state) : "The dig is called in") +
+        "</b> " + esc(mkNow.say) +
+        (mkOff
+          ? '<div style="margin-top:.45rem">' +
+            '<button class="act" data-mkadd="1" type="button">' +
+            (mkNow.ticket ? "Type another ticket in" : "Type the ticket in") +
+            "</button></div>"
+          : "") +
+        "</div>";
+    }
+
+    if (isOffice() && !field) {
       var win = windowOf(j);
        
       var crewFrozen = !!((sh || {}).signed_on || j.status === "complete" ||
@@ -4261,6 +4464,80 @@ if (j.status === "cancelled" || j.status === "no-access") {
         setCrew(j, bits[1], bits[0] === "on", b);
       });
     });
+    if ($("modal").querySelector("[data-mkadd]"))
+      $("modal").querySelector("[data-mkadd]").addEventListener("click", function () {
+        markoutModal(j);
+      });
+  }
+
+function markoutModal(j) {
+    var seen = markoutsOf(j.id);
+    openModal("<h3>The dig for this job</h3>" +
+      '<p class="note">Copy it off the ticket. Every date is on the paper - ' +
+      "nothing here works one out.</p>" +
+      (seen.length
+        ? '<div class="msg">Already on this job: ' +
+          esc(seen.map(function (m) {
+            return m.request_no + " (" + fmtDate(m.valid_from) + " to " +
+                   fmtDate(m.expires_on) + ")";
+          }).join(", ")) + "</div>"
+        : "") +
+      '<label for="mkNo">Request No.</label>' +
+      '<input id="mkNo" class="f" inputmode="numeric" placeholder="the confirmation number">' +
+      '<label for="mkTx">Transmit Date</label>' +
+      '<input id="mkTx" class="f" type="date" value="' + esc(todayISO()) + '">' +
+      '<label for="mkFrom">Start Date</label>' +
+      '<input id="mkFrom" class="f" type="date">' +
+      '<label for="mkBy">Start By Date</label>' +
+      '<input id="mkBy" class="f" type="date">' +
+      '<p class="note">On the paper, not used to warn about anything - the ' +
+      "ticket holds good until the expiration date. Worth copying so the folder " +
+      "matches the paper.</p>" +
+      '<label for="mkExp">Expiration Date</label>' +
+      '<input id="mkExp" class="f" type="date">' +
+      '<label for="mkOps">Operators notified</label>' +
+      '<input id="mkOps" class="f" placeholder="copy the list off the ticket, if you want it on file">' +
+      '<div class="acts"><button class="act go" id="mkGo" type="button">Save the ticket</button>' +
+      '<button class="act" id="mkNo2" type="button">Back</button></div>');
+    $("mkNo2").addEventListener("click", function () { jobModal(j.id); });
+    $("mkGo").addEventListener("click", function () { saveMarkout(j, this); });
+    $("mkNo").focus();
+  }
+
+  async function saveMarkout(j, btn) {
+    btn.disabled = true;
+    try {
+      var no = $("mkNo").value.trim();
+      var tx = $("mkTx").value, from = $("mkFrom").value;
+      var by = $("mkBy").value, exp = $("mkExp").value;
+       
+      if (!no) throw new Error("Type the Request No. in - it is the whole evidence the call was made.");
+      if (!tx) throw new Error("Say what day it was called in.");
+      if (!from) throw new Error("The Start Date is on the ticket - it is the day digging may begin.");
+      if (!exp) throw new Error("The Expiration Date is on the ticket. Do not work it out - copy it.");
+      if (tx > from) throw new Error("A ticket cannot start before the day it was called in. Check the two dates.");
+      if (from > exp) throw new Error("The Expiration Date is before the Start Date. Check the year on both.");
+      if (by && (by < from || by > exp))
+        throw new Error("The Start By Date has to fall between the Start Date and the Expiration Date.");
+      var r = await sb.from("markouts").insert({
+        job_id: j.id, request_no: no, transmitted_on: tx, valid_from: from,
+        start_by: by || null, expires_on: exp,
+        operators: $("mkOps").value.trim() || null,
+        called_by: S.me.id, created_by: S.me.id
+      }).select();
+      if (r.error) throw explain(r.error);
+       
+      if (!(r.data || []).length)
+        throw new Error("That did not save - the database refused it.");
+      await reload(["markouts"]);
+      closeModal(); render();
+      toast("Ticket " + no + " is on the job");
+    } catch (e) {
+      toast(/markouts|does not exist/i.test(e.message)
+        ? "The dig tickets need supabase/migrations/0071 run first."
+        : e.message);
+      btn.disabled = false;
+    }
   }
 
 async function setCrew(j, techId, on, btn) {
@@ -4317,6 +4594,7 @@ function moveDayModal(j, back) {
     openModal("<h3>Move " + esc((custById(j.customer_id) || {}).name || "this job") + "</h3>" +
       '<p class="note">' + esc(fmtLong(from)) + " · " + esc(windowName(windowOf(j))) +
       (span > 1 ? " · " + plural(span, "day") : "") + "</p>" +
+      markoutMoveNote(j) +
       '<div class="acts" style="margin-bottom:.7rem">' +
       quick.map(function (q) {
          
