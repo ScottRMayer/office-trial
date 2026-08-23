@@ -5254,6 +5254,17 @@ h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size
       (canDiscount(inv)
         ? '<button class="act" data-act="disc">' + discountLabel(inv) + "</button>"
         : "") +
+       
+      (function () {
+        if (!isOffice() || !inv || inv.voided_at || inv.charge_withdrawn || OFFLINE) return "";
+        var ci = ls.some(function (l) { return !l.voided_at && l.taxable === false; });
+        if (!ci) return "";
+        return '<button class="act' + (inv.st8_on_file ? " go" : "") + '" data-act="st8" title="' +
+          "Certificate of Exempt Capital Improvement. With it on file the installation lines are " +
+          'not taxed; without it they are.">' +
+          (inv.st8_on_file ? "ST-8 on file \u2713 \u2014 installation not taxed" : "ST-8 not on file \u2014 installation taxed") +
+          "</button>";
+      })() +
       "</div>";
 
 if (tr) {
@@ -5364,6 +5375,19 @@ if (j.status === "cancelled" || j.status === "no-access") {
     });
     if (A("disc")) A("disc").addEventListener("click", function () {
       discountModal(inv.id, function () { jobModal(j.id); });
+    });
+    if (A("st8")) A("st8").addEventListener("click", async function () {
+      var btn = this; btn.disabled = true;
+      try {
+        var want = !inv.st8_on_file;
+        var w = await sb.from("invoices").update({ st8_on_file: want }).eq("id", inv.id).select();
+        if (w.error) throw explain(w.error);
+        if (!(w.data || []).length) throw new Error("That did not save \u2014 the database refused it.");
+        await reloadJob(j.id);
+        toast(want ? "ST-8 on file \u2014 the installation lines are not taxed. Keep the certificate with the job."
+                   : "ST-8 not on file \u2014 the installation lines are taxed.");
+        jobModal(j.id);
+      } catch (e) { toast(closedMonthMsg(e) || e.message); btn.disabled = false; }
     });
     if (A("complete")) A("complete").addEventListener("click", function () { completePrompt(j, this); });
     if (A("uncomplete")) A("uncomplete").addEventListener("click", function () { uncompleteModal(j); });
@@ -6936,7 +6960,8 @@ var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
       svc: ls.map(function (l) { return l.service_name; }),
       pest: (tr && tr.target_pests) || [],
       area: (tr && tr.application_locations) || [],
-      method: tr && tr.method ? [tr.method] : [],
+       
+      method: tr && tr.method ? String(tr.method).split(" + ") : [],
       warranty: sh.warranty_box ? [sh.warranty_box] : []
     };
     var isOn = function (kind, v) { return ticked[kind].indexOf(v) >= 0; };
@@ -7985,7 +8010,11 @@ function recordBody() {
         return;
       }
       var patch = {};
-      if (col === "method") patch.method = (now.method === val ? null : val);
+      if (col === "method") {
+        var ms = now.method ? String(now.method).split(" + ") : [], mi = ms.indexOf(val);
+        if (mi >= 0) ms.splice(mi, 1); else ms.push(val);
+        patch.method = ms.length ? ms.join(" + ") : null;
+      }
       else {
         var cur = (now[col] || []).slice(), ix = cur.indexOf(val);
         if (ix >= 0) cur.splice(ix, 1); else cur.push(val);
@@ -11965,7 +11994,7 @@ var mm = ("0" + v.month).slice(-2);
         if (d.error) throw explain(d.error);
          
         if (!(d.data || []).length)
-          throw new Error("That was not removed — returning a visit to its rule is an administrator action.");
+          throw new Error("That was not removed — the database refused it.");
         closeModal(); LET = null; toast("Back to the rule."); renderLetters();
       } catch (e) { toast(e.message); this.disabled = false; }
     });
@@ -12008,8 +12037,59 @@ async function markPosted(cid, btn) {
         sent_at: new Date().toISOString(), sent_by: S.me.id
       }, { onConflict: "customer_id,year" }).select();
       if (up.error) throw explain(up.error);
+      var cisSaid = await cisFromLetter(cid, LET.year, LET.visits);
       LET = null; renderLetters();
+      if (cisSaid) toast(cisSaid);
     } catch (e) { toast(e.message); btn.disabled = false; }
+  }
+   
+  async function cisFromLetter(cid, year, visits) {
+    try {
+      var pg = progOf(cid);
+      var dates = (visits || []).filter(function (v) {
+        return v.customer_id === cid && v.visit_date && !v.inactive_reason;
+      }).map(function (v) { return String(v.visit_date); }).sort();
+      if (!dates.length) return "";
+      var pps = propsOf(cid);
+      var prop = (pg && pg.property_id ? pps.filter(function (x) { return x.id === pg.property_id; })[0] : null) ||
+                 pps.filter(function (x) { return x.is_primary; })[0] || pps[0] || null;
+      if (!prop) return "";
+      if (cisCovers(cid, prop.id, dates[0])) return "";
+      var prods = ["70506-6-53883", "64405-2"].map(function (epa) {
+        return S.products.filter(function (x) { return x.epa_number === epa; })[0] || null;
+      }).filter(function (x) { return !!x; });
+      if (prods.length < 2)
+        return "The letter is mailed. The season\u2019s Consumer Information Sheet was not recorded: " +
+          "the letter\u2019s two products are not both on the materials list.";
+      var bare = prods.filter(function (x) { return !String(x.chemical_name || "").trim(); });
+      if (bare.length)
+        return "The letter is mailed. The season\u2019s Consumer Information Sheet was not recorded: " +
+          bare.map(function (x) { return x.name; }).join(" and ") + " has no chemical name under Settings.";
+      var r = await sb.from("consumer_sheets").insert({
+        customer_id: cid, property_id: prop.id, issued_on: todayISO(),
+        given_how: "posted", issued_by: S.me.id
+      }).select();
+      if (r.error) throw explain(r.error);
+      var sheet = (r.data || [])[0];
+      if (!sheet) return "The letter is mailed, but the season\u2019s Consumer Information Sheet could not be recorded.";
+      var items = [], k = 0;
+      dates.forEach(function (d) {
+        prods.forEach(function (pr) {
+          items.push({ sheet_id: sheet.id, product_id: pr.id, brand_name: pr.name,
+                       chemical_name: pr.chemical_name, proposed_on: d, sort_order: k++ });
+        });
+      });
+      var ri = await sb.from("consumer_sheet_items").insert(items).select();
+      if (ri.error) {
+        await sb.from("consumer_sheets").delete().eq("id", sheet.id).select();
+        throw explain(ri.error);
+      }
+      await reload(["cis"]);
+      return "The letter is mailed, and the season\u2019s Consumer Information Sheet is on file for " +
+        esc(prop.address || "the address") + " \u2014 " + plural(dates.length, "visit") + ", both products.";
+    } catch (e) {
+      return "The letter is mailed, but the season\u2019s Consumer Information Sheet was not recorded: " + e.message;
+    }
   }
    
   async function unmarkPosted(cid, btn) {
@@ -12025,7 +12105,7 @@ async function markPosted(cid, btn) {
         if (d.error) throw explain(d.error);
          
         if (!(d.data || []).length)
-          throw new Error("That was not removed — unmarking a mailing is an administrator action.");
+          throw new Error("That was not removed — the database refused it.");
         LET = null; renderLetters();
       } catch (e) { toast(e.message); btn.disabled = false; }
     };
@@ -13232,7 +13312,17 @@ h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1.6fr 
         ? '<input class="fline" id="evWarr" inputmode="numeric" style="width:3rem;display:inline-block;' +
           'text-align:center" value="' + esc(ev.warranty_years == null ? "" : ev.warranty_years) + '">'
         : "<b>" + esc(ev.warranty_years == null ? "____" : ev.warranty_years) + "</b>") +
-      " Year warranty on Vapor Barrier / Mold Remediation</div></div>";
+      " Year warranty on Vapor Barrier / Mold Remediation</div>" +
+       
+      '<div style="margin-top:.4rem;font-size:.72rem;text-align:center">' +
+      (live
+        ? '<label style="display:inline-flex;align-items:center;gap:.35rem;cursor:pointer">' +
+          '<input type="checkbox" id="evSt8"' + (ev.st8_on_file ? " checked" : "") + "> " +
+          "Form ST-8 (Certificate of Exempt Capital Improvement) received from the customer " +
+          "\u2014 the installation work is then not taxed</label>"
+        : "<b>ST-8</b> " + (ev.st8_on_file ? "received \u2014 exempt capital improvement, no sales tax on the installation"
+                                           : "not received \u2014 sales tax charged")) +
+      "</div></div>";
 
 if (contract)
       h += '<div class="rs-sec"><div class="rs-band">The work and the dates</div>' +
@@ -13426,6 +13516,11 @@ evalField("evDate", function (v) {
       var n = parseInt(String(v).replace(/[^0-9]/g, ""), 10);
       return { warranty_years: isNaN(n) ? null : n };
     });
+    if ($("evSt8"))
+      $("evSt8").addEventListener("change", function () {
+        var el = this;
+        evalQuiet(el, function () { return saveEval({ st8_on_file: !!el.checked }); });
+      });
     app.querySelectorAll("[data-ebill]").forEach(function (el) {
       el.addEventListener("change", function () {
         evalQuiet(el, function () {
@@ -15581,8 +15676,10 @@ var hasOrder = S.catalog.some(function (s) { return s.sort_order !== undefined; 
        
       '<p class="note" style="margin:.6rem 0 0"><b>Sales tax applies</b> — New Jersey ' +
       "taxes a pest-control service, a cleaning and a repair. Installing a vapor barrier, " +
-      "insulation or foundation vents is a capital improvement and is exempt when the " +
-      "customer gives an ST-8 — uncheck those only on the accountant’s advice. " +
+      "insulation, foundation vents, a chimney cap, gutter brackets or a dryer vent hood is a " +
+      "capital improvement: unchecked here, and then left out of the tax <b>only on a job " +
+      "or contract where the customer’s Form ST-8 is marked received</b> (the job dialog and " +
+      "the crawl-space form have the box). Without the ST-8 the line is taxed like the rest. " +
       "Changing this changes future invoices only; filed work keeps its tax.</p>" +
       '<p class="note" style="margin:.4rem 0 0"><b>A pesticide application</b> — a job ' +
       "carrying this service cannot be marked complete without a DEP application record. " +
@@ -17287,9 +17384,10 @@ function askStrengthModal(sentence, then) {
 
 var LINE_VOID_REASONS = ["Checked by mistake", "Wrong service", "Not carried out"];
 
-function taxableOf(lines) {
+function taxableOf(lines, inv) {
+    var st8 = !!(inv && inv.st8_on_file);
     return r2(lines.reduce(function (t, l) {
-      return t + (l.taxable === false ? 0 : (Number(l.price) || 0));
+      return t + (l.taxable === false && st8 ? 0 : (Number(l.price) || 0));
     }, 0));
   }
   function taxPreview(taxable, sub, disc, rate) {
@@ -17303,7 +17401,7 @@ function taxableOf(lines) {
    
   function taxableOfInv(inv) {
     var ls = inv && inv.job_id ? linesOf(inv.job_id) : [];
-    if (ls.length) return taxableOf(ls);
+    if (ls.length) return taxableOf(ls, inv);
     if (inv && inv.taxable_subtotal != null && !(Number(inv.discount) > 0))
       return r2(inv.taxable_subtotal);
     return r2(inv ? inv.subtotal : 0);
@@ -17779,7 +17877,7 @@ var readAll = function () {
           }
         }
          
-        if (l.taxable !== false) taxable += use;
+        if (l.taxable !== false || !(inv && inv.st8_on_file)) taxable += use;
       });
       return { bad: bad, changes: changes, sub: r2(sub), taxable: r2(taxable) };
     };
@@ -21188,7 +21286,7 @@ var had = S.progExtras.filter(function (e) { return e.customer_id === cid; });
              
             if (!(dr.data || []).length)
               throw new Error("Taking “" + had[d].label + "” off the program did not " +
-                              "save — removing a bundled service is an administrator action.");
+                              "save — the database refused to remove the bundled service.");
           }
         }
         if (keep.length) {
