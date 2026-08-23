@@ -2456,6 +2456,26 @@ function priceLabel(jobId) {
     return !!((sh.signed_on || (paidish && j.status === "complete")) && !sh.unlocked_at);
   }
    
+  async function withSheetOpen(j, work) {
+    if (!linesLockedFor(j)) return work();
+    if (!isOffice())
+      throw new Error("This sheet is signed or paid, so the office makes that change.");
+    var u = await sb.from("job_sheets").upsert(
+      { job_id: j.id, unlocked_at: new Date().toISOString(), unlocked_by: S.me.id },
+      { onConflict: "job_id" }).select();
+    if (u.error) throw explain(u.error);
+    if (!(u.data || []).length)
+      throw new Error("The sheet could not be opened for corrections \u2014 the database refused it.");
+    var out, err = null;
+    try { out = await work(); } catch (e) { err = e; }
+    var c = await sb.from("job_sheets").upsert(
+      { job_id: j.id, unlocked_at: null, unlocked_by: null }, { onConflict: "job_id" }).select();
+    if (c.error || !(c.data || []).length)
+      toast("The change was saved, but the sheet could not be closed again \u2014 close it from the render sheet.");
+    if (err) throw err;
+    return out;
+  }
+   
   function bookPricesOnTheJob(l, j) {
     if (!l || !l.service_id) return true;
      
@@ -2851,6 +2871,13 @@ function go(name, arg) {
       toast("That screen needs a signal — this tablet holds the day book and " +
             "the job sheets, and nothing else.");
       return;
+    }
+     
+    if (route.name === "dashboard" && name !== "dashboard") {
+      var leaving = app.querySelector('[data-drawer][aria-expanded="true"]');
+      if (leaving)
+        DASH_KEEP = { drawer: leaving.getAttribute("data-drawer"),
+                      y: window.pageYOffset || document.documentElement.scrollTop || 0 };
     }
     NAV.push(navSnap());
     route.name = name; route.arg = arg || null;
@@ -3762,9 +3789,14 @@ wlStale = plural(stale.length, "job") +
             "<td>" + esc(cc.name || "(customer not loaded)") +
             '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
             "<td>" + esc(WHY[j.status] || j.status) + "</td>" +
-            '<td class="r"><button class="act" data-restale="' + j.id +
+             
+            '<td class="r">' +
+            (j.status === "scheduled"
+              ? '<button class="act go" data-stdone="' + j.id + '" type="button">Mark complete</button> '
+              : "") +
+            '<button class="act" data-restale="' + j.id +
             '" type="button">Reschedule</button>' +
-            ' <button class="act" data-sheet="' + j.id + '" type="button">Open sheet</button>' +
+            ' <button class="act" data-stjob="' + j.id + '" type="button">Open job</button>' +
             "</td></tr>";
         }).join("") + "</table>" +
         (stale.length > 30
@@ -3788,20 +3820,19 @@ var unpriced = S.jobs.filter(function (j) {
         '<table class="lst"><tr><th>Finished</th><th>Customer</th><th>Service</th><th></th></tr>' +
         unpriced.slice(0, 30).map(function (j) {
           var cc = custById(j.customer_id) || {}, pp = propOfJob(j) || {};
-           
-          var open = linesOf(j.id).some(function (l) { return canPriceLine(l, j); });
+
+var open = isOffice() || linesOf(j.id).some(function (l) { return canPriceLine(l, j); });
           return "<tr><td>" + esc(j.completed_date ? fmtDate(j.completed_date) : "not dated") + "</td>" +
             "<td>" + esc(cc.name || "(customer not loaded)") +
             '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
             "<td>" + esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ")) +
-            (!open && linesLockedFor(j)
-              ? '<div class="why">sheet signed — open it for corrections first</div>' : "") + "</td>" +
+            (linesLockedFor(j)
+              ? '<div class="why">sheet signed \u2014 entering the price opens and closes it for you</div>' : "") + "</td>" +
             '<td class="r">' +
             (open
               ? '<button class="act go" data-pricejob="' + j.id + '" type="button">Enter the price</button> '
               : "") +
-            '<button class="act' + (open ? "" : " go") + '" data-sheet="' + j.id +
-            '" type="button">Open sheet</button>' +
+            '<button class="act" data-sheet="' + j.id + '" type="button">Open sheet</button>' +
             "</td></tr>";
         }).join("") + "</table>" +
         (unpriced.length > 30
@@ -4286,6 +4317,11 @@ if (a.kind !== "unpaid-completed")
       var j = jobById(b.dataset.restale);
       if (j) moveDayModal(j);
     });
+    on("[data-stdone]", function (b) {
+      var j = jobById(b.dataset.stdone);
+      if (j) completePrompt(j, b);
+    });
+    on("[data-stjob]", function (b) { jobModal(b.dataset.stjob); });
     on("[data-pricejob]", function (b) {
       var j = jobById(b.dataset.pricejob);
       if (j) priceJobModal(j, function () { closeModal(); dashRedraw(); });
@@ -5185,7 +5221,10 @@ h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size
       (S.menu.length ? '<button class="act" data-act="addsvc">＋ Add a service</button>' : "") +
        
       (function () {
-        var pr = ls.filter(function (l) { return canPriceLine(l, j); });
+         
+        var pr = isOffice() && !OFFLINE && j.status !== "cancelled"
+          ? ls.filter(function (l) { return !l.voided_at; })
+          : ls.filter(function (l) { return canPriceLine(l, j); });
         if (!pr.length) return "";
         var open = pr.some(function (l) { return !(Number(l.price) > 0); });
         return '<button class="act' + (open ? " go" : "") + '" data-act="price">' +
@@ -5679,14 +5718,16 @@ function addServiceModal(j) {
       this.disabled = true;
       try {
         var sel = $("svc"), name = sel.options[sel.selectedIndex].text;
-         
-        var r = await sb.from("job_lines").insert({
-          job_id: j.id, service_id: sel.value, service_name: name, price: null,
-           
-          sort_order: allLinesOf(j.id).length + 1
-        }).select();
+
+var r = await withSheetOpen(j, function () {
+          return sb.from("job_lines").insert({
+            job_id: j.id, service_id: sel.value, service_name: name, price: null,
+             
+            sort_order: allLinesOf(j.id).length + 1
+          }).select();
+        });
         if (r.error) throw explain(r.error);
-        await reload(["jobs", "money", "attention"]);
+        await reloadJob(j.id);
         var added = (r.data || [])[0];
         toast(name + " added" + (added && Number(added.price) > 0
           ? " — " + money(added.price)
@@ -5937,11 +5978,23 @@ var SIG = { cv: null, strokes: [] };
      
     var noGround = NEEDS_GROUND.indexOf(j.type) >= 0 &&
                    !(recYet && recYet.retreat_reason);
+     
+    var unpricedNow = linesOf(j.id).filter(function (l) {
+      return !(Number(l.price) > 0) && canPriceLine(l, j);
+    });
     var notReady = !recYet || !chemYet.length || noGround;
     openModal("<h3>Record signature</h3>" +
       '<p class="note">It prints on the sheet. <b>Signing closes the sheet</b> — after ' +
       "this the pests, the places treated, the materials, the services and why this " +
       "re-treatment is lawful can only be changed by the office opening it again.</p>" +
+      (unpricedNow.length
+        ? '<div class="msg warn"><b>No price on the sheet yet</b> \u2014 ' +
+          esc(unpricedNow.map(function (l) { return l.service_name; }).join(", ")) +
+          (unpricedNow.length === 1 ? " is" : " are") + " still priced on the job. The customer signs the " +
+          "figure; once signed, the price is the office\u2019s to put in." +
+          '<div class="acts" style="margin-top:.4rem"><button class="act go" id="sgPrice" type="button">' +
+          "Enter the price first</button></div></div>"
+        : "") +
       (notReady
         ? '<div class="msg warn">' +
           (!recYet
@@ -5966,6 +6019,10 @@ var SIG = { cv: null, strokes: [] };
         : '<button class="primary" id="sgGo" type="button">Save the signature</button>') +
       '<button class="act" id="sgNo" type="button">Back</button></div>');
     initSig("sig");
+    if ($("sgPrice"))
+      $("sgPrice").addEventListener("click", function () {
+        priceJobModal(j, function () { signModal(j, after); });
+      });
     if ($("sgFirst"))
       $("sgFirst").addEventListener("click", function () { recordModal(j); });
     $("sgClr").addEventListener("click", function () { SIG.strokes = []; drawSig(); });
@@ -17319,15 +17376,17 @@ function taxableOf(lines) {
       btn.disabled = true;
       try {
         if (!why) throw new Error("Enter a reason, or select one of the reasons.");
-         
-        var r = await sb.from("job_lines").update({
-          voided_at: new Date().toISOString(), voided_by: S.me.id, void_reason: why
-        }).eq("id", row.id).is("voided_at", null).select();
+
+var r = await withSheetOpen(j, function () {
+          return sb.from("job_lines").update({
+            voided_at: new Date().toISOString(), voided_by: S.me.id, void_reason: why
+          }).eq("id", row.id).is("voided_at", null).select();
+        });
         if (r.error) throw explain(r.error);
         if (!(r.data || []).length)
           throw new Error("That line is still on the sheet. If it is signed or paid, open " +
             "it for corrections first \u2014 the opening is recorded on the folder.");
-        await reload(["jobs", "money", "attention"]);
+        await reloadJob(j.id);
         closeModal();
         toast(row.service_name + " voided \u2014 " + why.toLowerCase());
         back();
@@ -17664,11 +17723,12 @@ function closedMonthMsg(e) {
 async function priceJobModal(j, back, focusId) {
     back = back || function () { closeModal(); render(); };
     var ls = linesOf(j.id), inv = invOf(j.id), c = custById(j.customer_id);
-    var can = ls.filter(function (l) { return canPriceLine(l, j); });
+     
+    var viaOpen = isOffice() && linesLockedFor(j) && !OFFLINE && j.status !== "cancelled";
+    var can = viaOpen ? ls.filter(function (l) { return !l.voided_at; })
+                      : ls.filter(function (l) { return canPriceLine(l, j); });
     if (!can.length) {
-      toast(isOffice() && linesLockedFor(j)
-        ? "This sheet is signed or paid. Open it for corrections first, then enter the price."
-        : "Nothing on this sheet can be priced from this seat.");
+      toast("Nothing on this sheet can be priced from this seat.");
       back(); return;
     }
     var rate = Number(inv ? inv.tax_rate : 0) || 0;
@@ -17680,6 +17740,12 @@ async function priceJobModal(j, back, focusId) {
       (unpriced.length
         ? "Priced on the job. Enter the figure agreed with the customer; the sheet adds the tax."
         : "The sheet adds the tax.") + "</p>" +
+      (viaOpen
+        ? '<div class="msg" style="margin:0 0 .6rem">This sheet is ' +
+          ((sheetOf(j.id) || {}).signed_on ? "signed" : "paid") +
+          ". Saving opens it for corrections, writes the figure and closes it again, in one step \u2014 " +
+          "recorded with your name, the same as pressing the three buttons.</div>"
+        : "") +
       ls.map(function (l) {
         var mine = can.indexOf(l) >= 0;
         return '<div style="display:flex;align-items:center;gap:.6rem;margin:.3rem 0">' +
@@ -17742,6 +17808,7 @@ var readAll = function () {
       this.disabled = true;
       var landed = 0;
       try {
+        await withSheetOpen(j, async function () {
         for (var i = 0; i < r.changes.length; i++) {
           var ch = r.changes[i];
           var w = await sb.from("job_lines").update({ price: ch.price }).eq("id", ch.l.id).select();
@@ -17754,14 +17821,15 @@ var readAll = function () {
                 : "That line is priced by the book, so the price is changed by the office."));
           landed++;
         }
-        await reload(["jobs", "money", "attention"]);
+        });
+        await reloadJob(j.id);
         toast(r.changes.length === 1
           ? r.changes[0].l.service_name + " — " + money(r.changes[0].price)
           : plural(r.changes.length, "price") + " entered");
         back();
       } catch (e) {
          
-        if (landed) { try { await reload(["jobs", "money", "attention"]); } catch (x) {   } }
+        if (landed) { try { await reloadJob(j.id); } catch (x) {   } }
         toast(e.message); this.disabled = false;
       }
     });
