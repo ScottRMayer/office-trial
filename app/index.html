@@ -2255,6 +2255,34 @@ function priceLabel(jobId) {
   function owes(b) {
     return !!(b && !b.voided_at && !b.charge_withdrawn && Number(b.balance) > 0.004);
   }
+   
+  function linesLockedFor(j) {
+    if (!j) return true;
+    var sh = sheetOf(j.id) || {}, inv = invOf(j.id);
+    var paidish = !!(inv && (inv.status === "paid" || inv.status === "part-paid"));
+    return !!((sh.signed_on || (paidish && j.status === "complete")) && !sh.unlocked_at);
+  }
+   
+  function bookPricesOnTheJob(l, j) {
+    if (!l || !l.service_id) return true;
+     
+    var find = function (rows) {
+      return (rows || []).filter(function (s) { return s.id === l.service_id; })[0];
+    };
+    var sv = find(S.catalog) || find(S.menu) || find(S.services);
+    if (!sv) return true;
+    if (sv.price != null) return !(priceFromBook(sv, propOfJob(j) || {}) > 0);
+    if (sv.priced_on_the_job != null) return !!sv.priced_on_the_job;
+    return !(Number(l.price) > 0);
+  }
+   
+  function canPriceLine(l, j) {
+    if (!l || !j || l.voided_at || OFFLINE) return false;
+    if (j.status === "cancelled") return false;
+    if (linesLockedFor(j)) return false;
+    if (isOffice()) return true;
+    return onJob(j, S.me.id) && bookPricesOnTheJob(l, j);
+  }
   var techs = function () { return S.people.filter(function (p) { return p.is_technician && p.active; }); };
    
   var NEEDS_RECORD = ["one-time-treatment", "recurring-service", "termite-warranty-work",
@@ -2774,6 +2802,7 @@ var wlGaps = "", dwGaps = "", wlWdi = "", dwWdi = "", wlWdiUrgent = false;
     var wlMk = "", dwMk = "", wlMkUrgent = false;
     var wlLead = "", dwLead = "";
     var wlStale = "", dwStale = "";
+    var wlPrice = "", dwPrice = "";
     var wlOrphan = "", dwOrphan = "";
 
 var live = {}; techs().forEach(function (p2) { live[p2.id] = 1; });
@@ -3113,6 +3142,42 @@ wlStale = plural(stale.length, "job") +
           : "") + "</div>";
     }
 
+var unpriced = S.jobs.filter(function (j) {
+      if (j.status !== "complete") return false;
+      var iv = invOf(j.id);
+      return !!iv && !iv.voided_at && !iv.charge_withdrawn &&
+             !(Number(iv.subtotal) > 0) && linesOf(j.id).length > 0;
+    }).sort(function (a, b) {
+      return String(a.completed_date || "") < String(b.completed_date || "") ? -1 : 1;
+    });
+    if (unpriced.length) {
+      wlPrice = plural(unpriced.length, "job") + " · nothing owed until the figure goes in";
+      dwPrice = '<div class="drawer" id="dw-price" hidden>' +
+        '<table class="lst"><tr><th>Finished</th><th>Customer</th><th>Service</th><th></th></tr>' +
+        unpriced.slice(0, 30).map(function (j) {
+          var cc = custById(j.customer_id) || {}, pp = propOfJob(j) || {};
+           
+          var open = linesOf(j.id).some(function (l) { return canPriceLine(l, j); });
+          return "<tr><td>" + esc(j.completed_date ? fmtDate(j.completed_date) : "not dated") + "</td>" +
+            "<td>" + esc(cc.name || "(customer not loaded)") +
+            '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
+            "<td>" + esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ")) +
+            (!open && linesLockedFor(j)
+              ? '<div class="why">sheet signed — open it for corrections first</div>' : "") + "</td>" +
+            '<td class="r">' +
+            (open
+              ? '<button class="act go" data-pricejob="' + j.id + '" type="button">Put the price in</button> '
+              : "") +
+            '<button class="act' + (open ? "" : " go") + '" data-sheet="' + j.id +
+            '" type="button">The sheet</button>' +
+            "</td></tr>";
+        }).join("") + "</table>" +
+        (unpriced.length > 30
+          ? '<p class="note">' + (unpriced.length - 30) +
+            " more, newer than these. Each is on its own day’s Daily Close.</p>"
+          : "") + "</div>";
+    }
+
 var book = '<div class="card"><h2>The schedule</h2>' +
       '<p class="note">Today and the following six days. Tap a day to open it.</p>' +
       '<div class="week7">';
@@ -3135,7 +3200,7 @@ var book = '<div class="card"><h2>The schedule</h2>' +
 
 h += money3 + dwOwed + dwRisk + dwBoxes + book;
 
-if (wlGaps || wlWdi || wlStale || wlOrphan || wlMk || wlLead)
+if (wlGaps || wlWdi || wlStale || wlOrphan || wlMk || wlLead || wlPrice)
       h += '<div class="card watch"><h2>Needs attention</h2>' +
         (wlLead
           ? '<div class="wline" data-drawer="lead" aria-expanded="false">' +
@@ -3165,6 +3230,11 @@ if (wlGaps || wlWdi || wlStale || wlOrphan || wlMk || wlLead)
           ? '<div class="wline" data-drawer="stale" aria-expanded="false">' +
             '<span class="wnm">Booked and not finished</span>' +
             '<span class="pill warn">' + esc(wlStale) + "</span></div>" + dwStale
+          : "") +
+        (wlPrice
+          ? '<div class="wline" data-drawer="price" aria-expanded="false">' +
+            '<span class="wnm">Finished, not priced yet</span>' +
+            '<span class="pill warn">' + esc(wlPrice) + "</span></div>" + dwPrice
           : "") +
         (wlOrphan
           ? '<div class="wline" data-drawer="orphan" aria-expanded="false">' +
@@ -3513,6 +3583,10 @@ acts.push('<button class="act" data-dismiss="' + a.kind + "|" + a.record_id + "|
     on("[data-restale]", function (b) {
       var j = jobById(b.dataset.restale);
       if (j) moveDayModal(j);
+    });
+    on("[data-pricejob]", function (b) {
+      var j = jobById(b.dataset.pricejob);
+      if (j) priceJobModal(j, function () { closeModal(); dashRedraw(); });
     });
   }
 
@@ -4379,6 +4453,14 @@ h += '<details style="margin-top:.7rem"><summary style="cursor:pointer;font-size
     h += '<div class="acts" style="margin-top:.7rem">' +
       (S.menu.length ? '<button class="act" data-act="addsvc">＋ Add a service</button>' : "") +
        
+      (function () {
+        var pr = ls.filter(function (l) { return canPriceLine(l, j); });
+        if (!pr.length) return "";
+        var open = pr.some(function (l) { return !(Number(l.price) > 0); });
+        return '<button class="act' + (open ? " go" : "") + '" data-act="price">' +
+          (open ? "Put the price in" : "Change a price") + "</button>";
+      })() +
+       
       (needsRecord && (tr || (j.status !== "cancelled" && j.status !== "no-access"))
         ? '<button class="act' + (tr ? "" : " go") + '" data-act="record">' +
           (tr ? "Treatment record ✓" : "Record the treatment") + "</button>" : "") +
@@ -4499,6 +4581,9 @@ if (j.status === "cancelled" || j.status === "no-access") {
     A("close").addEventListener("click", closeModal);
     A("sheet").addEventListener("click", function () { goFromModal("sheet", j.id); });
     if (A("addsvc")) A("addsvc").addEventListener("click", function () { addServiceModal(j); });
+    if (A("price")) A("price").addEventListener("click", function () {
+      priceJobModal(j, function () { jobModal(j.id, field); });
+    });
     A("sign").addEventListener("click", function () { signModal(j); });
     if (A("record")) A("record").addEventListener("click", function () { recordModal(j); });
     if (A("pay")) A("pay").addEventListener("click", function () {
@@ -4875,7 +4960,7 @@ function addServiceModal(j) {
         var added = (r.data || [])[0];
         toast(name + " added" + (added && Number(added.price) > 0
           ? " — " + money(added.price)
-          : " — the office will price it"));
+          : " — priced on the job"));
         jobModal(j.id);
       } catch (e) { toast(e.message); this.disabled = false; }
     });
@@ -5451,11 +5536,15 @@ function ceStrip(j) {
   }
 
 function completePrompt(j, btn) {
-    if (NEEDS_RECORD.indexOf(j.type) < 0) { completeJob(j, btn); return; }
+    var needs = NEEDS_RECORD.indexOf(j.type) >= 0;
      
-    var ask = ["sign-posted", "cis-given"].filter(function (k) { return !ceSeen(j.id, k); });
-    var done = ["sign-posted", "cis-given"].filter(function (k) { return !!ceSeen(j.id, k); });
-    if (!ask.length) { completeJob(j, btn); return; }
+    var ask = needs ? ["sign-posted", "cis-given"].filter(function (k) { return !ceSeen(j.id, k); }) : [];
+    var done = needs ? ["sign-posted", "cis-given"].filter(function (k) { return !!ceSeen(j.id, k); }) : [];
+     
+    var toPrice = linesOf(j.id).filter(function (l) {
+      return !(Number(l.price) > 0) && canPriceLine(l, j);
+    });
+    if (!ask.length && !toPrice.length) { completeJob(j, btn); return; }
     openModal("<h3>Before the job is marked complete</h3>" +
       (done.length
         ? '<div class="msg good">' + done.map(function (k) {
@@ -5464,16 +5553,29 @@ function completePrompt(j, btn) {
               (e.at ? " " + esc(ceWhen(e.at)) : " — on the treatment record");
           }).join("<br>") + "</div>"
         : "") +
-      '<p class="note">Each one is recorded with your name and the time. Nothing ' +
-      "here can be skipped.</p>" +
-      ask.map(function (k) {
-        return '<div class="acts" style="margin:.5rem 0"><span class="minilbl">' +
-          esc(ceLabel(k)) + "</span>" +
-          '<button class="act go" data-cpy="' + k + '" type="button">Done</button>' +
-          '<button class="act" data-cpn="' + k + '" type="button">Not done</button>' +
-          '<span class="pill" data-cpp="' + k + '"></span></div>';
-      }).join("") +
-      '<div class="row"><button class="primary" id="cpGo" type="button" disabled>' +
+      (ask.length
+        ? '<p class="note">Each one is recorded with your name and the time. Nothing ' +
+          "here can be skipped.</p>" +
+          ask.map(function (k) {
+            return '<div class="acts" style="margin:.5rem 0"><span class="minilbl">' +
+              esc(ceLabel(k)) + "</span>" +
+              '<button class="act go" data-cpy="' + k + '" type="button">Done</button>' +
+              '<button class="act" data-cpn="' + k + '" type="button">Not done</button>' +
+              '<span class="pill" data-cpp="' + k + '"></span></div>';
+          }).join("")
+        : "") +
+      (toPrice.length
+        ? '<div style="margin:.6rem 0 .2rem"><span class="minilbl">Priced on the job</span>' +
+          '<p class="note" style="margin:.2rem 0 .4rem">Put in the figure agreed at the door. ' +
+          "Left empty, it stays priced on the job for the office to put in.</p>" +
+          toPrice.map(function (l) {
+            return '<label for="cpp-' + l.id + '">' + esc(l.service_name) + "</label>" +
+              '<input id="cpp-' + l.id + '" class="f" inputmode="decimal" data-cpprice="' +
+              l.id + '" placeholder="priced on the job">';
+          }).join("") + "</div>"
+        : "") +
+      '<div class="row"><button class="primary" id="cpGo" type="button"' +
+      (ask.length ? " disabled" : "") + ">" +
       "Mark the job complete</button>" +
       '<button class="act" id="cpNo" type="button">Back</button></div>');
     var said = {};
@@ -5504,6 +5606,29 @@ function completePrompt(j, btn) {
     $("cpGo").addEventListener("click", async function () {
       this.disabled = true;
       var yes = ask.filter(function (k) { return said[k] === true; }), i;
+       
+      var prices = [], bad = null;
+      toPrice.forEach(function (l) {
+        var inp = $("modal").querySelector('[data-cpprice="' + l.id + '"]');
+        if (!inp || inp.value.replace(/\s/g, "") === "") return;
+        var n = readMoney(inp.value);
+        if (n == null) { bad = bad || inp; return; }
+        prices.push({ id: l.id, price: r2(n) });
+      });
+      if (bad) {
+        bad.focus(); toast("That is not an amount — type it like 250 or 250.00.");
+        this.disabled = false; return;
+      }
+      for (i = 0; i < prices.length; i++) {
+        var pw = await sb.from("job_lines").update({ price: prices[i].price })
+          .eq("id", prices[i].id).select();
+        if (pw.error) { toast(explain(pw.error).message); this.disabled = false; return; }
+         
+        if (!(pw.data || []).length) {
+          toast("The price did not save — the database refused it. The job was not marked complete.");
+          this.disabled = false; return;
+        }
+      }
       for (i = 0; i < yes.length; i++) {
         var r = await sb.from("compliance_events")
           .insert({ job_id: j.id, kind: yes[i], actor_id: S.me.id }).select();
@@ -5563,10 +5688,14 @@ function uncompleteModal(j) {
       await reload(["jobs", "money", "attention"]);
       closeModal(); render();
        
-      var b = balOf(j.id);
+      var b = balOf(j.id), invC = invOf(j.id);
       toast(owes(b)
         ? "Marked complete — " + money(b.balance) + " still to collect"
-        : "Marked complete");
+         
+        : (invC && !invC.voided_at && !invC.charge_withdrawn &&
+           !(Number(invC.subtotal) > 0) && linesOf(j.id).length
+            ? "Marked complete — priced on the job, no figure on it yet"
+            : "Marked complete"));
     } catch (e) { toast(e.message); btn.disabled = false; }
   }
 
@@ -6157,6 +6286,15 @@ h += '<div class="rs-sec"><div class="rs-band">Type of service</div>' +
             ? money(l.price)
             : '<span class="noprint">priced on the job</span>') + "</s></span></div>";
       }).join("");
+     
+    (function () {
+      var pr = ls.filter(function (l) { return canPriceLine(l, j); });
+      if (!pr.length) return;
+      var open = pr.some(function (l) { return !(Number(l.price) > 0); });
+      h += '<div class="acts noprint" style="margin-top:.3rem"><button class="act' +
+        (open ? " go" : "") + '" id="plOpen" type="button">' +
+        (open ? "Put the price in" : "Change a price") + "</button></div>";
+    })();
     h += "</div></div>";
 
 var pestList = withHistory(S.opts["pest"] || [], ticked.pest);
@@ -6517,6 +6655,9 @@ if ($("newCust")) $("newCust").addEventListener("click", async function () {
     if ($("shut")) $("shut").addEventListener("click", function () { relockModal(); });
     if ($("discBtn")) $("discBtn").addEventListener("click", function () {
       discountModal(inv.id, function () { closeModal(); renderSheet(jobId); });
+    });
+    if ($("plOpen")) $("plOpen").addEventListener("click", function () {
+      priceJobModal(j, function () { closeModal(); renderSheet(jobId); });
     });
 
     app.querySelectorAll("[data-tick]").forEach(function (el) {
@@ -14518,6 +14659,10 @@ var noInvoice = [], excluded = [], counted = [];
     var faults = (unaccounted > 0.004) || (overpaid > 0.004) || noInvoice.length > 0;
     var balanced = !faults;
     var nothingYet = !counted.length && !noInvoice.length && !excluded.length;
+     
+    var notPriced = counted.filter(function (x) {
+      return !(Number(x.inv.subtotal) > 0) && lines(x.j.id).length > 0;
+    });
 
 var inDrawer = pays.filter(function (p) { return p.collected; });
     var promised = pays.filter(function (p) { return !p.collected && !p.cancelled_at; });
@@ -14628,6 +14773,14 @@ var third = nothingYet ? { lbl: "Left to reconcile", val: money(0), cls: " ok" }
       h += '<div class="msg" style="margin:.7rem 0 0">Nothing marked finished this day, ' +
         "so there is nothing to reconcile. Money taken today still shows below.</div>";
      
+    else if (balanced && notPriced.length)
+       
+      h += '<div class="msg warn" style="margin:.7rem 0 0"><b>' +
+        plural(notPriced.length, "job") + " finished this day " +
+        (notPriced.length === 1 ? "has" : "have") + " no price on " +
+        (notPriced.length === 1 ? "it" : "them") + " yet.</b> Nothing is owed until the " +
+        "figure goes in — the card below has " + (notPriced.length === 1 ? "it" : "them") +
+        ".</div>";
     else if (balanced)
       h += '<div class="msg good" style="margin:.7rem 0 0">' +
         (counted.length
@@ -14855,6 +15008,30 @@ var flagged = counted.filter(function (x) { return x.bal && Number(x.bal.balance
             "</div></div>";
         }).join("") + "</div>";
 
+if (notPriced.length)
+      h += '<div class="card" style="border-left:5px solid var(--risk)">' +
+        "<h2>Finished, not priced yet (" + notPriced.length + ")</h2>" +
+        '<p class="note">Priced on the job. Nothing is owed until the figure goes in.</p>' +
+        notPriced.map(function (x) {
+          var c = custById(x.j.customer_id);
+           
+          var jc = jobById(x.j.id);
+          var open = !!jc && linesOf(jc.id).some(function (l) { return canPriceLine(l, jc); });
+          return '<div class="item"><div class="top">' +
+            '<span class="nm">' + esc(who(x.j.customer_id)) + "</span>" +
+            '<span class="pill warn">no price yet</span>' +
+             
+            (jc && !open && linesLockedFor(jc)
+              ? '<span class="pill">sheet signed — open it for corrections first</span>' : "") +
+            '<span class="amt">—</span></div>' +
+            '<div class="why">' + esc(svc(x.j.id)) +
+              (c && c.phone ? " · " + esc(c.phone) : "") + "</div>" +
+            '<div class="acts noprint">' +
+              (open ? '<button class="act go" data-price="' + x.j.id + '" type="button">Put the price in</button>' : "") +
+              '<button class="act' + (open ? "" : " go") + '" data-sheet="' + x.j.id + '" type="button">Open the sheet</button>' +
+            "</div></div>";
+        }).join("") + "</div>";
+
 h += '<div class="card"><h2>Money in (' + inDrawer.length + ")</h2>" +
       (inDrawer.length
         ? inDrawer.map(function (p) {
@@ -14965,6 +15142,14 @@ if ($("cmonth")) $("cmonth").addEventListener("click", function () {
     });
     app.querySelectorAll("[data-pay]").forEach(function (b) {
       b.addEventListener("click", function () { payModal(b.getAttribute("data-pay")); });
+    });
+    app.querySelectorAll("[data-price]").forEach(function (b) {
+      b.addEventListener("click", function () {
+         
+        var jb = jobById(b.getAttribute("data-price"));
+        if (!jb) { toast("That job has moved — reload."); return; }
+        priceJobModal(jb, function () { closeModal(); render(); });
+      });
     });
     app.querySelectorAll("[data-sheet]").forEach(function (b) {
       b.addEventListener("click", function () { go("sheet", b.getAttribute("data-sheet")); });
@@ -15595,6 +15780,106 @@ function closedMonthMsg(e) {
         if (done) { closeModal(); toast("Recorded — the screen could not refresh. Reload to see it."); return; }
         toast(e.message);
         this.disabled = false;
+      }
+    });
+  }
+
+async function priceJobModal(j, back, focusId) {
+    back = back || function () { closeModal(); render(); };
+    var ls = linesOf(j.id), inv = invOf(j.id), c = custById(j.customer_id);
+    var can = ls.filter(function (l) { return canPriceLine(l, j); });
+    if (!can.length) {
+      toast(isOffice() && linesLockedFor(j)
+        ? "This sheet is signed or paid. Open it for corrections first, then put the price in."
+        : "Nothing on this sheet is yours to price.");
+      back(); return;
+    }
+    var rate = Number(inv ? inv.tax_rate : 0) || 0;
+    var disc = r2(inv ? inv.discount : 0);
+    var unpriced = can.filter(function (l) { return !(Number(l.price) > 0); });
+    openModal("<h3>" + (unpriced.length ? "Put the price in" : "Change a price") +
+      " — " + esc(c ? c.name : "") + "</h3>" +
+      '<p class="note">' +
+      (unpriced.length
+        ? "Priced on the job. Put in the figure agreed at the door; the sheet adds the tax."
+        : "The sheet adds the tax.") + "</p>" +
+      ls.map(function (l) {
+        var mine = can.indexOf(l) >= 0;
+        return '<div style="display:flex;align-items:center;gap:.6rem;margin:.3rem 0">' +
+          '<label for="pl-' + l.id + '" style="flex:1 1 10rem;margin:0">' + esc(l.service_name) + "</label>" +
+          (mine
+            ? '<input id="pl-' + l.id + '" class="f" inputmode="decimal" data-pl="' + l.id +
+              '" style="max-width:8rem;margin:0" value="' +
+              (Number(l.price) > 0 ? esc(Number(l.price).toFixed(2)) : "") +
+              '" placeholder="' + (Number(l.price) > 0 ? "" : "priced on the job") + '">'
+            : '<span style="font-family:ui-monospace,Consolas,monospace">' +
+              (Number(l.price) > 0 ? money(l.price) : "priced on the job") + "</span>") +
+          "</div>";
+      }).join("") +
+      '<div id="plPrev" class="note" style="margin:.5rem 0 .2rem"></div>' +
+      '<div class="row"><button class="primary" id="plGo" type="button">Save</button>' +
+      '<button class="act" id="plNo" type="button">Cancel</button></div>');
+
+var readAll = function () {
+      var bad = null, changes = [], sub = 0;
+      ls.forEach(function (l) {
+        var inp = $("modal").querySelector('[data-pl="' + l.id + '"]');
+        var cur = Number(l.price) || 0;
+        if (!inp || inp.value.replace(/\s/g, "") === "") { sub += cur; return; }
+        var n = readMoney(inp.value);
+        if (n == null) { bad = bad || inp; sub += cur; return; }
+        n = r2(n);
+        if (Math.abs(n - cur) > 0.004) changes.push({ l: l, price: n });
+        sub += n;
+      });
+      return { bad: bad, changes: changes, sub: r2(sub) };
+    };
+     
+    var preview = function () {
+      var r = readAll();
+      if (r.bad) {
+        $("plPrev").innerHTML = "That is not an amount. Type it like <b>250</b> or <b>250.00</b>.";
+        return;
+      }
+      var net = Math.max(r2(r.sub - disc), 0), tot = r2(net + r2(net * rate));
+      $("plPrev").innerHTML = r.sub > 0.004
+        ? "Service fee <b>" + money(r.sub) + "</b>" +
+          (disc > 0.004 ? " · " + money(disc) + " off" : "") +
+          (inv ? " · <b>" + money(tot) + "</b> with tax" : "")
+        : "Still priced on the job — nothing is owed until a figure goes in.";
+    };
+    $("plNo").addEventListener("click", function () { back(); });
+    $("modal").querySelectorAll("[data-pl]").forEach(function (i) { i.addEventListener("input", preview); });
+    preview();
+    if (focusId && $("pl-" + focusId)) $("pl-" + focusId).focus();
+    $("plGo").addEventListener("click", async function () {
+      var r = readAll();
+      if (r.bad) { r.bad.focus(); toast("That is not an amount — type it like 250 or 250.00."); return; }
+      if (!r.changes.length) { back(); return; }
+      this.disabled = true;
+      var landed = 0;
+      try {
+        for (var i = 0; i < r.changes.length; i++) {
+          var ch = r.changes[i];
+          var w = await sb.from("job_lines").update({ price: ch.price }).eq("id", ch.l.id).select();
+          if (w.error) throw explain(w.error);
+           
+          if (!(w.data || []).length)
+            throw new Error("That did not save — the database refused it. " +
+              (isOffice()
+                ? "The sheet may be signed or paid; open it for corrections first."
+                : "That line is priced by the book, so the price is the office’s to change."));
+          landed++;
+        }
+        await reload(["jobs", "money", "attention"]);
+        toast(r.changes.length === 1
+          ? r.changes[0].l.service_name + " — " + money(r.changes[0].price)
+          : plural(r.changes.length, "price") + " put in");
+        back();
+      } catch (e) {
+         
+        if (landed) { try { await reload(["jobs", "money", "attention"]); } catch (x) {   } }
+        toast(e.message); this.disabled = false;
       }
     });
   }

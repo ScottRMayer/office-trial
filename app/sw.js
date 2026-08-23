@@ -43,7 +43,7 @@
 /* Stamped by tools/build_app.py from the built page's own hash, so a publish
    that changes one byte retires every old cache and one that changes nothing
    leaves them alone. Left as a literal here so this file runs unbuilt too. */
-var VERSION = "95c2d9140980";
+var VERSION = "f7d432bd94ab";
 var CACHE = "ut-shell-" + VERSION;
 
 /* RELATIVE, EVERY ONE. The app is published under /office-trial/app/ and is
