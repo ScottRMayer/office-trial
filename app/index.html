@@ -8,7 +8,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none';
   script-src 'self' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
-  img-src 'self' data: blob: https://lhochuvilhezyzxaxfof.supabase.co;
+  img-src 'self' data: blob: https://lhochuvilhezyzxaxfof.supabase.co https://maps.nj.gov;
   font-src 'self';
   connect-src 'self' https://lhochuvilhezyzxaxfof.supabase.co https://geo.nj.gov https://maps.nj.gov https://services2.arcgis.com;
   manifest-src 'self';
@@ -582,6 +582,12 @@ button.gear{font:inherit;font-size:1.35rem;line-height:1;background:none;border:
    
   canvas.sig{width:100%;max-width:24rem;height:8rem;border:1px dashed #999;border-radius:4px;
     background:#fff;touch-action:none;display:block}
+   
+  .lawnwrap{position:relative;width:100%;max-width:34rem;aspect-ratio:1/1;margin:.4rem 0;
+    border:1px solid #999;border-radius:4px;overflow:hidden;background:#333}
+  .lawnimg{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .lawncv{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;
+    cursor:crosshair}
   .foot{display:flex;justify-content:space-between;font-size:.56rem;color:#666;margin-top:.5rem;gap:.5rem;flex-wrap:wrap}
 
 .rs-sec{border-top:1px solid #999;margin-top:.4rem;padding-top:.3rem}
@@ -712,6 +718,7 @@ table.matpick col.pct{width:3.2rem} table.matpick col.amt{width:4.2rem}
     .plan .pfld{grid-template-columns:1fr} .plan .psigs{grid-template-columns:1fr}
      
     canvas.sig{max-width:none;height:12rem}
+    .lawnwrap{max-width:none}
   }
    
   .n33{background:#fff;color:#111;font-family:ui-sans-serif,Arial,Helvetica,sans-serif;
@@ -12861,7 +12868,8 @@ function drawWork() {
       var box = $("nqWork");
       var svc = svcNow(), p = propNow();
       if (!svc) { box.innerHTML = ""; proposed = null; return; }
-      var basis = svc.price_basis, rate = rateOf(svc);
+       
+      var basis = basisFor(p, svc.price_basis), rate = rateOf(svc);
        
       if (rate === 0) rate = null;
       var min = minOf(svc);
@@ -12870,10 +12878,17 @@ function drawWork() {
       var gaps = [];
       if (basis === "yard_sq_ft" && (!p || p.paved_sq_ft == null))
         gaps.push("No drive or walk has been deducted, so this figure still has the " +
-                  "driveway in it.");
+                  "driveway in it." +
+                   
+                  " Trace the lawn on the folder to measure the grass itself.");
       if (basis === "bldg_sq_ft")
-        gaps.push("This is the building outline matched to the address. It is not the " +
-                  "crawl space and it is not the sprayed ground.");
+        gaps.push("This is the part of the building outline that stands on this parcel. " +
+                  "It is not the crawl space and it is not the sprayed ground.");
+       
+      if (basis === "lawn_sq_ft" && p && p.lawn_traced_at)
+        gaps.push("This is the lawn outlined on the aerial photograph on " +
+                  fmtDate(bizDayISO(p.lawn_traced_at)) +
+                  ", so the drive, the walk and the beds are already out of it.");
       if (basis === "crawl_sq_ft" && p && p.crawl_basis)
         gaps.push("The crawl figure is \u201c" + p.crawl_basis + "\u201d.");
        
@@ -13010,22 +13025,30 @@ $("nqAmt").focus();
         if (rate === 0) rate = null;
          
         if (a != null && !isNaN(a) && a > 0 && rate != null) {
+           
+          var basis = basisFor(p, svc.price_basis);
           var typedOver = proposed == null || a !== proposed;
-          row.basis_kind = svc.price_basis;
+           
+          row.basis_kind = basis;
           row.basis_area = a;
           row.basis_rate = rate;
           row.basis_minimum = minOf(svc);
           row.basis_measured_at =
-            svc.price_basis === "crawl_sq_ft" ? (p ? p.crawl_measured_at : null)
-                                              : (p ? p.measured_at : null);
+            basis === "crawl_sq_ft" ? (p ? p.crawl_measured_at : null)
+              : basis === "lawn_sq_ft" ? (p ? p.lawn_traced_at : null)
+              : (p ? p.measured_at : null);
            
           row.basis_confidence = typedOver ? "by hand"
-            : (svc.price_basis === "crawl_sq_ft"
+            : (basis === "crawl_sq_ft"
                 ? (p && p.crawl_basis === "measured on site" ? "by hand"
                     : (p ? p.measure_confidence : null))
+                 
+                : basis === "lawn_sq_ft" ? "by hand"
                 : (p ? p.measure_confidence : null));
+           
           row.basis_paving_known =
-            svc.price_basis === "yard_sq_ft" ? !!(p && p.paved_sq_ft != null) : null;
+            basis === "yard_sq_ft" ? !!(p && p.paved_sq_ft != null)
+              : basis === "lawn_sq_ft" ? true : null;
           row.basis_note = $("nqBnote") ? ($("nqBnote").value.trim() || null) : null;
         } else if (rate == null && a != null && !isNaN(a) && a > 0 &&
                    $("nqBnote") && $("nqBnote").value.trim()) {
@@ -13247,7 +13270,7 @@ h += '<div class="rs-sec"><div class="fcols" style="grid-template-columns:1.6fr 
             })[0] || null;
             var bas = (ev.service_basis || {})[k] || null;
             var rt = rateOf(bk);
-            var ar = bk ? areaFor(p, bk.price_basis) : null;
+            var ar = bk ? areaFor(p, basisFor(p, bk.price_basis)) : null;
              
             return '<div class="rs-line"><span>' + esc(k) + "</span>" + (live
               ? '<input class="fcell" data-eprice="' + esc(k) + '" inputmode="decimal" ' +
@@ -13607,14 +13630,15 @@ async function saveEval(patch) {
       var rt = rateOf(bk);
        
       if (rt === 0) rt = null;
-      var ar = bk ? areaFor(p, bk.price_basis) : null;
+      var qbasis = bk ? basisFor(p, bk.price_basis) : null;
+      var ar = qbasis ? areaFor(p, qbasis) : null;
       if (rt == null) throw new Error("There is no rate in the price book for " + name + ".");
       if (ar == null)
-        throw new Error("There is no " + (BASIS_LABEL[bk.price_basis] || bk.price_basis) +
+        throw new Error("There is no " + (BASIS_LABEL[qbasis] || qbasis) +
                         " figure for this address yet.");
        
       if (!(ar > 0))
-        throw new Error("The " + (BASIS_LABEL[bk.price_basis] || bk.price_basis).toLowerCase() +
+        throw new Error("The " + (BASIS_LABEL[qbasis] || qbasis).toLowerCase() +
                         " works out to nothing at this address, so there is no figure " +
                         "to offer. Type the price.");
       var min = minOf(bk);
@@ -13623,7 +13647,7 @@ async function saveEval(patch) {
       if (cur[name] === undefined) return;
       cur[name] = n;
       var bas = copyOf(nowRow().service_basis);
-      bas[name] = { sq_ft: ar, rate: rt, minimum: min, basis: bk.price_basis,
+      bas[name] = { sq_ft: ar, rate: rt, minimum: min, basis: qbasis,
                      
                     confidence: bk.price_basis === "crawl_sq_ft"
                                   ? (p.crawl_basis || null) : (p.measure_confidence || null),
@@ -14120,12 +14144,24 @@ function inRing(x, y, ring) {
     }
     return inside;
   }
-   
+
+function ftPerDegLat(lat) {
+    var p = lat * Math.PI / 180;
+    var m = 111132.954 - 559.822 * Math.cos(2 * p) + 1.175 * Math.cos(4 * p);
+    return m / 0.3048;
+  }
+  function ftPerDegLon(lat) {
+    var p = lat * Math.PI / 180, A = 6378137.0, E2 = 0.00669437999014;
+    var N = A / Math.sqrt(1 - E2 * Math.sin(p) * Math.sin(p));
+    var m = N * Math.cos(p) * Math.PI / 180;
+    return m / 0.3048;
+  }
+
   function ringAreaSqFt(ring) {
      
-    var FT_PER_DEG_LAT = 364000;
     var lat0 = ring.reduce(function (t, q) { return t + q[1]; }, 0) / ring.length;
-    var ftLon = FT_PER_DEG_LAT * Math.cos(lat0 * Math.PI / 180);
+    var FT_PER_DEG_LAT = ftPerDegLat(lat0);
+    var ftLon = ftPerDegLon(lat0);
     var a = 0;
     for (var i = 0; i < ring.length - 1; i++) {
       var x1 = ring[i][0] * ftLon, y1 = ring[i][1] * FT_PER_DEG_LAT;
@@ -14135,27 +14171,119 @@ function inRing(x, y, ring) {
     return Math.abs(a) / 2;
   }
 
+function clipToParcel(ring, parcel) {
+    if (!ring || !ring.length || !parcel || !parcel.length) return null;
+    var lat0 = ring.reduce(function (t, q) { return t + q[1]; }, 0) / ring.length;
+    var dLat = 1 / ftPerDegLat(lat0);
+    var dLon = 1 / ftPerDegLon(lat0);
+    var xs = ring.map(function (q) { return q[0]; });
+    var ys = ring.map(function (q) { return q[1]; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+     
+    var wide = (x1 - x0) / dLon;
+    var tall = (y1 - y0) / dLat;
+    var cells = wide * tall;
+    var step = cells > 4000000 ? Math.ceil(Math.sqrt(cells / 4000000)) : 1;
+    var area = 0, cell = step * step;
+    for (var y = y0 + dLat * step / 2; y < y1; y += dLat * step)
+      for (var x = x0 + dLon * step / 2; x < x1; x += dLon * step)
+        if (inRing(x, y, ring) && inRing(x, y, parcel)) area += cell;
+    return area;
+  }
+
+function lotFromDesc(desc) {
+    var d = String(desc || "").toUpperCase();
+    if (d.indexOf("IRR") >= 0) return null;
+    var m = d.match(/^\s*(\d+(?:\.\d+)?)\s*X\s*(\d+(?:\.\d+)?)/);
+    if (!m) return null;
+    var a = Number(m[1]), b = Number(m[2]);
+    if (!(a > 0 && b > 0)) return null;
+    return Math.round(a * b);
+  }
+
   function ringCentroid(ring) {
     var x = 0, y = 0, n = 0;
     ring.forEach(function (p) { x += p[0]; y += p[1]; n++; });
     return [x / n, y / n];
   }
 
-function measureDoubts(lot, bldg, assessed, drawn, candidates, pin) {
+function measureDoubts(d) {
     var why = [];
-    var bits = String(pin == null ? "" : pin).split("_");
+    var lot = d.lot, bldg = d.bldg;
+    var bits = String(d.pin == null ? "" : d.pin).split("_");
      
-    if (candidates > 1)
-      why.push(candidates + " parcel records could be this address");
+    if (d.candidates > 1)
+      why.push(d.candidates + " parcel records could be this address");
     if (bits.length > 3 && String(bits[3]).replace(/\s/g, "") !== "")
       why.push("the tax record carries a unit qualifier, so this is one unit of several");
+     
     if (lot && bldg && bldg > lot * 0.45)
-      why.push("the outline covers over 45% of the lot, which usually means a whole attached block");
-    if (assessed && drawn && Math.abs(assessed - drawn) > assessed * 0.2)
-      why.push("the tax record and the drawn lot disagree by more than a fifth");
+      why.push("the part of the outline on this parcel is over 45% of the lot, which is a lot of house");
     if (lot && bldg && bldg < lot * 0.08)
-      why.push("the outline is under 8% of the lot, so it is taking in common land or the wrong building");
+      why.push("the building is under 8% of the lot, so either the lot takes in common " +
+               "land or the parcel line and the roof outline do not agree here");
+    if (d.assessed && d.drawn && Math.abs(d.assessed - d.drawn) > d.assessed * 0.2)
+      why.push("the tax record and the drawn lot disagree by more than a fifth");
+     
+    if (d.sqfeet && d.polygon && Math.abs(d.polygon - d.sqfeet) > d.sqfeet * 0.1)
+      why.push("the structures data disagrees with itself about this building: its " +
+               "polygon measures " + Math.round(d.polygon).toLocaleString() +
+               " sq ft, its own stated size is " + Math.round(d.sqfeet).toLocaleString());
+     
+    if (d.desc_lot && lot && Math.abs(d.desc_lot - lot) > d.desc_lot * 0.15)
+      why.push("the tax record's own dimensions work out to " +
+               d.desc_lot.toLocaleString() + " sq ft, not " +
+               Math.round(lot).toLocaleString());
     return why.length ? why.join(" \u00b7 ") : null;
+  }
+
+function buildingsHere(features, parcelRing, addr, byPoint) {
+    var list = (features || []).map(function (f) {
+      return { a: (f.attributes || {}),
+               ring: (f.geometry && f.geometry.rings && f.geometry.rings[0]) || null };
+    }).filter(function (h) { return Number(h.a.SQFEET) > 0; });
+     
+    if (!byPoint && parcelRing)
+      list = list.filter(function (h) {
+        if (!h.ring) return false;
+        var c = ringCentroid(h.ring);
+        return inRing(c[0], c[1], parcelRing);
+      });
+    list.forEach(function (h) {
+      h.sqfeet = Number(h.a.SQFEET) || null;
+      h.outline = h.ring ? ringAreaSqFt(h.ring) : null;
+      h.here = clipToParcel(h.ring, parcelRing);
+       
+      if (h.here == null) h.here = h.outline != null ? h.outline : h.sqfeet;
+    });
+    list.sort(function (x, y) {
+      var mx = sameAddress(x.a.PROP_ADDR, addr) ? 1 : 0;
+      var my = sameAddress(y.a.PROP_ADDR, addr) ? 1 : 0;
+      if (mx !== my) return my - mx;
+      return (y.here || 0) - (x.here || 0);
+    });
+    return list;
+  }
+
+function fillBuilding(out, homes, ctx) {
+    out.buildings = homes.length;
+    if (!homes.length) { out.confidence = "uncertain"; return; }
+    var h = homes[0];
+    out.bldg_sq_ft = Math.round(h.here);
+    out.outline_sq_ft = h.outline != null ? Math.round(h.outline) : null;
+    out.bldg_addr = h.a.PROP_ADDR || null;
+    out.bldg_use = h.a.PRIM_OCC || null;
+     
+    out.clipped = out.outline_sq_ft != null && h.here < h.outline * 0.97;
+     
+    out.bldg_ring = h.ring || null;
+    out.doubt = measureDoubts({
+      lot: ctx.lot, bldg: out.bldg_sq_ft, assessed: ctx.assessed, drawn: ctx.drawn,
+      candidates: ctx.candidates, pin: ctx.pin,
+      sqfeet: h.sqfeet, polygon: h.outline, desc_lot: lotFromDesc(ctx.land_desc)
+    });
+    if (out.doubt) out.confidence = "uncertain";
   }
 
 async function measureByText(addr) {
@@ -14188,6 +14316,7 @@ async function measureByText(addr) {
 
     var out = {
       found: true, lot_sq_ft: assessed || drawn, bldg_sq_ft: null,
+      outline_sq_ft: null, clipped: false,
       lot_assessed: assessed, lot_drawn: drawn,
       matched_address: at.ST_ADDRESS || null, matched_parcel: at.PAMS_PIN || null,
        
@@ -14195,6 +14324,7 @@ async function measureByText(addr) {
       candidates: cands.length, lot_desc: at.LAND_DESC || null,
       bldg_desc: at.BLDG_DESC || null, buildings: 0,
       geocoded_to: null, geocode_score: 0, point_on_building: false,
+      parcel_ring: ring, bldg_ring: null,
       by_text: true
     };
     if (!ring) { out.confidence = "uncertain"; return out; }
@@ -14210,29 +14340,14 @@ async function measureByText(addr) {
       outFields: "PROP_ADDR,SQFEET,PRIM_OCC,OCC_CLS",
       returnGeometry: "true", outSR: "4326"
     });
-    var homes = [];
-    (sj.features || []).forEach(function (f) {
-      var r0 = f.geometry && f.geometry.rings && f.geometry.rings[0];
-      if (!r0) return;
-      var c = ringCentroid(r0);
-      if (inRing(c[0], c[1], ring)) homes.push(f.attributes);
-    });
      
-    homes = homes.filter(function (a) { return Number(a.SQFEET) > 0; });
-    homes.sort(function (a, b) { return Number(b.SQFEET) - Number(a.SQFEET); });
-    out.buildings = homes.length;
-    if (homes.length) {
-      out.bldg_sq_ft = Math.round(Number(homes[0].SQFEET));
-      out.bldg_addr = homes[0].PROP_ADDR || null;
-      out.bldg_use = homes[0].PRIM_OCC || null;
-       
-      if (homes.length > 1) out.confidence = "uncertain";
-      out.doubt = measureDoubts(out.lot_sq_ft, out.bldg_sq_ft, assessed, drawn,
-                                cands.length, at.PAMS_PIN);
-      if (out.doubt) out.confidence = "uncertain";
-    } else {
-      out.confidence = "uncertain";
-    }
+    var homes = buildingsHere(sj.features, ring, addr, false);
+     
+    if (homes.length > 1) out.confidence = "uncertain";
+    fillBuilding(out, homes, {
+      lot: out.lot_sq_ft, assessed: assessed, drawn: drawn,
+      candidates: cands.length, pin: at.PAMS_PIN, land_desc: at.LAND_DESC
+    });
     return out;
   }
 
@@ -14280,6 +14395,8 @@ var pj = await esri(PARCELS, {
       found: true,
       lot_sq_ft: lot,
       bldg_sq_ft: null,
+      outline_sq_ft: null,
+      clipped: false,
       lot_assessed: assessed,
       lot_drawn: drawn,
       matched_address: at.ST_ADDRESS || null,
@@ -14291,7 +14408,9 @@ var pj = await esri(PARCELS, {
       buildings: 0,
       geocoded_to: cand.address || null,
       geocode_score: score,
-      point_on_building: false
+      point_on_building: false,
+      parcel_ring: ring,
+      bldg_ring: null
     };
     if (!ring) { out.confidence = "uncertain"; return out; }
 
@@ -14299,11 +14418,10 @@ var sj = await esri(STRUCTS, {
       geometry: JSON.stringify(pt), geometryType: "esriGeometryPoint", inSR: "4326",
       spatialRel: "esriSpatialRelIntersects", where: "1=1",
       outFields: "PROP_ADDR,SQFEET,PRIM_OCC,OCC_CLS",
-      returnGeometry: "false", outSR: "4326"
+       
+      returnGeometry: "true", outSR: "4326"
     });
-    var homes = (sj.features || []).map(function (f) { return f.attributes; })
-      .filter(function (a) { return Number(a.SQFEET) > 0; })
-      .sort(function (a, b) { return Number(b.SQFEET) - Number(a.SQFEET); });
+    var homes = buildingsHere(sj.features, ring, addr, true);
     out.point_on_building = homes.length > 0;
 
 if (!homes.length && ring) {
@@ -14318,29 +14436,14 @@ if (!homes.length && ring) {
         outFields: "PROP_ADDR,SQFEET,PRIM_OCC,OCC_CLS",
         returnGeometry: "true", outSR: "4326"
       });
-      (s2.features || []).forEach(function (f) {
-        var r0 = f.geometry && f.geometry.rings && f.geometry.rings[0];
-        if (!r0) return;
-        var c = ringCentroid(r0);
-        if (inRing(c[0], c[1], ring)) homes.push(f.attributes);
-      });
-       
-      homes = homes.filter(function (a) { return Number(a.SQFEET) > 0; });
-      homes.sort(function (a, b) { return Number(b.SQFEET) - Number(a.SQFEET); });
+      homes = buildingsHere(s2.features, ring, addr, false);
       if (homes.length) out.confidence = "uncertain";
     }
-    out.buildings = homes.length;
-    if (homes.length) {
-      out.bldg_sq_ft = Math.round(Number(homes[0].SQFEET));
-      out.bldg_addr = homes[0].PROP_ADDR || null;
-      out.bldg_use = homes[0].PRIM_OCC || null;
-       
-      out.doubt = measureDoubts(lot, out.bldg_sq_ft, assessed, drawn,
-                                cands.length, at.PAMS_PIN);
-      if (out.doubt) out.confidence = "uncertain";
-    } else {
-      out.confidence = "uncertain";
-    }
+     
+    fillBuilding(out, homes, {
+      lot: lot, assessed: assessed, drawn: drawn,
+      candidates: cands.length, pin: at.PAMS_PIN, land_desc: at.LAND_DESC
+    });
     return out;
   }
 
@@ -14381,8 +14484,20 @@ $("msBody").innerHTML = '<div class="msg bad">' + esc(explain(e).message) + "</d
     $("msBody").innerHTML =
       '<table class="lst">' +
       "<tr><td>Lot</td><td class=\"r\"><b>" + sqft(got.lot_sq_ft) + "</b></td></tr>" +
-      "<tr><td>Building</td><td class=\"r\"><b>" + sqft(got.bldg_sq_ft) + "</b></td></tr>" +
+      "<tr><td>Building" + (got.clipped ? " on this parcel" : "") +
+        "</td><td class=\"r\"><b>" + sqft(got.bldg_sq_ft) + "</b></td></tr>" +
+      (got.clipped
+        ? "<tr><td>The whole outline</td><td class=\"r\">" +
+          sqft(got.outline_sq_ft) + "</td></tr>"
+        : "") +
       "</table>" +
+       
+      (got.clipped
+        ? '<p class="note">The published outline is ' + sqft(got.outline_sq_ft) +
+          " and it runs past this parcel's line, which is what an attached block does. " +
+          sqft(got.bldg_sq_ft) + " of it stands on this parcel, and that is the figure the " +
+          "yard below is calculated from.</p>"
+        : "") +
       '<p class="note">Found as <b>' + esc(got.geocoded_to || got.matched_address || "?") +
       "</b>" + (got.geocode_score ? " (" + got.geocode_score + "/100)" : "") +
        
@@ -14494,6 +14609,265 @@ function wireMeasureForm(p, confidence, got, done, back) {
     });
   }
 
+var AERIAL = "https://maps.nj.gov/arcgis/rest/services/Basemap/" +
+               "Orthos_Natural_2020_NJ_WM/MapServer/export";
+  var AERIAL_YEAR = "2020";
+  var AERIAL_CREDIT = "Aerial photography: New Jersey Office of Information " +
+                      "Technology, Office of GIS, " + AERIAL_YEAR + ".";
+  var LAWN_PX = 760;
+
+function toMerc(lon, lat) {
+    var R = 6378137.0;
+    var x = R * lon * Math.PI;
+    x = x / 180;
+    var t = 45 + lat / 2;
+    var y = R * Math.log(Math.tan(t * Math.PI / 180));
+    return [x, y];
+  }
+  function fromMerc(x, y) {
+    var R = 6378137.0;
+    var lon = x * 180;
+    lon = lon / R;
+    lon = lon / Math.PI;
+    var lat = Math.atan(Math.exp(y / R)) * 2;
+    lat = lat * 180;
+    lat = lat / Math.PI;
+    return [lon, lat - 90];
+  }
+
+function lawnBox(ring) {
+    var pts = ring.map(function (q) { return toMerc(q[0], q[1]); });
+    var xs = pts.map(function (q) { return q[0]; });
+    var ys = pts.map(function (q) { return q[1]; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);
+    var y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+    var half = Math.max(x1 - x0, y1 - y0) * 0.62;
+     
+    if (half < 18) half = 18;
+    return { x0: cx - half, y0: cy - half, x1: cx + half, y1: cy + half, span: half * 2 };
+  }
+  function lawnToPx(box, lon, lat) {
+    var m = toMerc(lon, lat);
+    var fx = (m[0] - box.x0) / box.span;
+    var fy = (box.y1 - m[1]) / box.span;
+    return [fx * LAWN_PX, fy * LAWN_PX];
+  }
+  function lawnToLonLat(box, px, py) {
+    var fx = px / LAWN_PX;
+    var fy = py / LAWN_PX;
+    return fromMerc(box.x0 + fx * box.span, box.y1 - fy * box.span);
+  }
+
+function lawnArea(rings) {
+    var total = 0;
+    (rings || []).forEach(function (r) {
+      if (!r || r.length < 3) return;
+      var closed = r.concat([r[0]]);
+      total += ringAreaSqFt(closed);
+    });
+    return Math.round(total);
+  }
+
+  var LAWN = null;
+
+  async function lawnModal(propId, done, back) {
+    var p = S.properties.filter(function (x) { return x.id === propId; })[0];
+    if (!p) return;
+    openModal("<h3>Trace the lawn at " + esc(p.address) + "</h3>" +
+      '<div id="lwBody"><p class="note">Finding the property…</p></div>');
+
+    var got = null;
+    try { got = await measureAddress(p.address, p.city, p.zip); }
+    catch (e) {
+       
+      if (!$("lwBody")) return;
+      $("lwBody").innerHTML = '<div class="msg bad">' + esc(explain(e).message) + "</div>" +
+        '<p class="note">The photograph cannot be placed without the parcel, so there ' +
+        "is nothing to trace on. Try again when the map service answers.</p>" +
+        '<div class="row"><button class="act" id="lwNo" type="button">Close</button></div>';
+      $("lwNo").addEventListener("click", function () {
+        closeModal(); if (typeof back === "function") back();
+      });
+      return;
+    }
+    if (!$("lwBody")) return;
+    if (!got || !got.found || !got.parcel_ring) {
+      $("lwBody").innerHTML = '<div class="msg warn">' +
+        esc(got && got.why ? got.why : "No parcel is recorded at that address, so " +
+            "there is no property line to put the photograph against.") + "</div>" +
+        '<div class="row"><button class="act" id="lwNo" type="button">Close</button></div>';
+      $("lwNo").addEventListener("click", function () {
+        closeModal(); if (typeof back === "function") back();
+      });
+      return;
+    }
+
+    var box = lawnBox(got.parcel_ring);
+    var url = AERIAL + "?bbox=" + [box.x0, box.y0, box.x1, box.y1].join(",") +
+      "&bboxSR=3857&imageSR=3857&size=" + LAWN_PX + "," + LAWN_PX +
+      "&format=png32&transparent=false&f=image";
+
+LAWN = { box: box, rings: [], parcel: got.parcel_ring, bldg: got.bldg_ring,
+             prop: p, done: done, back: back };
+    if (p.lawn_outline && p.lawn_outline.length) {
+      try { LAWN.rings = JSON.parse(JSON.stringify(p.lawn_outline)); }
+      catch (e) { LAWN.rings = []; }
+    }
+    LAWN.rings.push([]);
+
+    $("lwBody").innerHTML =
+      '<p class="note">Tap the corners of the grass. Leave the drive, the walk, the ' +
+      "patio and the beds out of it. Use <b>Another area</b> where the lawn is in " +
+      "more than one piece, front and back.</p>" +
+      '<div class="lawnwrap">' +
+        '<img class="lawnimg" id="lwImg" alt="aerial photograph of ' + esc(p.address) +
+          '" src="' + esc(url) + '">' +
+        '<canvas class="lawncv" id="lwCanvas" width="' + LAWN_PX + '" height="' +
+          LAWN_PX + '"></canvas>' +
+      "</div>" +
+      '<div id="lwSays" class="msg"></div>' +
+      '<div class="row">' +
+        '<button class="act" id="lwUndo" type="button">Undo point</button>' +
+        '<button class="act" id="lwMore" type="button">Another area</button>' +
+        '<button class="act" id="lwClear" type="button">Start again</button>' +
+      "</div>" +
+      '<div class="row"><button class="primary" id="lwGo" type="button">Save</button>' +
+        '<button class="act" id="lwNo" type="button">Cancel</button></div>' +
+      '<p class="note">' + esc(AERIAL_CREDIT) + " " + esc(MEASURE_CREDIT) + "</p>";
+
+    var img = $("lwImg");
+    img.addEventListener("error", function () {
+      if ($("lwSays")) $("lwSays").innerHTML =
+        '<span class="bad">The photograph did not load. Nothing can be traced ' +
+        "without it.</span>";
+    });
+    wireLawn();
+  }
+
+  function drawLawn() {
+    var cv = $("lwCanvas"); if (!cv || !LAWN) return;
+    var x = cv.getContext("2d");
+    x.clearRect(0, 0, cv.width, cv.height);
+    var toPx = function (q) { return lawnToPx(LAWN.box, q[0], q[1]); };
+
+if (LAWN.parcel) {
+      x.setLineDash([7, 5]); x.lineWidth = 2; x.strokeStyle = "#ffd400";
+      x.beginPath();
+      LAWN.parcel.forEach(function (q, i) {
+        var pt = toPx(q);
+        if (i) x.lineTo(pt[0], pt[1]); else x.moveTo(pt[0], pt[1]);
+      });
+      x.closePath(); x.stroke(); x.setLineDash([]);
+    }
+     
+    if (LAWN.bldg) {
+      x.fillStyle = "rgba(255,255,255,.28)";
+      x.strokeStyle = "#fff"; x.lineWidth = 2;
+      x.beginPath();
+      LAWN.bldg.forEach(function (q, i) {
+        var pt = toPx(q);
+        if (i) x.lineTo(pt[0], pt[1]); else x.moveTo(pt[0], pt[1]);
+      });
+      x.closePath(); x.fill(); x.stroke();
+    }
+     
+    LAWN.rings.forEach(function (r, ri) {
+      if (!r.length) return;
+      var live = ri === LAWN.rings.length - 1;
+      x.strokeStyle = "#2ecc71"; x.lineWidth = 3;
+      x.fillStyle = "rgba(46,204,113,.30)";
+      x.beginPath();
+      r.forEach(function (q, i) {
+        var pt = toPx(q);
+        if (i) x.lineTo(pt[0], pt[1]); else x.moveTo(pt[0], pt[1]);
+      });
+      if (!live || r.length > 2) { x.closePath(); x.fill(); }
+      x.stroke();
+      x.fillStyle = "#2ecc71";
+      r.forEach(function (q) {
+        var pt = toPx(q);
+        x.beginPath(); x.arc(pt[0], pt[1], live ? 7 : 4, 0, Math.PI * 2); x.fill();
+      });
+    });
+
+    var area = lawnArea(LAWN.rings);
+    var drawn = LAWN.rings.filter(function (r) { return r.length >= 3; }).length;
+    $("lwSays").className = "msg" + (area > 0 ? " good" : "");
+    $("lwSays").innerHTML = area > 0
+      ? "<b>Lawn: " + sqft(area) + "</b>" +
+        (drawn > 1 ? " over " + drawn + " areas" : "")
+      : "Tap three corners or more to make an area.";
+  }
+
+  function wireLawn() {
+    var cv = $("lwCanvas");
+    var tap = function (e) {
+      var r = cv.getBoundingClientRect(), pt = (e.touches && e.touches[0]) || e;
+      var px = (pt.clientX - r.left) * (cv.width / r.width);
+      var py = (pt.clientY - r.top) * (cv.height / r.height);
+      LAWN.rings[LAWN.rings.length - 1].push(lawnToLonLat(LAWN.box, px, py));
+      drawLawn();
+      e.preventDefault();
+    };
+    if (window.PointerEvent) cv.onpointerdown = tap;
+    else { cv.onmousedown = tap; cv.ontouchstart = tap; }
+
+    $("lwUndo").addEventListener("click", function () {
+      var r = LAWN.rings[LAWN.rings.length - 1];
+       
+      if (!r.length && LAWN.rings.length > 1) LAWN.rings.pop();
+      else r.pop();
+      drawLawn();
+    });
+    $("lwMore").addEventListener("click", function () {
+      if (LAWN.rings[LAWN.rings.length - 1].length >= 3) LAWN.rings.push([]);
+      else toast("Finish this area first, or start again.");
+      drawLawn();
+    });
+    $("lwClear").addEventListener("click", function () {
+      LAWN.rings = [[]]; drawLawn();
+    });
+    $("lwNo").addEventListener("click", function () {
+      var b = LAWN && LAWN.back; LAWN = null;
+      closeModal(); if (typeof b === "function") b();
+    });
+    $("lwGo").addEventListener("click", async function () {
+      this.disabled = true;
+      var p = LAWN.prop;
+      var rings = LAWN.rings.filter(function (r) { return r.length >= 3; });
+      var area = lawnArea(rings);
+      if (!rings.length) {
+        toast("Nothing has been traced yet."); this.disabled = false; return;
+      }
+       
+      if (area <= 0 || area > 5000000) {
+        toast("That traces out to " + sqft(area) + ", which cannot be right.");
+        this.disabled = false; return;
+      }
+      try {
+        var r = await sb.from("properties").update({
+          lawn_sq_ft: area,
+          lawn_outline: rings,
+          lawn_traced_at: new Date().toISOString(),
+          lawn_traced_by: S.me.id,
+          lawn_source: "traced on the NJ " + AERIAL_YEAR + " aerial"
+        }).eq("id", p.id).select();
+        if (r.error) throw explain(r.error);
+        if (!(r.data || []).length)
+          throw new Error("That did not save — reload and try again.");
+        S.properties = await all(function () {
+          return sb.from("properties").select("*").order("id");
+        });
+        var d = LAWN.done; LAWN = null;
+        closeModal();
+        toast(p.address + ": lawn traced at " + sqft(area) + ".");
+        if (typeof d === "function") d();
+      } catch (e) { toast(e.message); this.disabled = false; }
+    });
+    drawLawn();
+  }
+
 async function crawlModal(propId, done) {
     var p = S.properties.filter(function (x) { return x.id === propId; })[0];
     if (!p) return;
@@ -14592,7 +14966,12 @@ async function crawlModal(propId, done) {
   }
 
 var BASIS_LABEL = { yard_sq_ft: "Yard", bldg_sq_ft: "Building footprint",
-                      crawl_sq_ft: "Crawl space" };
+                      crawl_sq_ft: "Crawl space", lawn_sq_ft: "Lawn, traced" };
+
+function basisFor(p, basis) {
+    if (basis === "yard_sq_ft" && p && p.lawn_sq_ft != null) return "lawn_sq_ft";
+    return basis;
+  }
    
   function areaFor(p, basis) {
     if (!p || !basis || basis === "flat") return null;
@@ -14623,7 +15002,8 @@ function minOf(svc) {
   }
    
   function creditNeeded(basis, p) {
-     
+
+if (basis === "lawn_sq_ft") return false;
     if (basis === "bldg_sq_ft" || basis === "yard_sq_ft") return true;
     if (basis === "crawl_sq_ft")
       return !!(p && p.crawl_basis && p.crawl_basis !== "measured on site");
@@ -19161,7 +19541,7 @@ var DISCARD_ASKED = 0;
    
   var MODAL_HIST = 0, MODAL_POPPING = 0;
   function mayDiscard(refuse, again) {
-    if ($("modal").querySelector("canvas.sig,[data-p],[data-a],[data-snapkind],#snapRe")) {
+    if ($("modal").querySelector("canvas.sig,#lwCanvas,[data-p],[data-a],[data-snapkind],#snapRe")) {
       toast(refuse);
       return false;
     }
@@ -20172,6 +20552,14 @@ var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses")
             (p.measure_confidence && p.measure_confidence !== "exact"
               ? ' <span class="pill bad">' + esc(p.measure_confidence) + "</span>" : "")
           : '<span class="empty">Not measured</span>') +
+         
+        (p.lawn_sq_ft != null
+          ? " \u00b7 lawn <b>" + Number(p.lawn_sq_ft).toLocaleString() +
+            " sq ft</b> <span class=\"pill\">traced</span>" +
+            (p.yard_sq_ft != null && Math.abs(p.lawn_sq_ft - p.yard_sq_ft) >
+                 Math.max(p.yard_sq_ft, 1) * 0.25
+              ? ' <span class="pill bad">a quarter off the worked-out yard</span>' : "")
+          : "") +
         " \u00b7 crawl space " +
         (p.crawl_sq_ft != null
           ? "<b>" + Number(p.crawl_sq_ft).toLocaleString() + " sq ft</b>" +
@@ -20182,6 +20570,8 @@ var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses")
         (mayEdit
           ? ' <button class="act" data-cfmeasure="' + p.id + '" type="button">' +
             (p.yard_sq_ft != null ? "Re-measure" : "Measure the yard") + "</button>" +
+            ' <button class="act" data-cflawn="' + p.id + '" type="button">' +
+            (p.lawn_sq_ft != null ? "Re-trace the lawn" : "Trace the lawn") + "</button>" +
             ' <button class="act" data-cfcrawl="' + p.id + '" type="button">' +
             (p.crawl_sq_ft != null ? "Crawl space" : "Crawl space size") + "</button>"
           : "") + "</div>" +
@@ -20470,6 +20860,11 @@ $("cfBack").addEventListener("click", function () { go("customers"); });
 app.querySelectorAll("[data-cfmeasure]").forEach(function (b) {
       b.addEventListener("click", function () {
         measureModal(b.getAttribute("data-cfmeasure"), function () { renderCustomer(id); });
+      });
+    });
+    app.querySelectorAll("[data-cflawn]").forEach(function (b) {
+      b.addEventListener("click", function () {
+        lawnModal(b.getAttribute("data-cflawn"), function () { renderCustomer(id); });
       });
     });
     app.querySelectorAll("[data-cfcrawl]").forEach(function (b) {
@@ -20821,15 +21216,23 @@ async function customerCard(id) {
           (p.had_full_treatment ? " · ★ " + esc(p.ft_code || "treated") : "") + "</div>" +
           '<div class="dates">' +
              
+            (p.lawn_sq_ft != null
+              ? "Lawn <b>" + Number(p.lawn_sq_ft).toLocaleString() + " sq ft</b>" +
+                ' <span class="pill">traced</span> · '
+              : "") +
             (p.yard_sq_ft != null
               ? "Yard <b>" + Number(p.yard_sq_ft).toLocaleString() + " sq ft</b>" +
                 " · lot " + Number(p.lot_sq_ft).toLocaleString() +
                 " · building " + Number(p.bldg_sq_ft).toLocaleString() +
                 (p.measure_confidence && p.measure_confidence !== "exact"
                   ? ' <span class="pill bad">' + esc(p.measure_confidence) + "</span>" : "")
-              : "Not measured") +
+              : (p.lawn_sq_ft != null ? "the lot and the building are not measured"
+                                      : "Not measured")) +
             ' <button class="act" data-measure="' + p.id + '" type="button">' +
-            (p.yard_sq_ft != null ? "Re-measure" : "Measure") + "</button></div></div>";
+            (p.yard_sq_ft != null ? "Re-measure" : "Measure") + "</button>" +
+            ' <button class="act" data-lawn="' + p.id + '" type="button">' +
+            (p.lawn_sq_ft != null ? "Re-trace" : "Trace the lawn") +
+            "</button></div></div>";
       }).join("") +
        
       (function () {
@@ -20927,6 +21330,9 @@ async function customerCard(id) {
     });
     $("modal").querySelectorAll("[data-measure]").forEach(function (b) {
       b.addEventListener("click", function () { measureModal(b.getAttribute("data-measure")); });
+    });
+    $("modal").querySelectorAll("[data-lawn]").forEach(function (b) {
+      b.addEventListener("click", function () { lawnModal(b.getAttribute("data-lawn")); });
     });
     $("modal").querySelectorAll("[data-sheet]").forEach(function (a) {
       a.addEventListener("click", function (e) { e.preventDefault(); goFromModal("sheet", a.dataset.sheet); });
