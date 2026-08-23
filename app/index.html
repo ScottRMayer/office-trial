@@ -2686,7 +2686,7 @@ var PROPERTY_KINDS = [
   ];
 
 var STATUS = { "scheduled": "Scheduled", "complete": "Complete",
-                 "cancelled": "Cancelled", "rained-out": "Rained out",
+                 "cancelled": "Canceled", "rained-out": "Rained out",
                  "no-access": "No access" };
   function statusLabel(v) { return STATUS[v] || v; }
 
@@ -2877,7 +2877,7 @@ function tile(key, cls, label, big, what, n, calm) {
               '<div class="what">' +
               (pl.length ? "posted \u00b7 " + ack.length + " confirmed"
                          : "No letters posted for " + ly + " yet \u00b7 " +
-                           plural(S.programs.length, "customer") + " on the programme") +
+                           plural(S.programs.length, "customer") + " on the program") +
               "</div>" +
               '<div class="expand" aria-hidden="true">Print and post ' + ly + " \u2192</div></div>";
           })()
@@ -2996,7 +2996,7 @@ if ((S.leadCheck || []).length) {
       dwLead = '<div class="drawer" id="dw-lead" hidden>' +
         '<p class="note">The dates One Call printed on these tickets do not match ' +
         "what this system counts. Either a holiday is missing or wrong, or the " +
-        "lead time is not " + markoutLead() + ". Worth one call to the centre.</p>" +
+        "lead time is not " + markoutLead() + ". Worth one call to the center.</p>" +
         '<table class="lst"><tr><th>Ticket</th><th>Called in</th><th>Opened</th>' +
         "<th>Days</th></tr>" +
         S.leadCheck.slice(0, 8).map(function (r) {
@@ -5699,7 +5699,7 @@ function uncompleteModal(j) {
     } catch (e) { toast(e.message); btn.disabled = false; }
   }
 
-var CANCEL_REASONS = ["The customer cancelled", "They have sold the house",
+var CANCEL_REASONS = ["The customer canceled", "They have sold the house",
                         "Booked twice by mistake"];
   var NOACCESS_REASONS = ["Nobody home", "Gate locked", "Dog loose in the yard"];
 
@@ -5751,7 +5751,7 @@ function cancelBlocker(j) {
           esc(fmtDate(j.scheduled_date)) + " with the reason, so the calendar still " +
           "says why nothing happened that day.") +
       " Nothing is billed and no invoice is touched. It can be put back on the " +
-      "board afterwards.</p>" +
+      "board afterward.</p>" +
       '<div class="acts" style="margin-bottom:.3rem">' +
       reasons.map(function (r, i) {
         return '<button class="act' + (i === 0 ? " go" : "") + '" data-cx="' + esc(r) +
@@ -6431,7 +6431,7 @@ h += '<div class="rs-sec"><div class="rs-band">Materials used ' +
 '<div class="noprint" style="font-size:.63rem;color:#777;margin:.2rem 0 0">' +
       (live
         ? "Tap a product to put it on the DEP record."
-        : "This record is filed, so the grey products cannot be ticked. " +
+        : "This record is filed, so the gray products cannot be ticked. " +
           (isOffice() ? "Open the sheet for corrections first."
                       : "Ring the office if something here has to be corrected.")) +
       "</div>" +
@@ -6594,7 +6594,7 @@ h += '<div class="rs-sec"><div style="display:flex;gap:1rem;align-items:flex-sta
        
       '<div class="paylin" style="display:flex;justify-content:space-between;gap:1rem;margin-top:.4rem;font-size:.7rem">' +
       (b && (b.voided_at || b.charge_withdrawn)
-        ? "<div>• <b>" + (b.voided_at ? "This charge was cancelled" : "No payment is being sought") +
+        ? "<div>• <b>" + (b.voided_at ? "This charge was canceled" : "No payment is being sought") +
           "</b> • &nbsp;nothing is owed on this sheet</div>"
         : "<div>• <b>Payment due at time of service</b> •</div>") +
       "<div>• <b>Credit Cards Accepted</b> • &nbsp;<b>MASTERCARD · VISA · DISCOVER</b></div></div>" +
@@ -7637,7 +7637,7 @@ function cisNewModal(cid, ps) {
     openModal("<h3>Issue a Consumer Information Sheet</h3>" +
       '<p class="note">List what will be applied and when. The sheet promises the ' +
       "work happens <b>within fourteen days</b> of each date, and the compliance " +
-      "list checks it against the record afterwards.</p>" +
+      "list checks it against the record afterward.</p>" +
       (ps.length > 1
         ? '<label for="ciProp">Address</label><select id="ciProp" class="f">' +
           '<option value="">every address on this folder</option>' +
@@ -7927,7 +7927,7 @@ var dis = certified ? " disabled" : "";
           inp("n3Str", src(w.structures, carry ? carry.structures : ""),
               "single family dwelling")) +
       "</div>" +
-      '<p class="note">The company block, both licence numbers, the address and the ' +
+      '<p class="note">The company block, both license numbers, the address and the ' +
       "inspector come off the file and print below. " +
       (t.applicator_no
         ? "Inspector: <b>" + esc(t.name) + "</b>, certification <b>" +
@@ -7938,7 +7938,7 @@ var dis = certified ? " disabled" : "";
        
       (src(w.company_licence, co.business_licence)
         ? ""
-        : " <b>The company’s business licence number is not on file</b>, and " +
+        : " <b>The company’s business license number is not on file</b>, and " +
           "Section I prints it — an admin adds it under Settings.") +
       "</p></div>";
 
@@ -8222,8 +8222,8 @@ function certifyModal() {
           : "") +
         '<p class="note">' +
         (S.me.id === j.assigned_to
-          ? "Your name and certification number, the company licence "
-          : esc(t.name || "The inspector") + "’s name and certification number, the company licence ") +
+          ? "Your name and certification number, the company license "
+          : esc(t.name || "The inspector") + "’s name and certification number, the company license ") +
         "and the address are written onto the report as they stand now, so a later " +
         "Settings edit cannot change a document already at a closing.</p>" +
          
@@ -9220,7 +9220,7 @@ var NEEDED = [
                        "— and the vendor rows cannot be found either, because the " +
                        "“zzzz” they are sorted with is in that column."],
       ["area_code",    "No column is the community. That is the calling order, the " +
-                       "folder-dot colour and the price exceptions, for all of them."],
+                       "folder-dot color and the price exceptions, for all of them."],
       ["service",      "No column is the SERVICE wording. The FT codes are read out " +
                        "of it, so no folder gets its ★, and nothing keeps what the " +
                        "list actually said."],
@@ -9481,7 +9481,7 @@ function peopleCard() {
       "they load the app.</p>" +
       '<table class="lst"><tr><th>Name</th><th>Signs in with</th><th>Permissions</th>' +
        
-      "<th>In the field</th><th>Licence</th><th>Works under</th><th>Employed</th></tr>" +
+      "<th>In the field</th><th>License</th><th>Works under</th><th>Employed</th></tr>" +
       S.people.map(function (pp) {
         var me = pp.id === S.me.id;
         return "<tr>" +
@@ -9503,13 +9503,13 @@ function peopleCard() {
             esc(pp.applicator_no || "") + '" placeholder="None"></td>' +
            
           '<td><select class="li" data-who="' + pp.id + '" data-col="works_under">' +
-            '<option value="">Their own licence</option>' +
+            '<option value="">Their own license</option>' +
             S.people.filter(function (x) { return x.id !== pp.id; })
               .map(function (x) {
                 return '<option value="' + esc(x.id) + '"' +
                   (pp.works_under === x.id ? " selected" : "") + ">" + esc(x.name) +
                   (String(x.applicator_no || "").replace(/^\\s+|\\s+$/g, "")
-                    ? "" : " (no licence number)") + "</option>";
+                    ? "" : " (no license number)") + "</option>";
               }).join("") + "</select></td>" +
           "<td>" + (me ? '<span class="pill ok">yes</span>'
                        : flag("who", pp.id, "active", pp.active)) + "</td></tr>";
@@ -9615,7 +9615,7 @@ function areasCard() {
       return (a.route_order || 999) - (b.route_order || 999);
     });
     return '<div class="card" id="set-areas"><h2>Communities</h2>' +
-      '<p class="note">The dot colour beside an address, and the order they are called ' +
+      '<p class="note">The dot color beside an address, and the order they are called ' +
        
       "in. " + plural(S.areas.length, "community", "communities") + " on file.</p>" +
       '<table class="lst"><tr><th class="r">Order</th><th>Code</th><th>Name</th>' +
@@ -9631,7 +9631,7 @@ function areasCard() {
            
           '<td><span class="dot" style="background:' + esc(a.dot_color || "var(--dot)") + '"></span>' +
             '<input class="swat" type="color" data-swat="' + esc(a.code) + '" ' +
-            'aria-label="Pick a colour for ' + esc(a.name) + '" value="' +
+            'aria-label="Pick a color for ' + esc(a.name) + '" value="' +
             esc(/^#[0-9a-fA-F]{6}$/.test(a.dot_color || "") ? a.dot_color : "#888888") + '">' +
             '<input class="li" style="max-width:5.5rem" data-area="' + esc(a.code) +
             '" data-col="dot_color" value="' + esc(a.dot_color || "") + '" placeholder="None"></td>' +
@@ -9640,7 +9640,7 @@ function areasCard() {
       }).join("") + "</table>" +
       '<div class="acts" style="margin-top:.6rem">' +
       '<button class="act go" id="addArea" type="button">＋ Add a community</button></div>' +
-      '<p class="note">A colour can be a name like <code>crimson</code> or a code like ' +
+      '<p class="note">A color can be a name like <code>crimson</code> or a code like ' +
       "<code>#c2352f</code>. Leave it empty for no dot.</p></div>";
   }
 
@@ -9737,7 +9737,7 @@ function workCard() {
       row("Years in business", "years_in_business", st.years_in_business) +
       row("DEP applicator #", "dep_applicator", st.dep_applicator, "", "prints on every sheet") +
       row("NJ contractor #", "nj_contractor", st.nj_contractor) +
-      row("Business licence #", "business_licence", st.business_licence) +
+      row("Business license #", "business_licence", st.business_licence) +
        
       row("Sales tax rate", "tax_rate", st.tax_rate, "0.06625",
           "a fraction, not a percent — 6.625% is typed <b>0.06625</b>" +
@@ -9796,7 +9796,7 @@ function workCard() {
               "</td></tr>") +
           (kind === "flat"
             ? row("Pre-scheduled spray, each visit", "program_price", st.program_price, "65",
-                  "the programme rate — <b>every schedule letter is priced from it</b>")
+                  "the program rate — <b>every schedule letter is priced from it</b>")
             : '<tr><td>The resulting rate</td>' +
               '<td><span class="fcellv"><b>' + money(st.program_price) + "</b></span></td>" +
               '<td class="empty" style="font-size:.78rem">not typed — computed. ' +
@@ -9942,7 +9942,7 @@ var noTown = rows.filter(function (r) {
         "town in on the customer record before printing.</div>";
 
     h += '<div class="buckets" style="margin-bottom:.8rem">' +
-      '<div class="bucket"><div class="lbl">On the programme</div><div class="amt">' +
+      '<div class="bucket"><div class="lbl">On the program</div><div class="amt">' +
         rows.length + '</div><div class="what">' + money(owed) + " for the year</div></div>" +
       (needs.length
         ? '<div class="bucket owed"><div class="lbl">Need a date chosen</div><div class="amt">' +
@@ -9963,8 +9963,8 @@ var noTown = rows.filter(function (r) {
        
       h += '<div class="msg warn"><b>' +
         plural(gone.length,
-               "person on the programme is marked as no longer a customer",
-               "persons on the programme are marked as no longer customers") +
+               "person on the program is marked as no longer a customer",
+               "persons on the program are marked as no longer customers") +
         "</b>, so no letter is " +
         "prepared for them: " +
         gone.map(function (r) {
@@ -9972,7 +9972,7 @@ var noTown = rows.filter(function (r) {
           return esc(r.customer_name) + " (" +
             esc(INACTIVE_LABEL[r.inactive_reason] || r.inactive_reason) + ")";
         }).join(", ") +
-        ". Take them off the programme, or clear the reason if they are back.</div>";
+        ". Take them off the program, or clear the reason if they are back.</div>";
     }
      
     if (!(S.settings && S.settings.phone)) {
@@ -9989,7 +9989,7 @@ var noTown = rows.filter(function (r) {
     h += '<div id="lettersUI">';
 
     if (!rows.length) {
-      h += '<div class="empty">Nobody is on the pre-scheduled programme yet. ' +
+      h += '<div class="empty">Nobody is on the pre-scheduled program yet. ' +
         "A customer joins it from their own record.</div>";
     } else {
       h += '<table class="lst"><tr><th>Customer</th><th>Address</th><th>Visit dates</th>' +
@@ -10152,7 +10152,7 @@ function bookYearModal(ready) {
           "Pre-Scheduled Program</code> in the price book, so these would go in " +
           "unpriced. Run <code>0024_the_year_in_advance.sql</code> first.</div>"
         : '<p class="note">Billed as <b>' + esc(svc.name) + "</b> at the " +
-          "customer's own programme price — not the standard rate.</p>") +
+          "customer's own program price — not the standard rate.</p>") +
       (make.length
         ? '<div class="row"><button class="primary" id="byGo" type="button">Put ' +
           plural(make.length, "job") + " in</button>" +
@@ -11030,7 +11030,7 @@ var QUOTE_WORDS = { open: "Awaiting decision", quiet: "No reply",
     var w = QUOTE_WORDS[q.status] || q.status;
     if (q.status !== "accepted") return w;
     var bj = q.job_id ? jobById(q.job_id) : null;
-    if (bj && bj.status === "cancelled") return w + ", and the job was cancelled";
+    if (bj && bj.status === "cancelled") return w + ", and the job was canceled";
     return w + (q.job_id ? ", in the book" : ", not in the book yet");
   }
 
@@ -11111,7 +11111,7 @@ function quoteAge(q) {
         (sold && !inBook
           ? '<div class="msg warn">' +
             (killed
-              ? "Accepted, and the job it was booked into was cancelled."
+              ? "Accepted, and the job it was booked into was canceled."
               : "Accepted, and not in the book yet.") + "</div>"
           : "") +
         (q.notes ? '<p class="note">' + esc(q.notes) + "</p>" : "") +
@@ -11150,7 +11150,7 @@ function rangThemModal(q) {
       '<input id="rgWhat" class="f" placeholder="thinking about it · ring after the holiday">' +
       '<label>Try again</label><div class="picklist">' +
       [[3, "in three days"], [days, "in " + plural(days, "day")],
-       [14, "in a fortnight"], [30, "in a month"]].map(function (o) {
+       [14, "in two weeks"], [30, "in a month"]].map(function (o) {
         return '<button type="button" class="pickrow" data-in="' + o[0] + '"><span>' +
           esc(fmtDate(shiftISO(todayISO(), o[0]))) + '</span><span class="pickamt">' +
           esc(o[1]) + "</span></button>";
@@ -11656,7 +11656,7 @@ function cancelNotice() {
     return '<div class="hicnotice"><b>NOTICE TO THE BUYER — YOUR RIGHT TO CANCEL.</b> ' +
       "You may cancel this contract at any time before midnight of the third business day " +
       "after receiving a copy of it. To cancel, mail or deliver a signed, dated written " +
-      "notice stating that you are cancelling, addressed to " + esc(to) + ". If you cancel " +
+      "notice stating that you are canceling, addressed to " + esc(to) + ". If you cancel " +
       "within that time, any payments made will be returned. " + esc(co.company_name || "") +
       " is registered with the New Jersey Division of Consumer Affairs as a home improvement " +
       "contractor, registration number " +
@@ -13161,7 +13161,7 @@ var split = num(f.cash_total) + num(f.check_total) + num(f.card_total) + num(f.o
         : '<p class="note">Adds up to the money taken, to the cent.</p>') +
        
       '<p class="note">Each figure is money in less money given back — a ' +
-      "returned cheque or a refund comes off the month it was returned in, not the " +
+      "returned check or a refund comes off the month it was returned in, not the " +
       "month the payment was taken.</p>" +
       "</div>";
 
@@ -13248,7 +13248,7 @@ var over = addMonths(todayISO().slice(0, 8) + "01", 0) > mon;
       }
       h += '<p class="note">Closing freezes the three figures above. Payments, ' +
         "refunds, discounts and price changes dated inside " + esc(monthName(mon)) +
-        " are refused afterwards.</p>" +
+        " are refused afterward.</p>" +
         '<div class="acts"><button class="act go" id="mcShut" type="button">Close ' +
         esc(monthName(mon)) + "</button></div>";
     }
@@ -13865,7 +13865,7 @@ h += '<p class="stamp">Changes save as you leave each field. ' +
       "materials it was written with, and the applicator’s number. The company " +
       "block at the top of the sheet — the name, address, telephone and website — " +
       "is read fresh every time a sheet is opened, so changing it here changes what " +
-      "reprints on old sheets too. Records filed before the licence numbers began " +
+      "reprints on old sheets too. Records filed before the license numbers began " +
       "being stamped on them print whatever is in Company settings today.</p>";
 
     app.innerHTML = h;
@@ -14301,7 +14301,7 @@ function stillOn(uid) {
               : "into the pool for their day, because there is nobody else here " +
                 "to hand them to") +
             ", and their name comes off the crew of the rest. Putting them back " +
-            "on afterwards brings none of it back.</p>"
+            "on afterward brings none of it back.</p>"
           : '<p class="note">Nothing is booked on them from today, so nothing is ' +
             "left behind.</p>") +
         (mine.length && others.length
@@ -14449,7 +14449,7 @@ function newAreaModal() {
       '<div><label for="naName">Name</label><input id="naName" class="f" placeholder="Holiday Heights"></div>' +
       "</div>" +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem">' +
-      '<div><label for="naDot">Dot colour</label>' +
+      '<div><label for="naDot">Dot color</label>' +
       '<input id="naDot" class="f" placeholder="crimson or #c2352f"></div>' +
       '<div><label for="naOrder">Calling order</label>' +
       '<input id="naOrder" class="f" inputmode="numeric" value="999"></div></div>' +
@@ -14785,7 +14785,7 @@ var third = nothingYet ? { lbl: "Left to reconcile", val: money(0), cls: " ok" }
       h += '<div class="msg good" style="margin:.7rem 0 0">' +
         (counted.length
           ? "Day balances. Every job finished this day has its payment in."
-          : "Nothing finished this day counts towards the figures — the card below says why.") +
+          : "Nothing finished this day counts toward the figures — the card below says why.") +
         "</div>";
     else {
       if (unaccounted > 0.004)
@@ -16117,7 +16117,7 @@ function draw() {
         "</div></div>" +
         '<div class="msg"><b>It should never have been raised.</b><br>' +
         "Nothing was ever owed. It stays void even if services are added to the sheet " +
-        "afterwards, so do not use it for a visit that is still to take place." +
+        "afterward, so do not use it for a visit that is still to take place." +
         (got > 0.004
           ? "<br><b>" + money(got) + " has been collected against it.</b> Nothing was owed, " +
             "so that money belongs somewhere else — give it back, or put it on the right " +
@@ -16777,7 +16777,7 @@ function alreadyOnFile(name, addr, phone) {
             $("ncDupe").innerHTML =
               '<div class="msg warn"><b>' + plural(already.length, "customer") +
               " already on file under that name, at that address or on that phone number</b> — nothing in " +
-              "this app can merge two folders afterwards, so look before a second one " +
+              "this app can merge two folders afterward, so look before a second one " +
               "is made.</div>" +
               '<div class="picklist">' + already.map(function (m) {
                 return '<button class="pickrow" type="button" data-ncsame="' + m.c.id + '">' +
@@ -17177,7 +17177,7 @@ function payModal(invoiceId) {
           "recorded by mistake — the office does it under <b>Money already in</b> " +
           "below, which records what happened beside the payment rather than editing " +
           "it. "
-        : "If it has to be put right afterwards — a check that bounces, a refund " +
+        : "If it has to be put right afterward — a check that bounces, a refund " +
           "— the office does that here: once money is against this sheet, this " +
           "dialog lists it with <b>Payment issue</b> on each payment. ") +
       (jobDone
@@ -17292,7 +17292,7 @@ function completePayment(p) {
     openModal("<h3>Not coming — " + money(p.amount_collected) + "</h3>" +
       '<p class="note">Written down as ' + esc(methodLabel(p.method)) + " on " +
         esc(fmtDate(bizDayISO(p.collected_at))) +
-        ". Cancelling cannot be undone — whatever DID come gets recorded as " +
+        ". Canceling cannot be undone — whatever DID come gets recorded as " +
         "its own payment.</p>" +
       '<label for="cxWhy">Why it is not coming</label>' +
       '<input id="cxWhy" class="f" placeholder="paid by check instead · changed their mind">' +
@@ -17309,7 +17309,7 @@ function completePayment(p) {
           cancelled_at: new Date().toISOString(), cancelled_reason: why
         }).eq("id", p.id).select();
         if (r.error) throw explain(r.error);
-        if (!(r.data || []).length) throw new Error("Nothing moved — cancelling a promise is the office’s to do.");
+        if (!(r.data || []).length) throw new Error("Nothing moved — canceling a promise is the office’s to do.");
         await reload(["money", "attention"]);
         closeModal(); render();
         toast("Taken off the list.");
@@ -17880,7 +17880,7 @@ var hAddr = '<div class="card"><h2>' + plural(ps.length, "address", "addresses")
 var hArr = '<div class="card"><h2>Arrangements</h2>' +
       '<div class="acts">' +
       (mayEdit ? '<button class="act" id="cfProg" type="button">' +
-        (pg ? "Change the programme" : "\uff0b Pre-scheduled programme") + "</button>" : "") +
+        (pg ? "Change the program" : "\uff0b Pre-scheduled program") + "</button>" : "") +
       (mayEdit ? '<button class="act" id="cfQuote" type="button">\uff0b An estimate</button>' : "") +
       (mayEdit ? '<button class="act" id="cfEval" type="button">\uff0b Crawl space form</button>' : "") +
       "</div>" +
@@ -17890,7 +17890,7 @@ var hArr = '<div class="card"><h2>Arrangements</h2>' +
           (mayEdit ? " Use the buttons above." : "") + "</p>"
         : "") +
       (pg
-        ? '<p class="note" style="margin-top:.6rem">Pre-scheduled programme</p>' +
+        ? '<p class="note" style="margin-top:.6rem">Pre-scheduled program</p>' +
           '<div class="dates"><b>' +
           plural((pg.months || []).length, "visit") + "</b> a year \u00b7 " +
           esc((pg.months || []).map(function (m) { return MONTHS[m - 1].slice(0, 3); }).join(", ")) +
@@ -18395,7 +18395,7 @@ async function customerCard(id) {
         if (!pg) {
           return '<div class="acts" style="margin-top:.8rem">' +
             '<button class="act" id="ccProg" type="button">Put them on the ' +
-            "pre-scheduled programme</button>" +
+            "pre-scheduled program</button>" +
             '<button class="act" id="ccQuote" type="button">＋ An estimate</button></div>';
         }
         var ex = S.progExtras.filter(function (e) { return e.customer_id === id; });
@@ -18408,7 +18408,7 @@ async function customerCard(id) {
             (ex.length ? " · with " + esc(ex.map(function (e) { return e.label; }).join(", ")) : "") +
             "</div></div>" +
           '<div class="acts"><button class="act" id="ccProg" type="button">Change the ' +
-          "programme</button>" +
+          "program</button>" +
           '<button class="act" id="ccQuote" type="button">＋ An estimate</button></div>';
       })() +
        
@@ -18580,7 +18580,7 @@ var NTHS = [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [5, "the last"]];
     var ps = propsOf(cid);
     var st = S.settings || {};
 
-    openModal("<h3>" + esc(c.name) + " · the pre-scheduled programme</h3>" +
+    openModal("<h3>" + esc(c.name) + " · the pre-scheduled program</h3>" +
       '<p class="note">A recurring slot, confirmed by letter once a year.</p>' +
       (ps.length > 1
         ? '<label for="pgProp">Address</label><select id="pgProp" class="f">' +
@@ -18612,7 +18612,7 @@ var NTHS = [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [5, "the last"]];
       '<label for="pgPrice">Price per spray</label>' +
       '<input id="pgPrice" class="f" inputmode="decimal" value="' +
         esc(pg.base_price == null ? "" : pg.base_price) + '" placeholder="' +
-        esc(money(st.program_price || 65)) + ' — the programme rate">' +
+        esc(money(st.program_price || 65)) + ' — the program rate">' +
       '<label for="pgNote">A line for their letter</label>' +
       '<input id="pgNote" class="f" value="' + esc(pg.letter_note || "") +
         '" placeholder="Morning visits only">' +
@@ -18623,11 +18623,11 @@ var NTHS = [[1, "1st"], [2, "2nd"], [3, "3rd"], [4, "4th"], [5, "the last"]];
       "＋ Add a service</button></div>" +
       '<div id="pgPreview" class="msg">Working out the dates…</div>' +
       (!fresh && !progOf(cid)
-        ? '<p class="note">They were on the programme before, so their old slot, ' +
+        ? '<p class="note">They were on the program before, so their old slot, ' +
           "price and letter note are filled in above rather than lost.</p>"
         : "") +
       '<div class="row"><button class="primary" id="pgGo" type="button">' +
-        (progOf(cid) ? "Save the programme" : "Add to the programme") + "</button>" +
+        (progOf(cid) ? "Save the program" : "Add to the program") + "</button>" +
       (progOf(cid) ? '<button class="act" id="pgOff" type="button">Take them off</button>' : "") +
       '<button class="act" id="pgNo" type="button">Cancel</button></div>');
 
@@ -18770,7 +18770,7 @@ var pgSeq = 0;
         var u = await sb.from("programs").update({ active: false }).eq("customer_id", cid).select();
         if (u.error) throw explain(u.error);
         S.programs = await many(sb.from("programs").select("*").eq("active", true));
-        LET = null; closeModal(); toast(c.name + " taken off the programme.");
+        LET = null; closeModal(); toast(c.name + " taken off the program.");
       } catch (e) { toast(e.message); this.disabled = false; }
     });
 
@@ -18827,7 +18827,7 @@ var had = S.progExtras.filter(function (e) { return e.customer_id === cid; });
             if (dr.error) throw explain(dr.error);
              
             if (!(dr.data || []).length)
-              throw new Error("Taking “" + had[d].label + "” off the programme did not " +
+              throw new Error("Taking “" + had[d].label + "” off the program did not " +
                               "save — removing a bundled service is an admin’s to do.");
           }
         }
