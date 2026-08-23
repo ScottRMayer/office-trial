@@ -908,9 +908,13 @@ body.letters #app > *:not(#letterPrint){display:none!important}
     .card h2 > button.fold::before{display:none}
     .card h2 > button.fold{display:block;cursor:auto}
      
-    .setbody table.lst{display:table;overflow:visible;width:100%}
+    .setbody table.lst{display:table;overflow:visible;width:100%;table-layout:fixed;
+      font-size:.72rem}
     .setbody table.lst tr{page-break-inside:avoid}
     .setbody table.lst th{white-space:normal}
+     
+    .setbody table.lst th,.setbody table.lst td{
+      overflow-wrap:anywhere;word-break:break-word}
     .sheet{border:1px solid #000}
     .rs-sec{page-break-inside:avoid}
      
