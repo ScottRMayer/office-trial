@@ -2580,7 +2580,8 @@ function priceLabel(jobId) {
   }
    
   function bookPricesOnTheJob(l, j) {
-    if (!l || !l.service_id) return true;
+     
+    if (!l || !l.service_id) return false;
      
     var find = function (rows) {
       return (rows || []).filter(function (s) { return s.id === l.service_id; })[0];
@@ -3049,7 +3050,13 @@ function go(name, arg) {
     renderNav(); render();
   }
 
-function goBack(fallback) {
+async function goJob(kind, jobId, custId) {
+    if (jobId && custId && !jobById(jobId)) {
+      try { await olderJobsFor(custId); } catch (e) {}
+    }
+    go(kind, jobId);
+  }
+  function goBack(fallback) {
     if (NAV.length) { history.back(); return; }
     if (typeof fallback === "function") fallback();
   }
@@ -3587,7 +3594,7 @@ var live = {}; techs().forEach(function (p2) { live[p2.id] = 1; });
         orphan.slice(0, 30).map(function (j) {
           var cc = custById(j.customer_id) || {}, pp = propOfJob(j) || {};
           var who = personOf(j.assigned_to) || {};
-          return "<tr><td>" + esc(fmtDate(j.scheduled_date)) + "</td><td>" +
+          return "<tr><td>" + esc(fmtDateY(j.scheduled_date)) + "</td><td>" +
             esc(cc.name || "(customer not loaded)") +
             '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
             "<td>" + esc(who.name || "someone no longer here") + "</td>" +
@@ -3675,6 +3682,7 @@ if (S.gaps.length) {
           '<td style="font-size:.76rem">' + esc(r.detail || "") + "</td>" +
           "<td>" + (r.job_id
             ? '<button class="act" data-gapjob="' + r.job_id +
+              '" data-jc="' + esc(r.customer_id || "") +
               '" type="button" style="padding:.1rem .4rem;font-size:.72rem">Open sheet</button>'
              
             : '<button class="act" data-gapcust="' + r.customer_id +
@@ -3728,7 +3736,7 @@ if ((S.markoutStatus || []).length) {
         (mkLate ? " \u00b7 " + mkLate + " already past calling in" : "") +
         (mkDead ? " \u00b7 " + plural(mkDead, "ticket") + " no longer covering the job" : "") +
         (mkSoon !== null
-          ? " \u00b7 next call by " + (mkSoon === todayISO() ? "today" : fmtDate(mkSoon))
+          ? " \u00b7 next call by " + (mkSoon === todayISO() ? "today" : fmtDateY(mkSoon))
           : "");
       wlMkUrgent = !!(mkLate || mkDead);
       dwMk = '<div class="drawer" id="dw-markout" hidden>' +
@@ -3749,7 +3757,7 @@ if ((S.markoutStatus || []).length) {
                 "<td>" + (r.call_by
                   ? (r.call_by < todayISO()
                       ? '<b style="color:var(--risk)">' + esc(fmtDateY(r.call_by)) + ", gone</b>"
-                      : esc(fmtDate(r.call_by)))
+                      : esc(fmtDateY(r.call_by)))
                   : esc(r.request_no || "")) + "</td>" +
                 "<td>" + (r.job_id
                   ? '<button class="act" data-mkjob="' + r.job_id +
@@ -3771,7 +3779,7 @@ if ((S.leadCheck || []).length) {
         S.leadCheck.slice(0, 8).map(function (r) {
           return "<tr><td>" + esc(r.request_no || "") + "</td>" +
             "<td>" + esc(fmtDateY(r.transmitted_on)) + "</td>" +
-            "<td>" + esc(fmtDate(r.valid_from)) + "</td>" +
+            "<td>" + esc(fmtDateY(r.valid_from)) + "</td>" +
             '<td><b style="color:var(--risk)">' + esc(String(r.observed_days)) +
               "</b> not " + esc(String(r.expected_days)) + "</td></tr>";
         }).join("") + "</table></div>";
@@ -3828,13 +3836,14 @@ if ((S.leadCheck || []).length) {
                 "</td>" +
                 "<td>" + esc(fmtDateY(r.inspection_date)) + "</td>" +
                 "<td>" + (isNaN(d)
-                  ? esc(fmtDate(r.expires_on))
+                  ? esc(fmtDateY(r.expires_on))
                   : d < 0
                     ? '<b style="color:var(--risk)">Expired ' + plural(Math.abs(d), "day") +
                       " ago</b>"
                     : d === 0 ? "expires today" : plural(d, "day") + " left") + "</td>" +
                 "<td>" + (r.job_id
                   ? '<button class="act" data-wdijob="' + r.job_id +
+                    '" data-jc="' + esc(r.customer_id || "") +
                     '" type="button" style="padding:.1rem .4rem;font-size:.72rem">The report</button>'
                   : "") + "</td></tr>" +
                 (r.detail
@@ -3877,9 +3886,9 @@ var dwOwed = '<div class="drawer" id="dw-owed" hidden>' +
                
               '</td><td class="r">' + (Number(q.amount) > 0 ? money(q.amount) : "—") +
               '</td><td class="r">' + plural(x.age, "day") + "</td><td>" +
-              (q.last_contact_date ? esc(fmtDate(q.last_contact_date)) : "never") +
+              (q.last_contact_date ? esc(fmtDateY(q.last_contact_date)) : "never") +
               (q.next_followup_date
-                ? '<div class="why">Follow up ' + esc(fmtDate(q.next_followup_date)) + "</div>" : "") +
+                ? '<div class="why">Follow up ' + esc(fmtDateY(q.next_followup_date)) + "</div>" : "") +
               '</td><td><div class="acts noprint" style="margin:0">' +
               '<button class="act" data-qcall="' + q.id + '" type="button">Record a call</button>' +
               '<button class="act go" data-qyes="' + q.id + '" type="button">Accepted</button>' +
@@ -3954,7 +3963,7 @@ wlStale = plural(stale.length, "job") +
           var cc = custById(j.customer_id) || {};
           var pp = propOfJob(j) || {};
           var late = Math.round((new Date(todayISO()) - new Date(j.scheduled_date)) / 86400000);
-          return "<tr><td>" + esc(fmtDate(j.scheduled_date)) +
+          return "<tr><td>" + esc(fmtDateY(j.scheduled_date)) +
             '<div class="why">' + plural(late, "day") + " ago</div></td>" +
             "<td>" + esc(cc.name || "(customer not loaded)") +
             '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
@@ -3993,7 +4002,7 @@ var unpriced = S.jobs.filter(function (j) {
           var cc = custById(j.customer_id) || {}, pp = propOfJob(j) || {};
 
 var open = isOffice() || linesOf(j.id).some(function (l) { return canPriceLine(l, j); });
-          return "<tr><td>" + esc(j.completed_date ? fmtDate(j.completed_date) : "not dated") + "</td>" +
+          return "<tr><td>" + esc(j.completed_date ? fmtDateY(j.completed_date) : "not dated") + "</td>" +
             "<td>" + esc(cc.name || "(customer not loaded)") +
             '<div class="why">' + esc(pp.address || "no address on file") + "</div></td>" +
             "<td>" + esc(linesOf(j.id).map(function (l) { return l.service_name; }).join(" + ")) +
@@ -4374,7 +4383,8 @@ async function saveOutcome(b, outcome, note) {
       acts.push('<button class="act" data-remind="' + a.record_id + '">Send a reminder…</button>');
        
       acts.push('<button class="act" data-notowed="' + a.record_id + '">Will not collect…</button>');
-      if (a.job_id) acts.push('<button class="act" data-sheet="' + a.job_id + '">Open sheet</button>');
+      if (a.job_id) acts.push('<button class="act" data-sheet="' + a.job_id +
+        '" data-jc="' + esc(a.customer_id || "") + '">Open sheet</button>');
     }
     acts.push('<button class="act" data-note="' + a.customer_id + '">Add a note</button>');
     acts.push('<button class="act" data-snooze="' + a.kind + "|" + a.record_id + '">Defer…</button>');
@@ -4395,12 +4405,12 @@ if (a.kind !== "unpaid-completed")
       (c && c.phone ? " · " + esc(c.phone) : "") + "</div>" +
        
       '<div class="dates">' + (a.address ? esc(a.address) + " · " : "") +
-      (a.last_contact ? "Last contact " + fmtDate(a.last_contact) : "Never contacted") +
+      (a.last_contact ? "Last contact " + fmtDateY(a.last_contact) : "Never contacted") +
        
       (function () {
         if (a.kind !== "unpaid-completed") return "";
         var iv = S.invoices.filter(function (x) { return x.id === a.record_id; })[0];
-        return iv && iv.resent_on ? " · Reminder sent " + fmtDate(iv.resent_on) : "";
+        return iv && iv.resent_on ? " · Reminder sent " + fmtDateY(iv.resent_on) : "";
       })() +
        
       (function () {
@@ -4410,7 +4420,7 @@ if (a.kind !== "unpaid-completed")
         return '<span data-promise="' + esc(a.record_id) + '">' +
           (w ? " · <b>" + esc(w) + "</b>" : "") + "</span>";
       })() +
-      (a.next_followup ? " · Follow up " + fmtDate(a.next_followup) : "") + "</div>" +
+      (a.next_followup ? " · Follow up " + fmtDateY(a.next_followup) : "") + "</div>" +
        
       '<div class="acts noprint">' + acts.join("") + "</div></div>";
   }
@@ -4447,7 +4457,9 @@ if (a.kind !== "unpaid-completed")
       });
     };
      
-    on("[data-gapjob]", function (b) { go("sheet", b.getAttribute("data-gapjob")); });
+    on("[data-gapjob]", function (b) {
+      goJob("sheet", b.getAttribute("data-gapjob"), b.getAttribute("data-jc"));
+    });
     on("[data-gapcust]", function (b) { go("cis", b.getAttribute("data-gapcust")); });
      
     on("[data-job]", function (b) { jobModal(b.getAttribute("data-job")); });
@@ -4458,7 +4470,9 @@ if (a.kind !== "unpaid-completed")
       if (rest) rest.hidden = false;
       if (box) box.hidden = true;
     });
-    on("[data-wdijob]", function (b) { go("wdi", b.getAttribute("data-wdijob")); });
+    on("[data-wdijob]", function (b) {
+      goJob("wdi", b.getAttribute("data-wdijob"), b.getAttribute("data-jc"));
+    });
     on("[data-mkjob]", function (b) { jobModal(b.getAttribute("data-mkjob")); });
     on("[data-pay]", function (b) { payModal(b.dataset.pay); });
      
@@ -4477,7 +4491,7 @@ if (a.kind !== "unpaid-completed")
     on("[data-dismiss]", function (b) {
       dismissModal(b.dataset.dismiss, b.getAttribute("data-dismissnm") || "");
     });
-    on("[data-sheet]", function (b) { go("sheet", b.dataset.sheet); });
+    on("[data-sheet]", function (b) { goJob("sheet", b.dataset.sheet, b.getAttribute("data-jc")); });
     on("[data-restale]", function (b) {
       var j = jobById(b.dataset.restale);
       if (j) moveDayModal(j);
@@ -7267,7 +7281,7 @@ document.body.classList.add("hassheetbar");
 
     if (locked)
       h += '<div class="msg warn noprint"><b>This sheet is closed for changes.</b><br>' +
-        (sh.signed_on ? "Signed on " + esc(sh.signed_on) + ". " : "") +
+        (sh.signed_on ? "Signed on " + esc(fmtFullDate(sh.signed_on)) + ". " : "") +
         (!sh.signed_on && j.status === "complete"
           ? "The job is complete, so the record is filed. " : "") +
         (paidish && linesLocked ? "Payment has been recorded against it. " : "") +
@@ -7804,8 +7818,8 @@ wireSnaps(jobId);
       var a = document.activeElement;
       if (a && a !== this && a.blur) a.blur();
       await WRITEQ;
-       
-      if ($("modal") && getComputedStyle($("modal")).display !== "none") {
+
+if ($("veil") && $("veil").classList.contains("show")) {
         toast("Answer the question on the screen first.");
         return;
       }
@@ -7827,15 +7841,20 @@ wireSnaps(jobId);
      
     wireCompliance(function () { renderSheet(jobId); });
 
-if ($("newCust")) $("newCust").addEventListener("click", async function () {
+if ($("newCust")) $("newCust").addEventListener("click", function () {
       var was = $("newCust").getAttribute("aria-pressed") === "true";
-      this.disabled = true;
-      try {
-        await saveSheet({ new_customer: !was });
-        await reload(["jobs"]);
-        toast(was ? "Not a new customer." : "New customer.");
-        renderSheet(jobId);
-      } catch (e) { toast(e.message); this.disabled = false; }
+      var btn = this;
+      btn.disabled = true;
+       
+      var work = Promise.resolve()
+        .then(function () { return saveSheet({ new_customer: !was }); })
+        .then(function () { return reload(["jobs"]); })
+        .then(function () {
+          toast(was ? "Not a new customer." : "New customer.");
+          renderSheet(jobId);
+        })
+        .catch(function (e) { toast(e.message); btn.disabled = false; });
+      WRITEQ = WRITEQ.then(function () { return work; });
     });
 
     if ($("unlock")) $("unlock").addEventListener("click", function () { unlockModal(); });
@@ -8021,7 +8040,7 @@ function relockModal() {
     function unlockModal() {
       openModal("<h3>Open this sheet for corrections?</h3>" +
         '<p class="note">' +
-        (sh.signed_on ? "It was signed on " + esc(sh.signed_on) + ". " : "") +
+        (sh.signed_on ? "It was signed on " + esc(fmtFullDate(sh.signed_on)) + ". " : "") +
         (paidish ? "Payment has been recorded against it. " : "") +
         "<b>The signature stays as it is.</b> Recorded with your name.</p>" +
         '<div class="row"><button class="primary" id="ulGo" type="button">Open for corrections</button>' +
@@ -19009,7 +19028,9 @@ function drawReason() {
       var reasons = vd ? VOID_INV_REASONS : WITHDRAW_REASONS;
       openModal(head() +
         '<div class="msg ' + (vd ? "bad" : "warn") + '"><b>' +
-        (vd ? "Void " + money(inv.total) + " — it was never owed."
+        (vd ? (Number(inv.subtotal) > 0
+                ? "Void " + money(inv.total) + " — it was never owed."
+                : "Void the bill — nothing was ever priced on it.")
             : "Not asking for " + money(owed) + " — the work still happened.") + "</b><br>" +
         (vd ? "The sheet bills for nothing and the invoice reads void."
             : "The sheet still shows the work. It is removed from what they owe.") + "</div>" +
@@ -19063,10 +19084,12 @@ function drawReason() {
           throw new Error("Nothing changed. It may already have been done — reload and check.");
         await reload(["money", "attention"]);
         toast(mode === "void"
-          ? "Voided — " + money(inv.total) + " was never owed."
+          ? (Number(inv.subtotal) > 0
+              ? "Voided — " + money(inv.total) + " was never owed."
+              : "Voided — nothing had been priced on it.")
           : "Will not collect — " + money(nowOwed) + " off what they owe.");
-         
-        if (back) back(); else { closeModal(); render(); }
+
+if (back) back(); else { closeModal(); dashRedraw(); }
       } catch (e) {
         toast(closedMonthMsg(e) ||
           (/charge_withdrawn_/.test(e.message)
@@ -19809,6 +19832,8 @@ var CUST_FILTER = { area: "", month: "", gone: "active" };
         ? plural(S.customers.length, "customer")
         : plural(shown.length, "customer") + " shown of " + S.customers.length) +
       (inactiveN && CUST_FILTER.gone === "active" ? " · " + inactiveN + " set aside, not shown" : "") +
+       
+      " · amounts owed are the last eighteen months; the dashboard's Money owed is the whole file" +
       "</p>" +
        
       (isOffice()
@@ -20943,12 +20968,15 @@ var CFMODE = { phone: "tel", email: "email", year_started: "numeric" };
             "They are still a customer \u2014 clear it</button></div>"
           : "") + "</div>";
 
-    if (owed > 0.004)
+if (owed > 0.004)
       h += '<div class="msg bad"><b>Owes ' + money(owed) + "</b>." +
-         
         (older ? " In the last eighteen months — " + plural(older, "earlier visit") +
                  " " + (older === 1 ? "is" : "are") + " not counted until shown below." : "") +
         "</div>";
+    else if (older)
+      h += '<p class="note">Nothing owed in the last eighteen months. ' +
+        esc(plural(older, "earlier visit")) + " " + (older === 1 ? "is" : "are") +
+        " not counted until shown below.</p>";
 
 var nextJ = null, lastJ = null, k;
     for (k = 0; k < jobs.length; k++) {
@@ -21672,12 +21700,21 @@ async function customerCard(id) {
     var ps = propsOf(id);
     var jobs = S.jobs.filter(function (j) { return j.customer_id === id; })
       .sort(function (a, b) { return (b.scheduled_date || "").localeCompare(a.scheduled_date || ""); });
-    var owed = 0;
-    jobs.forEach(function (j) {
-       
-      if (j.status !== "complete") return;
-      var b = balOf(j.id); if (b && !b.charge_withdrawn && !b.voided_at) owed += Number(b.balance) || 0;
+    var owed = 0, owedWhole = false;
+     
+    var att = (S.attention || []).filter(function (a2) {
+      return a2.customer_id === id && a2.kind === "unpaid-completed";
     });
+    if (isOffice() && (S.attention || []).length) {
+      owedWhole = true;
+      att.forEach(function (a2) { owed += Number(a2.amount) || 0; });
+    } else {
+      jobs.forEach(function (j) {
+         
+        if (j.status !== "complete") return;
+        var b = balOf(j.id); if (b && !b.charge_withdrawn && !b.voided_at) owed += Number(b.balance) || 0;
+      });
+    }
      
     var notes = [], notesFailed = "";
     try {
@@ -21698,7 +21735,10 @@ async function customerCard(id) {
           '<div class="acts"><button class="act" id="ccBack" type="button">' +
           "They are still a customer — clear it</button></div></div>"
         : "") +
-      (owed > 0.004 ? '<div class="msg bad"><b>Owes ' + money(owed) + "</b>.</div>" : "") +
+      (owed > 0.004
+        ? '<div class="msg bad"><b>Owes ' + money(owed) + "</b>." +
+          (owedWhole ? "" : " In the last eighteen months.") + "</div>"
+        : "") +
       ps.map(function (p) {
         var ar = areaOf(p.area_code);
         return '<div class="item"><div class="top"><span class="dot" style="background:' +
