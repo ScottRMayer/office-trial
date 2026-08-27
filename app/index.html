@@ -2161,6 +2161,9 @@ function openSnapshot(at) {
             return String(a.name || "").localeCompare(String(b.name || ""));
           })[0] || {}).id;
     gate.style.display = "none"; bar.style.display = ""; app.style.display = "";
+     
+    try { outboxMine().filter(function (x) { return !x.failed; }).forEach(outboxLocal); }
+    catch (e4) {}
     renderNav(); render();
     touchIdle();
     var lk = "";
@@ -2910,7 +2913,12 @@ var OUTBOX_KEY = "ut_outbox";
   }
    
   function outboxHTML() {
-    if (OFFLINE) return "";
+     
+    if (OFFLINE) {
+      var held = outboxCount();
+      return held ? '<div class="msg" style="margin:.5rem 0 0">' +
+        plural(held, "thing") + " held on this tablet, waiting for a signal.</div>" : "";
+    }
     var bad = outboxFailed(), h = "";
     if (!NOSIGNAL && outboxCount())
       h += '<div class="msg" style="margin:.5rem 0 0">Sending ' +
@@ -8453,7 +8461,19 @@ function matFound(chemRows) {
         }
         html += "</tr>";
       }
-      return html;
+       
+      var seated = [], extra = "";
+      list.forEach(function (m) { var r = found(m); if (r) seated.push(r); });
+      chemRows.forEach(function (r) {
+        if (seated.indexOf(r) >= 0) return;
+        extra += '<tr><td>' + esc(pctShow(r.percent || "")) + "</td>" +
+          '<td><div class="matname on">' + chkBox(true) + "<span>" +
+          esc(r.product_name || "") +
+          (r.epa_number ? '<span class="epa">EPA #' + esc(r.epa_number) + "</span>" : "") +
+          "</span></div></td><td>" + esc(r.amount || "") + "</td>" +
+          '<td colspan="9"></td></tr>';
+      });
+      return html + extra;
     }
     function matUsedRows(chemRows) {
       return '<tr><th style="width:3rem">%</th>' +
@@ -12460,8 +12480,15 @@ async function markPosted(cid, btn) {
       });
       var ri = await sb.from("consumer_sheet_items").insert(items).select();
       if (ri.error) {
-        await sb.from("consumer_sheets").delete().eq("id", sheet.id).select();
-        throw explain(ri.error);
+         
+        var un = await sb.from("consumer_sheets").delete().eq("id", sheet.id).select();
+        var stranded = !!(un.error || !(un.data || []).length);
+        var why = explain(ri.error);
+        throw new Error(why.message +
+          (stranded
+            ? " — and the empty sheet dated " + fmtDate(todayISO()) + " could not be " +
+              "removed, which is an administrator action. Ask for it to be removed."
+            : ""));
       }
       if (!skipReload) await reload(["cis"]);
       return "The letter is mailed, and the season\u2019s Consumer Information Sheet is on file for " +
@@ -12489,10 +12516,12 @@ async function markPosted(cid, btn) {
          
         var said = "";
         try {
-          var sh = await sb.from("consumer_sheets").select("id")
+           
+          var day = bizDayISO(r.sent_at);
+          var sh = day ? await sb.from("consumer_sheets").select("id")
             .eq("customer_id", cid).eq("given_how", "posted").eq("tearoff_expected", false)
             .is("signed_on", null).is("signature", null)
-            .gte("issued_on", String(r.sent_at || "").slice(0, 10) || "1900-01-01");
+            .eq("issued_on", day) : null;
           var ids = ((sh && sh.data) || []).map(function (x) { return x.id; });
           if (ids.length && isAdmin()) {
             var dd = await sb.from("consumer_sheets").delete().in("id", ids).select();
@@ -16043,10 +16072,10 @@ async function shutMonth(btn) {
       try {
         var r;
         if (MC.row) {
-           
-          r = await sb.from("months_closed")
+
+r = await sb.from("months_closed")
             .update({ reopened_at: null, reopened_by: null, reopen_reason: null,
-                      closed_by: S.me.id, closed_at: new Date().toISOString() })
+                      closed_by: S.me.id })
             .eq("year", MC.y).eq("month", MC.m).select();
         } else {
            
